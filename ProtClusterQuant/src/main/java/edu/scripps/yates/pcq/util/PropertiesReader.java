@@ -1,4 +1,4 @@
-package edu.scripps.yates.proteinclusters.util;
+package edu.scripps.yates.pcq.util;
 
 import java.awt.Color;
 import java.io.File;
@@ -53,7 +53,24 @@ public class PropertiesReader {
 	private static void readParametersFromProperties(ProteinClusterQuantProperties properties)
 			throws FileNotFoundException {
 		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+		try {
+			InputType inputType = InputType.valueOf(properties.getProperty("inputType", true));
+			params.setInputType(inputType);
+		} catch (Exception e) {
+			throw new IllegalArgumentException(
+					"'inputType' parameter can only have the following values: " + InputType.getPossibleValues());
+		}
 
+		if (properties.containsKey("onlyOneSpectrumPerChromatographicPeakAndPerSaltStep")) {
+			boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep = Boolean
+					.valueOf(properties.getProperty("onlyOneSpectrumPerChromatographicPeakAndPerSaltStep", false));
+			params.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
+					onlyOneSpectrumPerChromatographicPeakAndPerSaltStep);
+		}
+		if (properties.containsKey("skipSingletons")) {
+			boolean skipSingletons = Boolean.valueOf(properties.getProperty("skipSingletons", false));
+			params.setSkipSingletons(skipSingletons);
+		}
 		// CASIMIR
 		// protein pair analysis based on significant value cutoff
 		boolean significantProteinPairAnalysis = Boolean
@@ -69,17 +86,25 @@ public class PropertiesReader {
 		params.setStdAsSignficanceCutoffOn(stdAsSignficanceCutoff);
 		// CASIMIR
 		// cutoff for significance
-		double thresholdForSignificance = Double.valueOf(properties.getProperty("thresholdForSignificance", "0"));
+		double thresholdForSignificance = Double.valueOf(properties.getProperty("thresholdForSignificance", "0.05"));
 		params.setThresholdForSignificance(thresholdForSignificance);
 		boolean printOnlyFirstGene = Boolean.valueOf(properties.getProperty("printOnlyFirstGene", "true"));
 		params.setPrintOnlyFirstGene(printOnlyFirstGene);
-		// do we have threhsold for minimum PSMs per Peptide
-		boolean ionsPerPeptideThresholdOn = Boolean
-				.valueOf(properties.getProperty("ionsPerPeptideThresholdOn", "false"));
-		params.setIonsPerPeptideThresholdOn(ionsPerPeptideThresholdOn);
-		// threshold for minimum ions per peptide
-		int ionsPerPeptideThreshold = Integer.valueOf(properties.getProperty("ionsPerPeptideThreshold", "8"));
-		params.setIonsPerPeptideThreshold(ionsPerPeptideThreshold);
+		// do we have threhsold for minimum ion counts per Peptide
+		boolean ionsPerPeptideNodeThresholdOn = Boolean
+				.valueOf(properties.getProperty("ionsPerPeptideNodeThresholdOn", "false"));
+		params.setIonsPerPeptideNodeThresholdOn(ionsPerPeptideNodeThresholdOn);
+		// threshold for minimum ions per peptide node
+		int ionsPerPeptideNodeThreshold = Integer.valueOf(properties.getProperty("ionsPerPeptideNodeThreshold", "8"));
+		params.setIonsPerPeptideNodeThreshold(ionsPerPeptideNodeThreshold);
+		// threshold for minimum PSMs per Peptide
+		boolean psmsPerPeptideNodeThresholdOn = Boolean
+				.valueOf(properties.getProperty("psmsPerPeptideNodeThresholdOn", "false"));
+		params.setPsmsPerPeptideThresholdOn(psmsPerPeptideNodeThresholdOn);
+		// threshold for minimum PSMs per peptide node
+		int psmsPerPeptideNodeThreshold = Integer.valueOf(properties.getProperty("psmsPerPeptideNodeThreshold", "0"));
+		params.setPsmsPerPeptideThreshold(psmsPerPeptideNodeThreshold);
+
 		// threshold for the iglewiczHoaglin Test. A result wquals or greater
 		// than that, would be considered as an outlier
 		double iglewiczHoaglinTestThreshold = Double.valueOf(properties.getProperty("iglewiczHoaglinTest", "3.5"));
@@ -109,6 +134,10 @@ public class PropertiesReader {
 				enzymeArray[i] = tmp[i].trim().charAt(0);
 			}
 		} else {
+			if (enzymeArrayString.length() > 1) {
+				throw new FileNotFoundException(
+						"Enzyme array contains more than one character but is not separated by ','. Try something like 'K,R'");
+			}
 			enzymeArray = new char[1];
 			enzymeArray[0] = enzymeArrayString.trim().charAt(0);
 		}
@@ -125,6 +154,9 @@ public class PropertiesReader {
 		File uniprotReleasesFolder = new File(
 				properties.getProperty("uniprotReleasesFolder", System.getProperty("user.dir")));
 		params.setUniprotReleasesFolder(uniprotReleasesFolder);
+
+		String uniprotVersion = properties.getProperty("uniprotVersion", null);
+		params.setUniprotVersion(uniprotVersion);
 
 		// output prefix
 		String outputPrefix = properties.getProperty("output_prefix", true);
@@ -152,27 +184,33 @@ public class PropertiesReader {
 			temporalOutputFolder.mkdirs();
 		}
 		params.setOutputFileFolder(outputFileFolder);
-		String[] inputFileNames = null;
+
+		// input files
 		String fileNamesString = properties.getProperty("input_files");
-		if (fileNamesString.contains(",")) {
-			String[] tmp = fileNamesString.split(",");
-			inputFileNames = new String[tmp.length];
+		if (fileNamesString.contains("|")) {
+			String[] tmp = fileNamesString.split("\\|");
 			for (int i = 0; i < tmp.length; i++) {
-				inputFileNames[i] = tmp[i].trim();
+				ExperimentFiles experimentFiles = parseExperimentFileNames(tmp[i].trim());
+				params.addInputFileNames(experimentFiles);
 			}
 		} else {
-			inputFileNames = new String[1];
-			inputFileNames[0] = fileNamesString.trim();
+			ExperimentFiles experimentFiles = parseExperimentFileNames(fileNamesString);
+			params.addInputFileNames(experimentFiles);
 		}
-		params.setInputFileNames(inputFileNames);
+
+		// fasta file
 		final String fastaFileProp = properties.getProperty("fasta_file", false);
-		if (fastaFileProp != null) {
+		if (fastaFileProp != null && !"".equals(fastaFileProp)) {
 			File fastaFile = new File(fastaFileProp);
 			if (!fastaFile.exists()) {
 				throw new FileNotFoundException(fastaFile.getAbsolutePath() + " doesn't exist");
 			}
 			params.setFastaFile(fastaFile);
 		}
+		// ignore peptides not in indexed DB
+		boolean ignoreNotFoundPeptidesInDB = Boolean
+				.valueOf(properties.getProperty("ignoreNotFoundPeptidesInDB", "false"));
+		params.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 
 		String lightSpecies = properties.getProperty("light_species", false);
 		if (lightSpecies != null)
@@ -185,21 +223,7 @@ public class PropertiesReader {
 		//////////////
 		// PSEA QUANT
 		// replicate_identifiers
-		String replicateIdentifiersString = properties.getProperty("replicate_identifiers", false);
-		if (replicateIdentifiersString != null) {
-			String[] replicateIdentifiers = null;
-			if (replicateIdentifiersString.contains(",")) {
-				String[] tmp = replicateIdentifiersString.split(",");
-				replicateIdentifiers = new String[tmp.length];
-				for (int i = 0; i < tmp.length; i++) {
-					replicateIdentifiers[i] = tmp[i].trim();
-				}
-			} else {
-				replicateIdentifiers = new String[1];
-				replicateIdentifiers[0] = replicateIdentifiersString.trim();
-			}
-			params.setReplicateIdentifiers(replicateIdentifiers);
-		}
+
 		boolean excludeUniquePeptides = Boolean.valueOf(properties.getProperty("excludeUniquePeptides", "true"));
 		params.setExcludeUniquePeptides(excludeUniquePeptides);
 		/////////////////
@@ -274,6 +298,12 @@ public class PropertiesReader {
 		Color colorRatioMax = ColorManager.hex2Rgb(properties.getProperty("color_ratio_max", "#ff0000"));
 		params.setColorRatioMax(colorRatioMax);
 
+		final String colorNonRegulatedString = properties.getProperty("color_non_regulated", false);
+		if (colorNonRegulatedString != null) {
+			Color colorNonRegulated = ColorManager.hex2Rgb(colorNonRegulatedString);
+			params.setColorNonRegulated(colorNonRegulated);
+		}
+
 		double minimumRatioForColor = Double.valueOf(properties.getProperty("minimum_ratio_for_color", "-10"));
 		params.setMinimumRatioForColor(minimumRatioForColor);
 		double maximumRatioForColor = Double.valueOf(properties.getProperty("maximum_ratio_for_color", "10"));
@@ -287,8 +317,77 @@ public class PropertiesReader {
 		boolean remarkSignificantPeptides = Boolean
 				.valueOf(properties.getProperty("remark_significant_peptides", "true"));
 		params.setRemarkSignificantPeptides(remarkSignificantPeptides);
+
+		// MONGO DB
+		final String mongoDBHostURI = properties.getProperty("mongoDBHostURI");
+		params.setMongoDBURI(mongoDBHostURI);
+
+		final String mongoProtDBName = properties.getProperty("mongoProtDBName");
+		params.setMongoProtDBName(mongoProtDBName);
+
+		final String mongoMassDBName = properties.getProperty("mongoMassDBName");
+		params.setMongoMassDBName(mongoMassDBName);
+
+		final String mongoSeqDBName = properties.getProperty("mongoSeqDBName");
+		params.setMongoSeqDBName(mongoSeqDBName);
+
+		// SANXOT
+		boolean performRatioIntegration = Boolean.valueOf(properties.getProperty("perform_ratio_integration", "false"));
+		params.setPerformRatioIntegration(performRatioIntegration);
+		try {
+			if (properties.containsKey("outliers_removal_FDR")) {
+				double outlierRemovalFDR = Double.valueOf(properties.getProperty("outliers_removal_FDR", false));
+				params.setOutliersRemovalFDR(outlierRemovalFDR);
+			}
+		} catch (NumberFormatException e) {
+			// do nothing
+		}
+		try {
+			if (properties.containsKey("significant_FDR_threshold")) {
+				double significantFDRThreshold = Double
+						.valueOf(properties.getProperty("significant_FDR_threshold", false));
+				params.setSignificantFDRThreshold(significantFDRThreshold);
+			}
+		} catch (NumberFormatException e) {
+			// do nothing
+		}
+
 		// check errors
 		checkErrorsInParameters(params);
+	}
+
+	/**
+	 * Parse a strign like:<br>
+	 * experiment_name [ replicate_name_1, replicate_name_2] <br>
+	 * and put it in the returning map
+	 *
+	 * @param trim
+	 * @return
+	 */
+	private static ExperimentFiles parseExperimentFileNames(String string) {
+		ExperimentFiles ret = null;
+		try {
+			int firstBracketPosition = string.indexOf("[");
+			int secondBracketPosition = string.indexOf("]");
+			String experimentName = string.substring(0, firstBracketPosition).trim();
+			ret = new ExperimentFiles(experimentName);
+			final String replicatesString = string.substring(firstBracketPosition + 1, secondBracketPosition).trim();
+			if (replicatesString.contains(",")) {
+				final String[] split = replicatesString.split(",");
+				for (String replicateName : split) {
+					ret.addReplicateFileName(replicateName.trim());
+				}
+			} else {
+				ret.addReplicateFileName(replicatesString);
+			}
+		} catch (Exception e) {
+			if (e instanceof IllegalArgumentException) {
+				throw e;
+			}
+			throw new IllegalArgumentException("File name string is not well formed: '" + string
+					+ "'\nTry something like: exp1[rep11_file.xml, rep12_file.xml] | exp2[rep21_file.xml, rep22_file.xml]");
+		}
+		return ret;
 	}
 
 	private static void checkErrorsInParameters(ProteinClusterQuantParameters params) {

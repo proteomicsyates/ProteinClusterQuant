@@ -1,4 +1,4 @@
-package edu.scripps.yates.proteinclusters;
+package edu.scripps.yates.pcq.model;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -14,10 +14,14 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import edu.scripps.yates.census.analysis.QuantCondition;
+import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
-import edu.scripps.yates.proteinclusters.util.ProteinClusterQuantParameters;
-import edu.scripps.yates.proteinclusters.util.Utils;
+import edu.scripps.yates.pcq.Classification1Case;
+import edu.scripps.yates.pcq.Classification2Case;
+import edu.scripps.yates.pcq.ProteinPairPValue;
+import edu.scripps.yates.pcq.util.ProteinClusterQuantParameters;
+import edu.scripps.yates.pcq.util.Utils;
 import edu.scripps.yates.utilities.maths.Maths;
 
 public class ProteinPair {
@@ -32,8 +36,8 @@ public class ProteinPair {
 
 	private final Map<String, Classification2Case> classification2Cases = new HashMap<String, Classification2Case>();
 	private final Map<String, Classification1Case> classification1Cases = new HashMap<String, Classification1Case>();
-	private Writer output;
-	private Writer output5;
+	private Writer outputCases;
+	private Writer outputGroups;
 	private Writer outputNames;
 	ProteinPairPValue firstCase;
 	ProteinPairPValue secondCase;
@@ -76,7 +80,7 @@ public class ProteinPair {
 	 * @return
 	 */
 	private List<Double> getCountRatiosFromProtein1(QuantCondition cond1, QuantCondition cond2) {
-		return Utils.getCountRatio(protein1, cond1, cond2);
+		return Utils.getConsensusRatioValues(protein1, cond1, cond2);
 	}
 
 	/**
@@ -87,7 +91,7 @@ public class ProteinPair {
 	 * @return
 	 */
 	private List<Double> getCountRatiosFromProtein2(QuantCondition cond1, QuantCondition cond2) {
-		return Utils.getCountRatio(protein2, cond1, cond2);
+		return Utils.getConsensusRatioValues(protein2, cond1, cond2);
 	}
 
 	/**
@@ -217,30 +221,24 @@ public class ProteinPair {
 
 		// Protein 1's unique peptides
 		// has only ratios or inf
-		Ratio consensusRatio1 = Utils.getUniquePepRatio(protein1, protein2, cond1, cond2, params.isUniquePepOnly());
-		Double log2CountRatio1 = consensusRatio1.getLog2CountRatio(cond1, cond2);
-		if (log2CountRatio1 == null) {
-			log2CountRatio1 = Double.NaN;
-		}
+		QuantRatio consensusRatio1 = Utils.getUniqueConsensusPeptideRatio(protein1, protein2, cond1, cond2,
+				params.isUniquePepOnly());
+
+		Double log2CountRatio1 = Utils.getRatioValue(consensusRatio1, cond1, cond2);
 		threeCombined.add(log2CountRatio1);
 		List<Double> pepRatProt1 = Utils.getUniquePepRatioValues(protein1, protein2, cond1, cond2,
 				params.isUniquePepOnly());
 
 		// shared peptides
-		Ratio consensusRatio2 = Utils.getSharedPepRatio(protein1, protein2, cond1, cond2);
-		Double log2CountRatioShared = consensusRatio2.getLog2CountRatio(cond1, cond2);
-		if (log2CountRatioShared == null) {
-			log2CountRatioShared = Double.NaN;
-		}
+		QuantRatio consensusRatio2 = Utils.getSharedConsensusPeptideRatio(protein1, protein2, cond1, cond2);
+		Double log2CountRatioShared = Utils.getRatioValue(consensusRatio2, cond1, cond2);
 		threeCombined.add(log2CountRatioShared);
 		List<Double> pepRatShared = Utils.getSharedPepRatioValues(protein1, protein2, cond1, cond2);
 
 		// protein 2's peptides
-		Ratio consensusRatio3 = Utils.getUniquePepRatio(protein2, protein1, cond1, cond2, params.isUniquePepOnly());
-		Double log2CountRatio3 = consensusRatio3.getLog2CountRatio(cond1, cond2);
-		if (log2CountRatio3 == null) {
-			log2CountRatio3 = Double.NaN;
-		}
+		QuantRatio consensusRatio3 = Utils.getUniqueConsensusPeptideRatio(protein2, protein1, cond1, cond2,
+				params.isUniquePepOnly());
+		Double log2CountRatio3 = Utils.getRatioValue(consensusRatio3, cond1, cond2);
 		threeCombined.add(log2CountRatio3);
 		List<Double> pepRatProt2 = Utils.getUniquePepRatioValues(protein2, protein1, cond1, cond2,
 				params.isUniquePepOnly());
@@ -249,9 +247,9 @@ public class ProteinPair {
 				protein2, false);
 		for (String sharedPeptidesProteinKey : sharedPeptidesMap.keySet()) {
 			final Set<QuantifiedPeptideInterface> sharedPeptides = sharedPeptidesMap.get(sharedPeptidesProteinKey);
-			final List<QuantifiedPeptideInterface> uniques1 = Utils.getUniquePeptides(protein1, protein2,
+			final Set<QuantifiedPeptideInterface> uniques1 = Utils.getUniquePeptides(protein1, protein2,
 					params.isUniquePepOnly());
-			final List<QuantifiedPeptideInterface> uniques2 = Utils.getUniquePeptides(protein2, protein1,
+			final Set<QuantifiedPeptideInterface> uniques2 = Utils.getUniquePeptides(protein2, protein1,
 					params.isUniquePepOnly());
 			classifyPairByClassification2(params.isStdAsSignficanceCutoffOn(), params.getThresholdForSignificance(),
 					uniques1, uniques2, sharedPeptides, sharedPeptidesProteinKey, cond1, cond2);
@@ -296,9 +294,16 @@ public class ProteinPair {
 		// + Utils.getPeptidesSequenceString(uniques2) + "] ");
 		// }
 		List<Double> threeCombined = new ArrayList<Double>();
-		threeCombined.add(Utils.getPepRatio(uniques1, cond1, cond2, null).getLog2CountRatio(cond1, cond2));
-		threeCombined.add(Utils.getPepRatio(shared, cond1, cond2, null).getLog2CountRatio(cond1, cond2));
-		threeCombined.add(Utils.getPepRatio(uniques2, cond1, cond2, null).getLog2CountRatio(cond1, cond2));
+		final QuantRatio consensusRatio1 = Utils.getConsensusRatio(uniques1, cond1, cond2, null);
+		Double value1 = Utils.getRatioValue(consensusRatio1, cond1, cond2);
+		threeCombined.add(value1);
+		final QuantRatio consensusRatioShared = Utils.getConsensusRatio(shared, cond1, cond2, null);
+		Double valueShared = Utils.getRatioValue(consensusRatioShared, cond1, cond2);
+
+		threeCombined.add(valueShared);
+		final QuantRatio consensusRatio2 = Utils.getConsensusRatio(uniques2, cond1, cond2, null);
+		Double value2 = Utils.getRatioValue(consensusRatio2, cond1, cond2);
+		threeCombined.add(value2);
 
 		// variables
 		// final List<String> [non_regulated, middle_up, middle_down, first_up,
@@ -463,6 +468,14 @@ public class ProteinPair {
 
 	}
 
+	private void writeOnOutputCases(String string) throws IOException {
+		if (ProteinClusterQuantParameters.getInstance().isGenerateMiscellaneousFiles()) {
+			if (outputCases != null) {
+				outputCases.append(string);
+			}
+		}
+	}
+
 	/**
 	 * Classifies all three ratios into the three different cases
 	 *
@@ -484,11 +497,12 @@ public class ProteinPair {
 			classification1Case = Classification1Case.CASE5;
 		} else if (hasRatiosAndINF) {
 			classification1Case = Classification1Case.CASE2;
-			output.append(getNameProt1() + "\t" + classification1Case.getCaseID() + "\n");
-			output.append(getNameProt2() + "\t" + classification1Case.getCaseID() + "\n");
+			writeOnOutputCases(getNameProt1() + "\t" + classification1Case.getCaseID() + "\n");
+			writeOnOutputCases(getNameProt2() + "\t" + classification1Case.getCaseID() + "\n");
 			if (params.isPrintKMeans()) {
-				output.append(classification1Case.getCaseID() + "\t" + getNameProt1() + "\t" + getNameProt2() + "\t"
-						+ threeCombined.get(0) + "\t" + threeCombined.get(1) + "\t" + threeCombined.get(2) + "\n");
+				writeOnOutputCases(classification1Case.getCaseID() + "\t" + getNameProt1() + "\t" + getNameProt2()
+						+ "\t" + threeCombined.get(0) + "\t" + threeCombined.get(1) + "\t" + threeCombined.get(2)
+						+ "\n");
 			}
 		} else {
 			// at this point we have INF OR RATIOS, not both
@@ -526,11 +540,12 @@ public class ProteinPair {
 					// nothing is significant
 					classification1Case = Classification1Case.CASE3;
 				}
-				output.append(getNameProt1() + "\t" + classification1Case.getCaseID() + "\n");
-				output.append(getNameProt2() + "\t" + classification1Case.getCaseID() + "\n");
+				writeOnOutputCases(getNameProt1() + "\t" + classification1Case.getCaseID() + "\n");
+				writeOnOutputCases(getNameProt2() + "\t" + classification1Case.getCaseID() + "\n");
 				if (params.isPrintKMeans()) {
-					output.append(classification1Case.getCaseID() + "\t" + getNameProt1() + "\t" + getNameProt2() + "\t"
-							+ threeCombined.get(0) + "\t" + threeCombined.get(1) + "\t" + threeCombined.get(2) + "\n");
+					writeOnOutputCases(classification1Case.getCaseID() + "\t" + getNameProt1() + "\t" + getNameProt2()
+							+ "\t" + threeCombined.get(0) + "\t" + threeCombined.get(1) + "\t" + threeCombined.get(2)
+							+ "\n");
 				}
 			}
 			// if we only have INF or -INF:
@@ -544,15 +559,18 @@ public class ProteinPair {
 				} else {
 					classification1Case = Classification1Case.CASE4;
 				}
-				output.append(getNameProt1() + "\t" + classification1Case.getCaseID() + "\n");
-				output.append(getNameProt2() + "\t" + classification1Case.getCaseID() + "\n");
+				writeOnOutputCases(getNameProt1() + "\t" + classification1Case.getCaseID() + "\n");
+				writeOnOutputCases(getNameProt2() + "\t" + classification1Case.getCaseID() + "\n");
 				if (params.isPrintKMeans()) {
-					output.append(classification1Case.getCaseID() + "\t" + getNameProt1() + "\t" + getNameProt2() + "\t"
-							+ threeCombined.get(0) + "\t" + threeCombined.get(1) + "\t" + threeCombined.get(2) + "\n");
+					writeOnOutputCases(classification1Case.getCaseID() + "\t" + getNameProt1() + "\t" + getNameProt2()
+							+ "\t" + threeCombined.get(0) + "\t" + threeCombined.get(1) + "\t" + threeCombined.get(2)
+							+ "\n");
 				}
 			}
 		}
-		output.flush();
+		if (ProteinClusterQuantParameters.getInstance().isGenerateMiscellaneousFiles() && outputCases != null) {
+			outputCases.flush();
+		}
 		printThreeAverages(threeCombined);
 
 		classification1Cases.put(sharedPeptidesProteinKey, classification1Case);
@@ -568,61 +586,60 @@ public class ProteinPair {
 	}
 
 	private void printThreeAverages(List<Double> threeCombined) throws IOException {
+		if (ProteinClusterQuantParameters.getInstance().isGenerateMiscellaneousFiles()) {
+			// prints Prot Pep PepNAme PRot Name
+			outputGroups.append(protein1.getAccession() + "\t");
+			outputGroups.append("1\t" + Utils.getPeptidesSequenceString(
+					Utils.getUniquePeptides(protein1, protein2, params.isUniquePepOnly())) + "\n");
 
-		// prints Prot Pep PepNAme PRot Name
-		output5.append(protein1.getAccession() + "\t");
-		output5.append("1\t"
-				+ Utils.getPeptidesSequenceString(Utils.getUniquePeptides(protein1, protein2, params.isUniquePepOnly()))
-				+ "\n");
+			outputGroups.append(protein2.getAccession() + "\t");
+			outputGroups.append("1\t" + Utils.getPeptidesSequenceString(
+					Utils.getUniquePeptides(protein2, protein1, params.isUniquePepOnly())) + "\n");
 
-		output5.append(protein2.getAccession() + "\t");
-		output5.append("1\t"
-				+ Utils.getPeptidesSequenceString(Utils.getUniquePeptides(protein2, protein1, params.isUniquePepOnly()))
-				+ "\n");
+			outputGroups.append(protein1.getAccession() + "\t");
+			outputGroups.append("1\t"
+					+ Utils.getPeptidesSequenceString(Utils.getSharedPeptidesMap(protein2, protein1, false)) + "\n");
 
-		output5.append(protein1.getAccession() + "\t");
-		output5.append(
-				"1\t" + Utils.getPeptidesSequenceString(Utils.getSharedPeptidesMap(protein2, protein1, false)) + "\n");
+			outputGroups.append(protein2.getAccession() + "\t");
+			outputGroups.append("1\t"
+					+ Utils.getPeptidesSequenceString(Utils.getSharedPeptidesMap(protein2, protein1, false)) + "\n");
 
-		output5.append(protein2.getAccession() + "\t");
-		output5.append(
-				"1\t" + Utils.getPeptidesSequenceString(Utils.getSharedPeptidesMap(protein2, protein1, false)) + "\n");
+			outputGroups.flush();
 
-		output5.flush();
+			outputNames.append(protein1.getAccession() + "\t");
+			outputNames.append(protein1.getAccession() + "\t");
+			outputNames.append(protein1.getDescription() + "\t");
+			if (params.isGetTax()) {
+				outputNames.append(protein1.getTaxonomy() + "\t" + "0\n");
+			} else {
+				outputNames.append("\t" + "0\n");
+			}
 
-		outputNames.append(protein1.getAccession() + "\t");
-		outputNames.append(protein1.getAccession() + "\t");
-		outputNames.append(protein1.getDescription() + "\t");
-		if (params.isGetTax()) {
-			outputNames.append(protein1.getTaxonomy() + "\t" + "0\n");
-		} else {
-			outputNames.append("\t" + "0\n");
+			outputNames.append(protein2.getAccession() + "\t");
+			outputNames.append(protein2.getAccession() + "\t");
+			outputNames.append(protein2.getDescription() + "\t");
+			if (params.isGetTax()) {
+				outputNames.append(protein2.getTaxonomy() + "\t" + "0\n");
+			} else {
+				outputNames.append("\t" + "0\n");
+			}
+			if (!Utils.getUniquePeptides(protein1, protein2, params.isUniquePepOnly()).isEmpty()) {
+				outputNames.append(Utils.getPeptidesSequenceString(
+						Utils.getUniquePeptides(protein1, protein2, params.isUniquePepOnly())) + "\t");
+				outputNames.append(Utils.format(threeCombined.get(0)) + "\t" + "\t" + "\t" + "1\t" + "\n");
+			}
+
+			outputNames.append(
+					Utils.getPeptidesSequenceString(Utils.getSharedPeptidesMap(protein1, protein2, false)) + "\t");
+			outputNames.append(Utils.format(threeCombined.get(1)) + "\t" + "\t" + "\t" + "1\t" + "\n");
+
+			if (!Utils.getUniquePeptides(protein2, protein1, params.isUniquePepOnly()).isEmpty()) {
+				outputNames.append(Utils.getPeptidesSequenceString(
+						Utils.getUniquePeptides(protein2, protein1, params.isUniquePepOnly())) + "\t");
+				outputNames.append(Utils.format(threeCombined.get(2)) + "\t" + "\t" + "\t" + "1\t" + "\n");
+			}
+			outputNames.flush();
 		}
-
-		outputNames.append(protein2.getAccession() + "\t");
-		outputNames.append(protein2.getAccession() + "\t");
-		outputNames.append(protein2.getDescription() + "\t");
-		if (params.isGetTax()) {
-			outputNames.append(protein2.getTaxonomy() + "\t" + "0\n");
-		} else {
-			outputNames.append("\t" + "0\n");
-		}
-		if (!Utils.getUniquePeptides(protein1, protein2, params.isUniquePepOnly()).isEmpty()) {
-			outputNames.append(Utils.getPeptidesSequenceString(
-					Utils.getUniquePeptides(protein1, protein2, params.isUniquePepOnly())) + "\t");
-			outputNames.append(Utils.format(threeCombined.get(0)) + "\t" + "\t" + "\t" + "1\t" + "\n");
-		}
-
-		outputNames
-				.append(Utils.getPeptidesSequenceString(Utils.getSharedPeptidesMap(protein1, protein2, false)) + "\t");
-		outputNames.append(Utils.format(threeCombined.get(1)) + "\t" + "\t" + "\t" + "1\t" + "\n");
-
-		if (!Utils.getUniquePeptides(protein2, protein1, params.isUniquePepOnly()).isEmpty()) {
-			outputNames.append(Utils.getPeptidesSequenceString(
-					Utils.getUniquePeptides(protein2, protein1, params.isUniquePepOnly())) + "\t");
-			outputNames.append(Utils.format(threeCombined.get(2)) + "\t" + "\t" + "\t" + "1\t" + "\n");
-		}
-		outputNames.flush();
 	}
 
 	/**
@@ -719,12 +736,12 @@ public class ProteinPair {
 		return classification1Cases;
 	}
 
-	public void setOutput(Writer output) {
-		this.output = output;
+	public void setOutputCases(Writer output) {
+		outputCases = output;
 	}
 
-	public void setOutput5(Writer output) {
-		output5 = output;
+	public void setOutputGroups(Writer output) {
+		outputGroups = output;
 	}
 
 	public void setOutputNames(Writer output) {
@@ -835,23 +852,47 @@ public class ProteinPair {
 			final Classification1Case classification1Case = classification1Cases.get(proteinKey);
 			StringBuilder sb = new StringBuilder();
 			// UniquePep1
-			final List<QuantifiedPeptideInterface> uniquePeptides1 = Utils.getUniquePeptides(protein1, protein2, true);
+			final Set<QuantifiedPeptideInterface> uniquePeptides1 = Utils.getUniquePeptides(protein1, protein2, true);
 			sb.append(Utils.getPeptidesSequenceString(uniquePeptides1) + "\t");
 			// RatioU1
-			sb.append(Utils.getPepRatio(uniquePeptides1, cond1, cond2, null).getLog2CountRatio(cond1, cond2) + "\t");
+			Double value1 = Double.NaN;
+			final QuantRatio consensusRatio1 = Utils.getConsensusRatio(uniquePeptides1, cond1, cond2, null);
+			if (consensusRatio1 != null) {
+				Double log2Ratio = consensusRatio1.getLog2Ratio(cond1, cond2);
+				if (log2Ratio != null) {
+					value1 = log2Ratio;
+				}
+			}
+			sb.append(value1 + "\t");
 			// Protein1
 			sb.append(protein1.getAccession() + "\t");
 			// Shared peptide
 			sb.append(Utils.getPeptidesSequenceString(sharedPeptides) + "\t");
 			// shared peptide ratio
-			sb.append(Utils.getPepRatio(sharedPeptides, cond1, cond2, null).getLog2CountRatio(cond1, cond2) + "\t");
+			Double valueShared = Double.NaN;
+			final QuantRatio consensusRatioShared = Utils.getConsensusRatio(sharedPeptides, cond1, cond2, null);
+			if (consensusRatioShared != null) {
+				Double log2Ratio = consensusRatioShared.getLog2Ratio(cond1, cond2);
+				if (log2Ratio != null) {
+					valueShared = log2Ratio;
+				}
+			}
+			sb.append(valueShared + "\t");
 			// Protein2
 			sb.append(protein2.getAccession() + "\t");
 			// UniquePep2
-			final List<QuantifiedPeptideInterface> uniquePeptides2 = Utils.getUniquePeptides(protein2, protein1, true);
+			final Set<QuantifiedPeptideInterface> uniquePeptides2 = Utils.getUniquePeptides(protein2, protein1, true);
 			sb.append(Utils.getPeptidesSequenceString(uniquePeptides2) + "\t");
 			// RatioU2
-			sb.append(Utils.getPepRatio(uniquePeptides2, cond1, cond2, null).getLog2CountRatio(cond1, cond2) + "\t");
+			Double value2 = Double.NaN;
+			final QuantRatio consensusRatio2 = Utils.getConsensusRatio(uniquePeptides2, cond1, cond2, null);
+			if (consensusRatio2 != null) {
+				final Double log2Ratio = consensusRatio2.getLog2Ratio(cond1, cond2);
+				if (log2Ratio != null) {
+					value2 = log2Ratio;
+				}
+			}
+			sb.append(value2 + "\t");
 			// classification case 1
 			sb.append(classification1Case.name() + "\t");
 			// classification case 2

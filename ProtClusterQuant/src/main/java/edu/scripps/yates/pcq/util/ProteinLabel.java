@@ -1,4 +1,4 @@
-package edu.scripps.yates.proteinclusters.util;
+package edu.scripps.yates.pcq.util;
 
 public enum ProteinLabel {
 	ACC, ID;

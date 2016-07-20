@@ -1,4 +1,4 @@
-package edu.scripps.yates.proteinclusters.xgmml;
+package edu.scripps.yates.pcq.xgmml;
 
 public class AttributeValueType {
 	private final AttType type;

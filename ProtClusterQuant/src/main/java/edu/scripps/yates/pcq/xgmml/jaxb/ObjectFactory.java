@@ -6,7 +6,7 @@
 //
 
 
-package edu.scripps.yates.proteinclusters.xgmml.jaxb;
+package edu.scripps.yates.pcq.xgmml.jaxb;
 
 import javax.xml.bind.annotation.XmlRegistry;
 

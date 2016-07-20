@@ -1,4 +1,6 @@
-package edu.scripps.yates.proteinclusters;
+package edu.scripps.yates.pcq;
+
+import edu.scripps.yates.pcq.model.ProteinPair;
 
 public class ProteinPairPValue {
 	private final double pValue;

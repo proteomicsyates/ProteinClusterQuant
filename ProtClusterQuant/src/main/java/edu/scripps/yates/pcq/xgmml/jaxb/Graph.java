@@ -7,7 +7,7 @@
 // Generated on: 2015.09.21 at 10:40:02 AM PDT
 //
 
-package edu.scripps.yates.proteinclusters.xgmml.jaxb;
+package edu.scripps.yates.pcq.xgmml.jaxb;
 
 import java.util.ArrayList;
 import java.util.List;

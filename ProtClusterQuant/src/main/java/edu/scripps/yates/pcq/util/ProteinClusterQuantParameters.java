@@ -1,8 +1,16 @@
-package edu.scripps.yates.proteinclusters.util;
+package edu.scripps.yates.pcq.util;
 
 import java.awt.Color;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import edu.scripps.yates.pcq.filter.PCQFilter;
+import edu.scripps.yates.pcq.filter.PCQFilterByIonCount;
+import edu.scripps.yates.pcq.filter.PCQFilterByPSMCount;
 
 public class ProteinClusterQuantParameters {
 
@@ -11,8 +19,10 @@ public class ProteinClusterQuantParameters {
 	private boolean stdAsSignficanceCutoffOn;
 	private double thresholdForSignificance;
 	private boolean printOnlyFirstGene;
-	private boolean ionsPerPeptideThresholdOn;
-	private int ionsPerPeptideThreshold;
+	private boolean ionsPerPeptideNodeThresholdOn;
+	private int ionsPerPeptideNodeThreshold;
+	private boolean psmsPerPeptideThresholdOn;
+	private int psmsPerPeptideThreshold;
 	private double iglewiczHoaglinTestThreshold;
 	private boolean collapseIndistinguishableProteins;
 	private boolean collapseIndistinguishablePeptides;
@@ -25,12 +35,11 @@ public class ProteinClusterQuantParameters {
 	private File uniprotReleasesFolder;
 	private File inputFileFolder;
 	private File outputFileFolder;
-	private String[] inputFileNames;
+	private final List<ExperimentFiles> inputFiles = new ArrayList<ExperimentFiles>();
 	private String outputPrefix;
 	private String outputSuffix;
 	private String lightSpecies;
 	private String heavySpecies;
-	private String[] replicateIdentifiers;
 	private ColorManager colorManager;
 	private File fastaFile;
 	private String decoyRegexp;
@@ -53,6 +62,22 @@ public class ProteinClusterQuantParameters {
 	private Color colorRatioMin;
 	private Color colorRatioMax;
 	private boolean remarkSignificantPeptides;
+	private String mongoDBURI;
+	private String mongoProtDBName;
+	private String mongoSeqDBName;
+	private String mongoMassDBName;
+	private boolean ignoreNotFoundPeptidesInDB;
+	private InputType inputType;
+	private Double outliersRemovalFDR;
+	private Double significantFDRThreshold;
+	private boolean performRatioIntegration;
+	private List<PCQFilter> filters;
+	private String uniprotVersion;
+	private boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep;
+	private boolean skipSingletons;
+	private Color colorNonRegulated;
+	private boolean generateMiscellaneousFiles;
+	private String separator;
 
 	private ProteinClusterQuantParameters() {
 
@@ -101,17 +126,17 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @return the psmPerPeptideThresholdOn
+	 * @return the psmPerPeptideNodeThresholdOn
 	 */
-	public boolean isIonsPerPeptideThresholdOn() {
-		return ionsPerPeptideThresholdOn;
+	public boolean isIonsPerPeptideNodeThresholdOn() {
+		return ionsPerPeptideNodeThresholdOn;
 	}
 
 	/**
 	 * @return the ionsPerPeptideThreshold
 	 */
-	public int getIonsPerPeptideThreshold() {
-		return ionsPerPeptideThreshold;
+	public int getIonsPerPeptideNodeThreshold() {
+		return ionsPerPeptideNodeThreshold;
 	}
 
 	/**
@@ -194,8 +219,27 @@ public class ProteinClusterQuantParameters {
 	/**
 	 * @return the inputFileNames
 	 */
-	public String[] getInputFileNames() {
-		return inputFileNames;
+	public List<ExperimentFiles> getInputFileNames() {
+		return inputFiles;
+	}
+
+	public List<String> getExperimentNames() {
+		List<String> ret = new ArrayList<String>();
+		final List<ExperimentFiles> inputFileNames = getInputFileNames();
+		for (ExperimentFiles experimentFiles : inputFileNames) {
+			ret.add(experimentFiles.getExperimentName());
+		}
+		return ret;
+	}
+
+	public Map<String, List<String>> getReplicateNamesByExperimentNameMap() {
+		Map<String, List<String>> map = new HashMap<String, List<String>>();
+		for (ExperimentFiles experimentFiles : getInputFileNames()) {
+			List<String> replicateNames = new ArrayList<String>();
+			replicateNames.addAll(experimentFiles.getRelicateFileNames());
+			map.put(experimentFiles.getExperimentName(), replicateNames);
+		}
+		return map;
 	}
 
 	/**
@@ -227,13 +271,6 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @return the replicateIdentifiers
-	 */
-	public String[] getReplicateIdentifiers() {
-		return replicateIdentifiers;
-	}
-
-	/**
 	 * @return the colorManager
 	 */
 	public ColorManager getColorManager() {
@@ -261,8 +298,8 @@ public class ProteinClusterQuantParameters {
 		this.printOnlyFirstGene = printOnlyFirstGene;
 	}
 
-	public void setIonsPerPeptideThreshold(int ionsPerPeptideThreshold) {
-		this.ionsPerPeptideThreshold = ionsPerPeptideThreshold;
+	public void setIonsPerPeptideNodeThreshold(int ionsPerPeptideNodeThreshold) {
+		this.ionsPerPeptideNodeThreshold = ionsPerPeptideNodeThreshold;
 	}
 
 	public void setIglewiczHoaglinTestThreshold(double iglewiczHoaglinTestThreshold) {
@@ -310,8 +347,8 @@ public class ProteinClusterQuantParameters {
 		this.outputFileFolder = outputFileFolder;
 	}
 
-	public void setInputFileNames(String[] inputFileNames) {
-		this.inputFileNames = inputFileNames;
+	public void addInputFileNames(ExperimentFiles experimentFiles) {
+		inputFiles.add(experimentFiles);
 	}
 
 	public void setOutputPrefix(String outputPrefix) {
@@ -328,10 +365,6 @@ public class ProteinClusterQuantParameters {
 
 	public void setHeavySpecies(String heavySpecies) {
 		this.heavySpecies = heavySpecies;
-	}
-
-	public void setReplicateIdentifiers(String[] replicateIdentifiers) {
-		this.replicateIdentifiers = replicateIdentifiers;
 	}
 
 	public void setColorManager(ColorManager colorManager) {
@@ -362,11 +395,11 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param ionsPerPeptideThresholdOn
+	 * @param ionsPerPeptideNodeThresholdOn
 	 *            the ionsPerPeptideThresholdOn to set
 	 */
-	public void setIonsPerPeptideThresholdOn(boolean ionsPerPeptideThresholdOn) {
-		this.ionsPerPeptideThresholdOn = ionsPerPeptideThresholdOn;
+	public void setIonsPerPeptideNodeThresholdOn(boolean ionsPerPeptideNodeThresholdOn) {
+		this.ionsPerPeptideNodeThresholdOn = ionsPerPeptideNodeThresholdOn;
 	}
 
 	/**
@@ -640,6 +673,78 @@ public class ProteinClusterQuantParameters {
 		this.remarkSignificantPeptides = remarkSignificantPeptides;
 	}
 
+	/**
+	 * @return the mongoDBURI
+	 */
+	public String getMongoDBURI() {
+		return mongoDBURI;
+	}
+
+	/**
+	 * @param mongoDBURI
+	 *            the mongoDBURI to set
+	 */
+	public void setMongoDBURI(String mongoDBURI) {
+		this.mongoDBURI = mongoDBURI;
+	}
+
+	/**
+	 * @return the mongoProtDBName
+	 */
+	public String getMongoProtDBName() {
+		return mongoProtDBName;
+	}
+
+	/**
+	 * @param mongoProtDBName
+	 *            the mongoProtDBName to set
+	 */
+	public void setMongoProtDBName(String mongoProtDBName) {
+		this.mongoProtDBName = mongoProtDBName;
+	}
+
+	/**
+	 * @return the mongoSeqDBName
+	 */
+	public String getMongoSeqDBName() {
+		return mongoSeqDBName;
+	}
+
+	/**
+	 * @param mongoSeqDBName
+	 *            the mongoSeqDBName to set
+	 */
+	public void setMongoSeqDBName(String mongoSeqDBName) {
+		this.mongoSeqDBName = mongoSeqDBName;
+	}
+
+	/**
+	 * @return the mongoMassDBName
+	 */
+	public String getMongoMassDBName() {
+		return mongoMassDBName;
+	}
+
+	/**
+	 * @param mongoMassDBName
+	 *            the mongoMassDBName to set
+	 */
+	public void setMongoMassDBName(String mongoMassDBName) {
+		this.mongoMassDBName = mongoMassDBName;
+	}
+
+	public boolean isIgnoreNotFoundPeptidesInDB() {
+		return ignoreNotFoundPeptidesInDB;
+	}
+
+	/**
+	 * @param ignoreNotFoundPeptidesInDB
+	 *            the ignoreNotFoundPeptidesInDB to set
+	 */
+	public void setIgnoreNotFoundPeptidesInDB(boolean ignoreNotFoundPeptidesInDB) {
+		this.ignoreNotFoundPeptidesInDB = ignoreNotFoundPeptidesInDB;
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see java.lang.Object#toString()
@@ -649,19 +754,20 @@ public class ProteinClusterQuantParameters {
 		return "ProteinClusterQuantParameters [significantProteinPairAnalysis=" + significantProteinPairAnalysis
 				+ ", labelSwap=" + labelSwap + ", stdAsSignficanceCutoffOn=" + stdAsSignficanceCutoffOn
 				+ ", thresholdForSignificance=" + thresholdForSignificance + ", printOnlyFirstGene="
-				+ printOnlyFirstGene + ", ionsPerPeptideThresholdOn=" + ionsPerPeptideThresholdOn
-				+ ", ionsPerPeptideThreshold=" + ionsPerPeptideThreshold + ", iglewiczHoaglinTestThreshold="
-				+ iglewiczHoaglinTestThreshold + ", collapseIndistinguishableProteins="
-				+ collapseIndistinguishableProteins + ", collapseIndistinguishablePeptides="
-				+ collapseIndistinguishablePeptides + ", makeAlignments=" + makeAlignments + ", printKMeans="
-				+ printKMeans + ", enzymeArray=" + Arrays.toString(enzymeArray) + ", missedCleavages=" + missedCleavages
-				+ ", uniquePepOnly=" + uniquePepOnly + ", getTax=" + getTax + ", uniprotReleasesFolder="
-				+ uniprotReleasesFolder + ", inputFileFolder=" + inputFileFolder + ", outputFileFolder="
-				+ outputFileFolder + ", inputFileNames=" + Arrays.toString(inputFileNames) + ", outputPrefix="
-				+ outputPrefix + ", outputSuffix=" + outputSuffix + ", lightSpecies=" + lightSpecies + ", heavySpecies="
-				+ heavySpecies + ", replicateIdentifiers=" + Arrays.toString(replicateIdentifiers) + ", colorManager="
-				+ colorManager + ", fastaFile=" + fastaFile + ", decoyRegexp=" + decoyRegexp + ", finalAlignmentScore="
-				+ finalAlignmentScore + ", sequenceIdentity=" + sequenceIdentity + ", maxConsecutiveIdenticalAlignment="
+				+ printOnlyFirstGene + ", ionsPerPeptideNodeThresholdOn=" + ionsPerPeptideNodeThresholdOn
+				+ ", ionsPerPeptideThreshold=" + ionsPerPeptideNodeThreshold + ", psmsPerPeptideThresholdOn="
+				+ psmsPerPeptideThresholdOn + ", psmsPerPeptideThreshold=" + psmsPerPeptideThreshold
+				+ ", iglewiczHoaglinTestThreshold=" + iglewiczHoaglinTestThreshold
+				+ ", collapseIndistinguishableProteins=" + collapseIndistinguishableProteins
+				+ ", collapseIndistinguishablePeptides=" + collapseIndistinguishablePeptides + ", makeAlignments="
+				+ makeAlignments + ", printKMeans=" + printKMeans + ", enzymeArray=" + Arrays.toString(enzymeArray)
+				+ ", missedCleavages=" + missedCleavages + ", uniquePepOnly=" + uniquePepOnly + ", getTax=" + getTax
+				+ ", uniprotReleasesFolder=" + uniprotReleasesFolder + ", uniprotVersion=" + uniprotVersion
+				+ ", inputFileFolder=" + inputFileFolder + ", outputFileFolder=" + outputFileFolder + ", inputFiles="
+				+ inputFiles + ", outputPrefix=" + outputPrefix + ", outputSuffix=" + outputSuffix + ", lightSpecies="
+				+ lightSpecies + ", heavySpecies=" + heavySpecies + ", colorManager=" + colorManager + ", fastaFile="
+				+ fastaFile + ", decoyRegexp=" + decoyRegexp + ", finalAlignmentScore=" + finalAlignmentScore
+				+ ", sequenceIdentity=" + sequenceIdentity + ", maxConsecutiveIdenticalAlignment="
 				+ maxConsecutiveIdenticalAlignment + ", temporalOutputFolder=" + temporalOutputFolder
 				+ ", excludeUniquePeptides=" + excludeUniquePeptides + ", proteinLabel=" + proteinLabel
 				+ ", proteinNodeWidth=" + proteinNodeWidth + ", proteinNodeHeight=" + proteinNodeHeight
@@ -669,7 +775,206 @@ public class ProteinClusterQuantParameters {
 				+ ", proteinNodeShape=" + proteinNodeShape + ", peptideNodeShape=" + peptideNodeShape
 				+ ", minimumRatioForColor=" + minimumRatioForColor + ", maximumRatioForColor=" + maximumRatioForColor
 				+ ", showCasesInEdges=" + showCasesInEdges + ", colorRatioMin=" + colorRatioMin + ", colorRatioMax="
-				+ colorRatioMax + ", remarkSignificantPeptides=" + remarkSignificantPeptides + "]";
+				+ colorRatioMax + ", remarkSignificantPeptides=" + remarkSignificantPeptides + ", mongoDBURI="
+				+ mongoDBURI + ", mongoProtDBName=" + mongoProtDBName + ", mongoSeqDBName=" + mongoSeqDBName
+				+ ", mongoMassDBName=" + mongoMassDBName + ", ignoreNotFoundPeptidesInDB=" + ignoreNotFoundPeptidesInDB
+				+ ", inputType=" + inputType + ", outliersRemovalFDR=" + outliersRemovalFDR
+				+ ", significantFDRThreshold=" + significantFDRThreshold + " ]";
 	}
 
+	private String printInputFileNames() {
+		StringBuilder sb = new StringBuilder();
+		for (ExperimentFiles experimentFiles : inputFiles) {
+
+			sb.append(experimentFiles.getExperimentName()).append(" [");
+			for (String fileName : experimentFiles.getRelicateFileNames()) {
+				sb.append(fileName).append(",");
+			}
+			sb.append("] | ");
+		}
+		return sb.toString();
+	}
+
+	public String[] getInputFileNamesArray() {
+		int size = 0;
+		for (ExperimentFiles experimentFileName : inputFiles) {
+			size += experimentFileName.getRelicateFileNames().size();
+		}
+		String[] ret = new String[size];
+		int index = 0;
+		for (ExperimentFiles experimentFileName : inputFiles) {
+			final List<String> list = experimentFileName.getRelicateFileNames();
+			for (String fileName : list) {
+				ret[index++] = fileName;
+			}
+		}
+		return ret;
+	}
+
+	public InputType getInputType() {
+		return inputType;
+	}
+
+	/**
+	 * @param inputType
+	 *            the inputType to set
+	 */
+	public void setInputType(InputType inputType) {
+		this.inputType = inputType;
+	}
+
+	public List<PCQFilter> getFilters() {
+		if (filters == null) {
+			filters = new ArrayList<PCQFilter>();
+			if (isIonsPerPeptideNodeThresholdOn()) {
+				filters.add(new PCQFilterByIonCount(getIonsPerPeptideNodeThreshold()));
+			}
+			if (isPsmsPerPeptideThresholdOn()) {
+				filters.add(new PCQFilterByPSMCount(getPsmsPerPeptideThreshold()));
+			}
+			// TODO add more filters when available
+		}
+		return filters;
+	}
+
+	public Double getOutliersRemovalFDR() {
+		return outliersRemovalFDR;
+	}
+
+	public void setOutliersRemovalFDR(Double fdr) {
+		outliersRemovalFDR = fdr;
+	}
+
+	/**
+	 * @return the psmsPerPeptideThresholdOn
+	 */
+	public boolean isPsmsPerPeptideThresholdOn() {
+		return psmsPerPeptideThresholdOn;
+	}
+
+	/**
+	 * @param psmsPerPeptideThresholdOn
+	 *            the psmsPerPeptideThresholdOn to set
+	 */
+	public void setPsmsPerPeptideThresholdOn(boolean psmsPerPeptideThresholdOn) {
+		this.psmsPerPeptideThresholdOn = psmsPerPeptideThresholdOn;
+	}
+
+	/**
+	 * @return the psmsPerPeptideThreshold
+	 */
+	public int getPsmsPerPeptideThreshold() {
+		return psmsPerPeptideThreshold;
+	}
+
+	/**
+	 * @param psmsPerPeptideThreshold
+	 *            the psmsPerPeptideThreshold to set
+	 */
+	public void setPsmsPerPeptideThreshold(int psmsPerPeptideThreshold) {
+		this.psmsPerPeptideThreshold = psmsPerPeptideThreshold;
+	}
+
+	public boolean isPerformRatioIntegration() {
+		return performRatioIntegration;
+	}
+
+	/**
+	 * @param performRatioIntegration
+	 *            the performRatioIntegration to set
+	 */
+	public void setPerformRatioIntegration(boolean performRatioIntegration) {
+		this.performRatioIntegration = performRatioIntegration;
+	}
+
+	/**
+	 * @return the significantFDRThreshold
+	 */
+	public Double getSignificantFDRThreshold() {
+		return significantFDRThreshold;
+	}
+
+	/**
+	 * @param significantFDRThreshold
+	 *            the significantFDRThreshold to set
+	 */
+	public void setSignificantFDRThreshold(Double significantFDRThreshold) {
+		this.significantFDRThreshold = significantFDRThreshold;
+	}
+
+	public String getUniprotVersion() {
+		return uniprotVersion;
+	}
+
+	/**
+	 * @param uniprotVersion
+	 *            the uniprotVersion to set
+	 */
+	public void setUniprotVersion(String uniprotVersion) {
+		this.uniprotVersion = uniprotVersion;
+	}
+
+	/**
+	 * @return the onlyOneSpectrumPerChromatographicPeakAndPerSaltStep
+	 */
+	public boolean isOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep() {
+		return onlyOneSpectrumPerChromatographicPeakAndPerSaltStep;
+	}
+
+	/**
+	 * @param onlyOneSpectrumPerChromatographicPeakAndPerSaltStep
+	 *            the onlyOneSpectrumPerChromatographicPeakAndPerSaltStep to set
+	 */
+	public void setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
+			boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep) {
+		this.onlyOneSpectrumPerChromatographicPeakAndPerSaltStep = onlyOneSpectrumPerChromatographicPeakAndPerSaltStep;
+	}
+
+	public boolean isSkipSingletons() {
+		return skipSingletons;
+	}
+
+	/**
+	 * @param skipSingletons
+	 *            the skipSingletons to set
+	 */
+	public void setSkipSingletons(boolean skipSingletons) {
+		this.skipSingletons = skipSingletons;
+	}
+
+	public void setColorNonRegulated(Color colorNonRegulated) {
+		this.colorNonRegulated = colorNonRegulated;
+
+	}
+
+	/**
+	 * @return the colorNonRegulated
+	 */
+	public Color getColorNonRegulated() {
+		return colorNonRegulated;
+	}
+
+	public boolean isGenerateMiscellaneousFiles() {
+		return generateMiscellaneousFiles;
+	}
+
+	/**
+	 * @param generateMiscellaneousFiles
+	 *            the generateMiscellaneousFiles to set
+	 */
+	public void setGenerateMiscellaneousFiles(boolean generateMiscellaneousFiles) {
+		this.generateMiscellaneousFiles = generateMiscellaneousFiles;
+	}
+
+	public String getSeparator() {
+		return separator;
+	}
+
+	/**
+	 * @param separator
+	 *            the separator to set
+	 */
+	public void setSeparator(String separator) {
+		this.separator = separator;
+	}
 }

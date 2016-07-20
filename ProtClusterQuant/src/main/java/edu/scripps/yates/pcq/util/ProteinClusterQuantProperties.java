@@ -1,4 +1,4 @@
-package edu.scripps.yates.proteinclusters.util;
+package edu.scripps.yates.pcq.util;
 
 import java.util.Properties;
 
@@ -18,10 +18,12 @@ public class ProteinClusterQuantProperties extends Properties {
 	@Override
 	public String getProperty(String key, String defaultValue) {
 		final String property = super.getProperty(key, defaultValue);
-		if (property == null) {
+		if (property == null || "".equals(property)) {
 			log.warn("Parameter '" + key + "' is not found. Returning default value: '" + defaultValue + "'");
+			return defaultValue;
+		} else {
+			return property.trim();
 		}
-		return property.trim();
 	}
 
 	/**

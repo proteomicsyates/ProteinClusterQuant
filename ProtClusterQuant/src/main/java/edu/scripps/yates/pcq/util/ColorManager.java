@@ -1,11 +1,11 @@
-package edu.scripps.yates.proteinclusters.util;
+package edu.scripps.yates.pcq.util;
 
 import java.awt.Color;
 import java.util.HashMap;
 import java.util.Map;
 
-import edu.scripps.yates.proteinclusters.Classification1Case;
-import edu.scripps.yates.proteinclusters.Classification2Case;
+import edu.scripps.yates.pcq.Classification1Case;
+import edu.scripps.yates.pcq.Classification2Case;
 
 public class ColorManager {
 	private final Map<String, Color> colorsByTaxonomies = new HashMap<String, Color>();
@@ -35,11 +35,11 @@ public class ColorManager {
 	public Color getColorForProteinTaxonomy(String taxonomy) {
 		for (String taxonomies : colorsByTaxonomies.keySet()) {
 			if (taxonomies != null && taxonomy != null && (taxonomies.toLowerCase().contains(taxonomy.toLowerCase())
-					|| taxonomy.toLowerCase().contains(taxonomies.toLowerCase()))) {
+					|| (taxonomy != null && taxonomy.toLowerCase().contains(taxonomies.toLowerCase())))) {
 				return colorsByTaxonomies.get(taxonomies);
 			}
 		}
-		return Color.GREEN;
+		return Color.WHITE;
 	}
 
 	/**
@@ -49,8 +49,12 @@ public class ColorManager {
 	 * @return
 	 */
 	public static Color hex2Rgb(String colorStr) {
-		return new Color(Integer.valueOf(colorStr.substring(1, 3), 16), Integer.valueOf(colorStr.substring(3, 5), 16),
-				Integer.valueOf(colorStr.substring(5, 7), 16));
+		try {
+			return new Color(Integer.valueOf(colorStr.substring(1, 3), 16),
+					Integer.valueOf(colorStr.substring(3, 5), 16), Integer.valueOf(colorStr.substring(5, 7), 16));
+		} catch (StringIndexOutOfBoundsException e) {
+			throw new IllegalArgumentException(colorStr + " is malformed");
+		}
 	}
 
 	public static String getHexString(Color c) {

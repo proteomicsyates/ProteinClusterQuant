@@ -1,4 +1,4 @@
-package edu.scripps.yates.proteinclusters;
+package edu.scripps.yates.pcq;
 
 public enum Classification2Case {
 

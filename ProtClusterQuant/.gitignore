@@ -16,3 +16,12 @@
 /.classpath
 /example_dataset/
 /target/
+/matplotlib/
+/DmDv_setup_light.properties
+/ProtClusterQuant.iml
+/setup_GutMicrobiome_mouse.properties
+/setup_GutMicrobiome_SwissProt.properties
+/setup_GutMicrobiome.properties
+/blazmass_MongoDB.params
+/blazmass.params
+/DmDv_1vs1_setup.properties
