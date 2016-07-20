@@ -1449,7 +1449,10 @@ public class ProtClusterQuant {
 					proteinPair.setOutputNames(outputNames);
 
 					numProteinPairs++;
-					proteinPair.compareAverages(cond1, cond2);
+
+					if (ProteinClusterQuantParameters.getInstance().isApplyClassificationsByProteinPair()) {
+						proteinPair.compareAverages(cond1, cond2);
+					}
 					if (params.isGenerateMiscellaneousFiles()) {
 						// print proteinPair summary
 						for (String summaryLine : proteinPair.getSummaryLines(cond1, cond2)) {

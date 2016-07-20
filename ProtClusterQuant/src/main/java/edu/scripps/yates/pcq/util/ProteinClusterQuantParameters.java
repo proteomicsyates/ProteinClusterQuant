@@ -78,6 +78,7 @@ public class ProteinClusterQuantParameters {
 	private Color colorNonRegulated;
 	private boolean generateMiscellaneousFiles;
 	private String separator;
+	private boolean applyClassificationsByProteinPair;
 
 	private ProteinClusterQuantParameters() {
 
@@ -976,5 +977,17 @@ public class ProteinClusterQuantParameters {
 	 */
 	public void setSeparator(String separator) {
 		this.separator = separator;
+	}
+
+	public boolean isApplyClassificationsByProteinPair() {
+		return applyClassificationsByProteinPair;
+	}
+
+	/**
+	 * @param applyClassificationsByProteinPair
+	 *            the applyClassificationsByProteinPair to set
+	 */
+	public void setApplyClassificationsByProteinPair(boolean applyClassificationsByProteinPair) {
+		this.applyClassificationsByProteinPair = applyClassificationsByProteinPair;
 	}
 }

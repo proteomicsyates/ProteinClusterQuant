@@ -352,6 +352,9 @@ public class PropertiesReader {
 			// do nothing
 		}
 
+		boolean applyClassificationsByProteinPair = Boolean
+				.valueOf(properties.getProperty("apply_classifications_by_protein_pair", "false"));
+		params.setApplyClassificationsByProteinPair(applyClassificationsByProteinPair);
 		// check errors
 		checkErrorsInParameters(params);
 	}
