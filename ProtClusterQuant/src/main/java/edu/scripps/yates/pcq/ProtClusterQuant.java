@@ -71,6 +71,7 @@ public class ProtClusterQuant {
 	private QuantParser parser;
 	private HashSet<String> replicateNames;
 	private final ProteinClusterQuantParameters params;
+	private Map<String, Entry> annotatedProteins;
 
 	public ProtClusterQuant(File setupPropertiesFile) {
 		this.setupPropertiesFile = setupPropertiesFile;
@@ -1235,16 +1236,18 @@ public class ProtClusterQuant {
 	}
 
 	private Map<String, Entry> getAnnotatedProteins() {
-		Map<String, Entry> annotatedProteins = null;
-		if (getParams().getUniprotReleasesFolder() != null) {
-			log.info("Getting UniprotKB annotations for " + parser.getProteinMap().size() + " proteins");
-			UniprotProteinLocalRetriever uplr = new UniprotProteinLocalRetriever(getParams().getUniprotReleasesFolder(),
-					true);
+		if (annotatedProteins == null) {
+			if (getParams().getUniprotReleasesFolder() != null) {
+				log.info("Getting UniprotKB annotations for " + parser.getProteinMap().size() + " proteins");
+				UniprotProteinLocalRetriever uplr = new UniprotProteinLocalRetriever(
+						getParams().getUniprotReleasesFolder(), true);
 
-			// exporting to xgmml
-			annotatedProteins = uplr.getAnnotatedProteins(getParams().getUniprotVersion(), parser.getUniprotAccSet());
-			log.info(annotatedProteins.size() + " annotations retrieved out of " + parser.getProteinMap().size()
-					+ " proteins");
+				// exporting to xgmml
+				annotatedProteins = uplr.getAnnotatedProteins(getParams().getUniprotVersion(),
+						parser.getUniprotAccSet());
+				log.info(annotatedProteins.size() + " annotations retrieved out of " + parser.getProteinMap().size()
+						+ " proteins");
+			}
 		}
 		return annotatedProteins;
 	}
