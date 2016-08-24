@@ -132,6 +132,7 @@ public class SanxotRunner {
 					+ FilenameUtils.getName(relatFile.getAbsolutePath()) + " and "
 					+ FilenameUtils.getName(dataFile.getAbsolutePath()));
 		}
+
 		final String msg = "Integrating data ...";
 		log.info(msg);
 		if (relatFile == null) {

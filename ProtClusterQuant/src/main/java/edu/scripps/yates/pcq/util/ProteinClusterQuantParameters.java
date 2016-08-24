@@ -8,15 +8,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import edu.scripps.yates.pcq.compare.ComparisonInput;
 import edu.scripps.yates.pcq.filter.PCQFilter;
 import edu.scripps.yates.pcq.filter.PCQFilterByIonCount;
 import edu.scripps.yates.pcq.filter.PCQFilterByPSMCount;
 
 public class ProteinClusterQuantParameters {
 
-	private boolean significantProteinPairAnalysis;
 	private boolean labelSwap;
-	private boolean stdAsSignficanceCutoffOn;
 	private double thresholdForSignificance;
 	private boolean printOnlyFirstGene;
 	private boolean ionsPerPeptideNodeThresholdOn;
@@ -31,7 +30,6 @@ public class ProteinClusterQuantParameters {
 	private char[] enzymeArray;
 	private int missedCleavages;
 	private boolean uniquePepOnly;
-	private boolean getTax;
 	private File uniprotReleasesFolder;
 	private File inputFileFolder;
 	private File outputFileFolder;
@@ -45,9 +43,8 @@ public class ProteinClusterQuantParameters {
 	private String decoyRegexp;
 	private int finalAlignmentScore;
 	private double sequenceIdentity;
-	private int maxConsecutiveIdenticalAlignment;
+	private int minConsecutiveIdenticalAlignment;
 	private File temporalOutputFolder;
-	private boolean excludeUniquePeptides;
 	private static ProteinClusterQuantParameters instance;
 	private ProteinLabel proteinLabel;
 	private int proteinNodeWidth;
@@ -67,7 +64,7 @@ public class ProteinClusterQuantParameters {
 	private String mongoSeqDBName;
 	private String mongoMassDBName;
 	private boolean ignoreNotFoundPeptidesInDB;
-	private InputType inputType;
+	private AnalysisInputType inputType;
 	private Double outliersRemovalFDR;
 	private Double significantFDRThreshold;
 	private boolean performRatioIntegration;
@@ -79,6 +76,9 @@ public class ProteinClusterQuantParameters {
 	private boolean generateMiscellaneousFiles;
 	private String separator;
 	private boolean applyClassificationsByProteinPair;
+	private boolean analysisRun;
+	private boolean comparisonRun;
+	private ComparisonInput comparisonInput;
 
 	private ProteinClusterQuantParameters() {
 
@@ -92,24 +92,10 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @return the significantProteinPairAnalysis
-	 */
-	public boolean isSignificantProteinPairAnalysis() {
-		return significantProteinPairAnalysis;
-	}
-
-	/**
 	 * @return the labelSwap
 	 */
 	public boolean isLabelSwap() {
 		return labelSwap;
-	}
-
-	/**
-	 * @return the stdAsSignficanceCutoffOn
-	 */
-	public boolean isStdAsSignficanceCutoffOn() {
-		return stdAsSignficanceCutoffOn;
 	}
 
 	/**
@@ -187,13 +173,6 @@ public class ProteinClusterQuantParameters {
 	 */
 	public boolean isUniquePepOnly() {
 		return uniquePepOnly;
-	}
-
-	/**
-	 * @return the getTax
-	 */
-	public boolean isGetTax() {
-		return getTax;
 	}
 
 	/**
@@ -278,17 +257,9 @@ public class ProteinClusterQuantParameters {
 		return colorManager;
 	}
 
-	public void setSignificantProteinPairAnalysis(boolean significantProteinPairAnalysis) {
-		this.significantProteinPairAnalysis = significantProteinPairAnalysis;
-	}
-
 	public void setLabelSwap(boolean labelSwap) {
 		this.labelSwap = labelSwap;
 
-	}
-
-	public void setStdAsSignficanceCutoffOn(boolean stdAsSignficanceCutoffOn) {
-		this.stdAsSignficanceCutoffOn = stdAsSignficanceCutoffOn;
 	}
 
 	public void setThresholdForSignificance(double thresholdForSignificance) {
@@ -329,10 +300,6 @@ public class ProteinClusterQuantParameters {
 
 	public void setUniquePepOnly(boolean uniquePepOnly) {
 		this.uniquePepOnly = uniquePepOnly;
-	}
-
-	public void setGetTax(boolean getTax) {
-		this.getTax = getTax;
 	}
 
 	public void setUniprotReleasesFolder(File uniprotReleasesFolder) {
@@ -442,16 +409,16 @@ public class ProteinClusterQuantParameters {
 		this.sequenceIdentity = sequenceIdentity;
 	}
 
-	public int getMaxConsecutiveIdenticalAlignment() {
-		return maxConsecutiveIdenticalAlignment;
+	public int getMinConsecutiveIdenticalAlignment() {
+		return minConsecutiveIdenticalAlignment;
 	}
 
 	/**
-	 * @param maxConsecutiveIdenticalAlignment
+	 * @param minConsecutiveIdenticalAlignment
 	 *            the maxConsecutiveIdenticalAlignment to set
 	 */
-	public void setMaxConsecutiveIdenticalAlignment(int maxConsecutiveIdenticalAlignment) {
-		this.maxConsecutiveIdenticalAlignment = maxConsecutiveIdenticalAlignment;
+	public void setMinConsecutiveIdenticalAlignment(int minConsecutiveIdenticalAlignment) {
+		this.minConsecutiveIdenticalAlignment = minConsecutiveIdenticalAlignment;
 	}
 
 	/*
@@ -469,14 +436,6 @@ public class ProteinClusterQuantParameters {
 	 */
 	public File getTemporalOutputFolder() {
 		return temporalOutputFolder;
-	}
-
-	public boolean isExcludeUniquePeptides() {
-		return excludeUniquePeptides;
-	}
-
-	public void setExcludeUniquePeptides(boolean excludeUniquePeptides) {
-		this.excludeUniquePeptides = excludeUniquePeptides;
 	}
 
 	/**
@@ -752,34 +711,32 @@ public class ProteinClusterQuantParameters {
 	 */
 	@Override
 	public String toString() {
-		return "ProteinClusterQuantParameters [significantProteinPairAnalysis=" + significantProteinPairAnalysis
-				+ ", labelSwap=" + labelSwap + ", stdAsSignficanceCutoffOn=" + stdAsSignficanceCutoffOn
-				+ ", thresholdForSignificance=" + thresholdForSignificance + ", printOnlyFirstGene="
-				+ printOnlyFirstGene + ", ionsPerPeptideNodeThresholdOn=" + ionsPerPeptideNodeThresholdOn
-				+ ", ionsPerPeptideThreshold=" + ionsPerPeptideNodeThreshold + ", psmsPerPeptideThresholdOn="
-				+ psmsPerPeptideThresholdOn + ", psmsPerPeptideThreshold=" + psmsPerPeptideThreshold
-				+ ", iglewiczHoaglinTestThreshold=" + iglewiczHoaglinTestThreshold
+		return "ProteinClusterQuantParameters [applyClassificationsByProteinPair=" + applyClassificationsByProteinPair
+				+ ", labelSwap=" + labelSwap + ", thresholdForSignificance=" + thresholdForSignificance
+				+ ", printOnlyFirstGene=" + printOnlyFirstGene + ", ionsPerPeptideNodeThresholdOn="
+				+ ionsPerPeptideNodeThresholdOn + ", ionsPerPeptideThreshold=" + ionsPerPeptideNodeThreshold
+				+ ", psmsPerPeptideThresholdOn=" + psmsPerPeptideThresholdOn + ", psmsPerPeptideThreshold="
+				+ psmsPerPeptideThreshold + ", iglewiczHoaglinTestThreshold=" + iglewiczHoaglinTestThreshold
 				+ ", collapseIndistinguishableProteins=" + collapseIndistinguishableProteins
 				+ ", collapseIndistinguishablePeptides=" + collapseIndistinguishablePeptides + ", makeAlignments="
 				+ makeAlignments + ", printKMeans=" + printKMeans + ", enzymeArray=" + Arrays.toString(enzymeArray)
-				+ ", missedCleavages=" + missedCleavages + ", uniquePepOnly=" + uniquePepOnly + ", getTax=" + getTax
+				+ ", missedCleavages=" + missedCleavages + ", uniquePepOnly=" + uniquePepOnly
 				+ ", uniprotReleasesFolder=" + uniprotReleasesFolder + ", uniprotVersion=" + uniprotVersion
 				+ ", inputFileFolder=" + inputFileFolder + ", outputFileFolder=" + outputFileFolder + ", inputFiles="
 				+ inputFiles + ", outputPrefix=" + outputPrefix + ", outputSuffix=" + outputSuffix + ", lightSpecies="
 				+ lightSpecies + ", heavySpecies=" + heavySpecies + ", colorManager=" + colorManager + ", fastaFile="
 				+ fastaFile + ", decoyRegexp=" + decoyRegexp + ", finalAlignmentScore=" + finalAlignmentScore
 				+ ", sequenceIdentity=" + sequenceIdentity + ", maxConsecutiveIdenticalAlignment="
-				+ maxConsecutiveIdenticalAlignment + ", temporalOutputFolder=" + temporalOutputFolder
-				+ ", excludeUniquePeptides=" + excludeUniquePeptides + ", proteinLabel=" + proteinLabel
-				+ ", proteinNodeWidth=" + proteinNodeWidth + ", proteinNodeHeight=" + proteinNodeHeight
-				+ ", peptideNodeWidth=" + peptideNodeWidth + ", peptideNodeHeight=" + peptideNodeHeight
-				+ ", proteinNodeShape=" + proteinNodeShape + ", peptideNodeShape=" + peptideNodeShape
-				+ ", minimumRatioForColor=" + minimumRatioForColor + ", maximumRatioForColor=" + maximumRatioForColor
-				+ ", showCasesInEdges=" + showCasesInEdges + ", colorRatioMin=" + colorRatioMin + ", colorRatioMax="
-				+ colorRatioMax + ", remarkSignificantPeptides=" + remarkSignificantPeptides + ", mongoDBURI="
-				+ mongoDBURI + ", mongoProtDBName=" + mongoProtDBName + ", mongoSeqDBName=" + mongoSeqDBName
-				+ ", mongoMassDBName=" + mongoMassDBName + ", ignoreNotFoundPeptidesInDB=" + ignoreNotFoundPeptidesInDB
-				+ ", inputType=" + inputType + ", outliersRemovalFDR=" + outliersRemovalFDR
+				+ minConsecutiveIdenticalAlignment + ", temporalOutputFolder=" + temporalOutputFolder
+				+ ", proteinLabel=" + proteinLabel + ", proteinNodeWidth=" + proteinNodeWidth + ", proteinNodeHeight="
+				+ proteinNodeHeight + ", peptideNodeWidth=" + peptideNodeWidth + ", peptideNodeHeight="
+				+ peptideNodeHeight + ", proteinNodeShape=" + proteinNodeShape + ", peptideNodeShape="
+				+ peptideNodeShape + ", minimumRatioForColor=" + minimumRatioForColor + ", maximumRatioForColor="
+				+ maximumRatioForColor + ", showCasesInEdges=" + showCasesInEdges + ", colorRatioMin=" + colorRatioMin
+				+ ", colorRatioMax=" + colorRatioMax + ", remarkSignificantPeptides=" + remarkSignificantPeptides
+				+ ", mongoDBURI=" + mongoDBURI + ", mongoProtDBName=" + mongoProtDBName + ", mongoSeqDBName="
+				+ mongoSeqDBName + ", mongoMassDBName=" + mongoMassDBName + ", ignoreNotFoundPeptidesInDB="
+				+ ignoreNotFoundPeptidesInDB + ", inputType=" + inputType + ", outliersRemovalFDR=" + outliersRemovalFDR
 				+ ", significantFDRThreshold=" + significantFDRThreshold + " ]";
 	}
 
@@ -812,7 +769,7 @@ public class ProteinClusterQuantParameters {
 		return ret;
 	}
 
-	public InputType getInputType() {
+	public AnalysisInputType getInputType() {
 		return inputType;
 	}
 
@@ -820,7 +777,7 @@ public class ProteinClusterQuantParameters {
 	 * @param inputType
 	 *            the inputType to set
 	 */
-	public void setInputType(InputType inputType) {
+	public void setInputType(AnalysisInputType inputType) {
 		this.inputType = inputType;
 	}
 
@@ -989,5 +946,44 @@ public class ProteinClusterQuantParameters {
 	 */
 	public void setApplyClassificationsByProteinPair(boolean applyClassificationsByProteinPair) {
 		this.applyClassificationsByProteinPair = applyClassificationsByProteinPair;
+	}
+
+	public boolean isAnalysisRun() {
+		return analysisRun;
+	}
+
+	/**
+	 * @param analysisRun
+	 *            the isAnalysisRun to set
+	 */
+	public void setAnalysisRun(boolean analysisRun) {
+		this.analysisRun = analysisRun;
+	}
+
+	public boolean isComparisonRun() {
+		return comparisonRun;
+	}
+
+	/**
+	 * @param comparisonRun
+	 *            the comparisonRun to set
+	 */
+	private void setComparisonRun(boolean comparisonRun) {
+		this.comparisonRun = comparisonRun;
+	}
+
+	public ComparisonInput getComparisonInput() {
+		return comparisonInput;
+	}
+
+	/**
+	 * @param comparisonInput
+	 *            the comparisonInput to set
+	 */
+	public void setComparisonInput(ComparisonInput comparisonInput) {
+		this.comparisonInput = comparisonInput;
+		if (comparisonInput != null) {
+			setComparisonRun(true);
+		}
 	}
 }

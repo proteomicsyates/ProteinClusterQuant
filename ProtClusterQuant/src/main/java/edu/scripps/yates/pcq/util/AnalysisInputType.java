@@ -1,12 +1,12 @@
 package edu.scripps.yates.pcq.util;
 
-public enum InputType {
+public enum AnalysisInputType {
 
 	CENSUS_CHRO, CENSUS_OUT, SEPARATED_VALUES;
 
 	public static String getPossibleValues() {
 		StringBuilder sb = new StringBuilder();
-		for (InputType inputType : InputType.values()) {
+		for (AnalysisInputType inputType : AnalysisInputType.values()) {
 			if (!"".equals(sb.toString())) {
 				sb.append(", ");
 			}

@@ -58,6 +58,7 @@ public class Utils {
 	public static final String PROTEIN_DESCRIPTION_SEPARATOR = "####";
 	public static DecimalFormat df = new DecimalFormat("#.#");
 	private static Map<String, DBIndexInterface> indexByFastaIndexKey = new HashMap<String, DBIndexInterface>();
+	private static final Map<String, UniprotProteinLocalRetriever> uplrMap = new HashMap<String, UniprotProteinLocalRetriever>();
 	private final static Logger log = Logger.getLogger(Utils.class);
 	public static final String PROTEIN_ACC_SEPARATOR = " ";
 	public static final double factor = 1.2;
@@ -85,7 +86,7 @@ public class Utils {
 							&& pepResults.getSequenceIdentity() >= ProteinClusterQuantParameters.getInstance()
 									.getSequenceIdentity())
 							&& pepResults.getMaxConsecutiveIdenticalAlignment() >= ProteinClusterQuantParameters
-									.getInstance().getMaxConsecutiveIdenticalAlignment()) {
+									.getInstance().getMinConsecutiveIdenticalAlignment()) {
 						// pepResults call to function to put result in map
 						// pass map, result, call on both pep1
 						gAM = putResultInMap(gAM, pepResults, gAS, pep1);
@@ -346,7 +347,7 @@ public class Utils {
 			String uniprotVersion) {
 
 		// change primary accession to the latest in Uniprot
-		UniprotProteinLocalRetriever uplr = new UniprotProteinLocalRetriever(uniprotReleasesFolder, true);
+		UniprotProteinLocalRetriever uplr = getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder);
 
 		Set<String> accessions = new HashSet<String>();
 		accessions.addAll(parser.getProteinMap().keySet());
@@ -382,6 +383,14 @@ public class Utils {
 			}
 		}
 
+	}
+
+	public static UniprotProteinLocalRetriever getUniprotProteinLocalRetrieverByFolder(File uniprotReleasesFolder) {
+		if (!uplrMap.containsKey(uniprotReleasesFolder.getAbsolutePath())) {
+			uplrMap.put(uniprotReleasesFolder.getAbsolutePath(),
+					new UniprotProteinLocalRetriever(uniprotReleasesFolder, true));
+		}
+		return uplrMap.get(uniprotReleasesFolder.getAbsolutePath());
 	}
 
 	private static CensusOutParser getCensusOutParserUsingMongoDBIndex(String mongoDBURI, String mongoMassDBName,
@@ -1151,12 +1160,14 @@ public class Utils {
 	}
 
 	/**
-	 * explainwhatis doing
-	 *
+	 * Gets the peptides that are unique from protein1 respectivelly to
+	 * protein2.
+	 * 
 	 * @param protein1
 	 * @param protein2
-	 * @param cond1
-	 * @param cond2
+	 * @param uniquePepOnly
+	 *            if true, only peptides that are from protein1 and not from
+	 *            protein2 and not from any other protein, are reported.
 	 * @return
 	 */
 	public static Set<QuantifiedPeptideInterface> getUniquePeptides(QuantifiedProteinInterface protein1,
@@ -2021,7 +2032,7 @@ public class Utils {
 			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList, final String[] inputFileNamesArray)
 			throws FileNotFoundException {
 		log.debug("Creating input file parser");
-		if (params.getInputType() == InputType.CENSUS_CHRO) {
+		if (params.getInputType() == AnalysisInputType.CENSUS_CHRO) {
 			if (params.getMongoDBURI() != null) {
 				return Utils.getCensusChroParserUsingMongoDBIndex(params.getMongoDBURI(), params.getMongoMassDBName(),
 						params.getMongoSeqDBName(), params.getMongoProtDBName(), params.getInputFileFolder(),
@@ -2033,7 +2044,7 @@ public class Utils {
 						params.getMissedCleavages(), params.getUniprotReleasesFolder(), params.getUniprotVersion(),
 						params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB());
 			}
-		} else if (params.getInputType() == InputType.CENSUS_OUT) {
+		} else if (params.getInputType() == AnalysisInputType.CENSUS_OUT) {
 			if (params.getMongoDBURI() != null) {
 				final CensusOutParser parser = Utils.getCensusOutParserUsingMongoDBIndex(params.getMongoDBURI(),
 						params.getMongoMassDBName(), params.getMongoSeqDBName(), params.getMongoProtDBName(),
@@ -2052,7 +2063,7 @@ public class Utils {
 
 				return parser;
 			}
-		} else if (params.getInputType() == InputType.SEPARATED_VALUES) {
+		} else if (params.getInputType() == AnalysisInputType.SEPARATED_VALUES) {
 			if (params.getMongoDBURI() != null) {
 				final SeparatedValuesParser parser = Utils.getSeparatedValuesParserUsingMongoDBIndex(
 						params.getMongoDBURI(), params.getMongoMassDBName(), params.getMongoSeqDBName(),

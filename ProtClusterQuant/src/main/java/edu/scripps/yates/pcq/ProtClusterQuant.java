@@ -17,6 +17,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.log4j.Logger;
@@ -27,6 +33,7 @@ import edu.scripps.yates.census.analysis.QuantAnalysis;
 import edu.scripps.yates.census.analysis.QuantAnalysis.ANALYSIS_LEVEL_OUTCOME;
 import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.analysis.QuantificationType;
+import edu.scripps.yates.census.analysis.SanXotInterfaze;
 import edu.scripps.yates.census.analysis.wrappers.IntegrationResultWrapper;
 import edu.scripps.yates.census.analysis.wrappers.OutlierRemovalResultWrapper;
 import edu.scripps.yates.census.analysis.wrappers.SanXotAnalysisResult;
@@ -40,14 +47,16 @@ import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 import edu.scripps.yates.census.read.util.QuantificationLabel;
+import edu.scripps.yates.pcq.compare.ComparisonInput;
+import edu.scripps.yates.pcq.compare.PCQCompare;
 import edu.scripps.yates.pcq.filter.PCQFilter;
 import edu.scripps.yates.pcq.model.PCQPeptideNode;
 import edu.scripps.yates.pcq.model.PCQProteinNode;
 import edu.scripps.yates.pcq.model.ProteinCluster;
 import edu.scripps.yates.pcq.model.ProteinPair;
 import edu.scripps.yates.pcq.sanxot.SanxotRunner;
+import edu.scripps.yates.pcq.util.AnalysisInputType;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
-import edu.scripps.yates.pcq.util.InputType;
 import edu.scripps.yates.pcq.util.PropertiesReader;
 import edu.scripps.yates.pcq.util.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.util.Utils;
@@ -63,6 +72,7 @@ public class ProtClusterQuant {
 	private final static Logger log = Logger.getLogger(ProtClusterQuant.class);
 	private static final String SETUP_PROPERTIES = "setup.properties";
 	private static final String sep = "\t";
+	private static Options options;
 	private final QuantCondition cond1 = new QuantCondition("cond1");
 	private final QuantCondition cond2 = new QuantCondition("cond2");
 	// private static final String SETUP_PROPERTIES = "setup.properties";
@@ -74,25 +84,96 @@ public class ProtClusterQuant {
 	private Map<String, Entry> annotatedProteins;
 
 	public ProtClusterQuant(File setupPropertiesFile) {
-		this.setupPropertiesFile = setupPropertiesFile;
-		params = ProteinClusterQuantParameters.getInstance();
+		this(ProteinClusterQuantParameters.getInstance(), setupPropertiesFile);
 	}
 
-	public static void main(String args[]) throws IOException {
-		String propertiesFilePath = System.getProperty("user.dir") + File.separator + SETUP_PROPERTIES;
-		if (args.length > 0) {
-			propertiesFilePath = args[0];
+	public ProtClusterQuant(ProteinClusterQuantParameters params, File setupPropertiesFile) {
+		this.setupPropertiesFile = setupPropertiesFile;
+		this.params = params;
+		printWelcome();
+	}
 
+	private static void setupCommandLineOptions() {
+		// create Options object
+		options = new Options();
+		options.addOption("c", false,
+				"[OPTIONAL] If provided, a comparison analysis will be performed, instead of a quantitative analysis");
+		options.addOption("f", true, "[MANDATORY] Path to the parameters file");
+
+	}
+
+	private void printWelcome() {
+		final String implementationVersion = getClass().getPackage().getImplementationVersion();
+		String header = "Running PCQ (ProteinClusterQuant)";
+		if (implementationVersion != null) {
+			header += " version " + implementationVersion;
 		}
-		log.info("Using setup.properties file at: " + propertiesFilePath);
-		final File setupPropertiesFile = new File(propertiesFilePath);
-		PropertiesReader.readProperties(setupPropertiesFile);
-		ProtClusterQuant clusterCreator = new ProtClusterQuant(setupPropertiesFile);
-		clusterCreator.run();
+		System.out.println(header + " ...");
+	}
+
+	private static void errorInParameters() {
+		// automatically generate the help statement
+		HelpFormatter formatter = new HelpFormatter();
+
+		formatter.printHelp("`java -jar PCQ.jar -f input_parameters_file [-c]", "\n\n\n", options,
+				"\n\nContact Salvador Martinez-Bartolome at salvador@scripps.edu for more help");
+
 		System.exit(0);
 	}
 
+	public static void main(String args[]) throws IOException, ParseException {
+		setupCommandLineOptions();
+		CommandLineParser parser = new BasicParser();
+		try {
+			CommandLine cmd = parser.parse(options, args);
+
+			File inputFile = new File(cmd.getOptionValue("f"));
+			if (cmd.hasOption("c")) {
+				ComparisonInput comparisonInput = new ComparisonInput(inputFile);
+				final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+				params.setComparisonInput(comparisonInput);
+				params.setAnalysisRun(true);
+				ProtClusterQuant pcq = new ProtClusterQuant(params, null);
+				pcq.run();
+
+			} else {
+
+				String propertiesFilePath = System.getProperty("user.dir") + File.separator + SETUP_PROPERTIES;
+				if (inputFile != null) {
+					propertiesFilePath = inputFile.getAbsolutePath();
+
+				}
+				log.info("Using setup.properties file at: " + propertiesFilePath);
+				final File setupPropertiesFile = new File(propertiesFilePath);
+				PropertiesReader.readProperties(setupPropertiesFile);
+				ProteinClusterQuantParameters.getInstance().setAnalysisRun(true);
+				ProtClusterQuant clusterCreator = new ProtClusterQuant(setupPropertiesFile);
+				clusterCreator.run();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			errorInParameters();
+		}
+		System.exit(0);
+	}
+
+	private void runComparison() throws IOException {
+		final ProteinClusterQuantParameters parameters = ProteinClusterQuantParameters.getInstance();
+		final PCQCompare pcqCompare = new PCQCompare(parameters.getComparisonInput());
+		pcqCompare.runComparison();
+	}
+
 	public void run() throws IOException {
+		if (ProteinClusterQuantParameters.getInstance().isAnalysisRun()) {
+			runAnalysis();
+		} else if (ProteinClusterQuantParameters.getInstance().isComparisonRun()) {
+			runComparison();
+		} else {
+			throw new IllegalArgumentException("Internal error. Either analysis or comparison should be performed");
+		}
+	}
+
+	private void runAnalysis() throws IOException {
 
 		Set<ProteinCluster> clusterSet = new HashSet<ProteinCluster>();
 
@@ -165,24 +246,43 @@ public class ProtClusterQuant {
 			}
 			log.info(numProteinPairs + " protein pairs identified.");
 
+			// TESTING
+			int numPeptideNodes = 0;
+			int numProteinNodes = 0;
+			for (ProteinCluster cluster : clusterSet) {
+				numPeptideNodes += cluster.getPeptideNodes().size();
+				numProteinNodes += cluster.getProteinNodes().size();
+				final Set<String> peptideNodeKeys = cluster.getPeptideNodeKeys();
+				if (peptideNodeKeys.contains("GLGLKPEKLEK")) {
+					for (PCQPeptideNode pepnode : cluster.getPeptideNodes()) {
+						final Set<QuantifiedPSMInterface> quantifiedPSMs = pepnode.getQuantifiedPSMs();
+						for (QuantifiedPSMInterface quantifiedPSMInterface : quantifiedPSMs) {
+							log.info(quantifiedPSMInterface.getKey());
+						}
+
+					}
+				}
+			}
+			log.info(numPeptideNodes + " peptide nodes");
+			log.info(numProteinNodes + " protein nodes");
+
+			// END TESTING
+
 			Map<String, SanxotQuantResult> ratioStatsByPeptideNodeKey = null;
 			if (params.isPerformRatioIntegration()) {
-				// calculating consensus ratios up to peptide_exp_rep level
+				// calculating ratios up to peptide_exp_rep level
 				SanXotAnalysisResult peptideRepSanxotResult = null;
-				peptideRepSanxotResult = calculatePeptideReplicateRatios();
+				peptideRepSanxotResult = calculatePeptideExperimentReplicateRatios();
 
-				// // if we have filtered, then remove
-				// if (!params.getFilters().isEmpty())
-
-				// make a custom sanxot analysis from peptide_rep to
-				// peptide_node_rep
-				final SanXotAnalysisResult peptideNodeRepSanxotResult = calculatePeptideNodeReplicateRatios(
+				// calculating consensus ratios up to peptide_node_exp_rep
+				final SanXotAnalysisResult peptideNodeRepSanxotResult = calculatePeptideNodeExperimentReplicateRatios(
 						peptideRepSanxotResult, clusterSet);
 
 				// make a custom sanxot analysis from peptide_node_rep to
 				// peptide_node
-				final SanXotAnalysisResult peptideNodeSanxotResult = calculatePeptideNodeRatios(
-						peptideNodeRepSanxotResult, clusterSet);
+				SanXotAnalysisResult peptideNodeSanxotResult = calculatePeptideNodeRatios(peptideNodeRepSanxotResult,
+						clusterSet);
+
 				ratioStatsByPeptideNodeKey = peptideNodeSanxotResult.getLastIntegrationResults().getOutStatsRatios();
 
 				// set the calculated values as final peptide node ratio values
@@ -571,9 +671,11 @@ public class ProtClusterQuant {
 	 * @throws ExecutionException
 	 * @throws InterruptedException
 	 */
-	private SanXotAnalysisResult calculatePeptideNodeReplicateRatios(SanXotAnalysisResult peptideRepSanxotResult,
-			Set<ProteinCluster> clusterSet) throws IOException, InterruptedException, ExecutionException {
+	private SanXotAnalysisResult calculatePeptideNodeExperimentReplicateRatios(
+			SanXotAnalysisResult peptideRepSanxotResult, Set<ProteinCluster> clusterSet)
+			throws IOException, InterruptedException, ExecutionException {
 		File relationshipFile = writeRelationshipFileFromPeptideExpRepToPeptideNodeExpRep(clusterSet);
+		boolean relationnshipFileIsValid = SanXotInterfaze.checkAnyDifferentRelationShip(relationshipFile);
 
 		File workingFolder = QuantAnalysis.createWorkingFolder(params.getTemporalOutputFolder(),
 				ANALYSIS_LEVEL_OUTCOME.PEPTIDE);
@@ -597,27 +699,30 @@ public class ProtClusterQuant {
 				}
 				File infoFile = null;
 				final IntegrationResultWrapper integrationResultForReplicate = replicateIntegrations.get(replicateName);
-				final String prefix = "PeptideExpRep2PeptideNodeExpRep_" + experimentKey + replicateKey;
-				boolean checkRelationshipValidity = params.getFilters().isEmpty();
-				replicateIntegrationResult = SanxotRunner.integrate(relationshipFile,
-						integrationResultForReplicate.getHigherLevelDataFile(), infoFile, prefix, null, workingFolder,
-						checkRelationshipValidity);
+				if (relationnshipFileIsValid) {
 
-				if (isRemoveOutliers()) {
-					infoFile = replicateIntegrationResult.getInfoFile();
-					String outliersPrefix = "outliers_removed_" + prefix;
-					final OutlierRemovalResultWrapper removeOutliers = SanxotRunner.removeOutliers(relationshipFile,
-							integrationResultForReplicate.getHigherLevelDataFile(), infoFile, outliersPrefix,
-							getParams().getOutliersRemovalFDR(), workingFolder);
-					relationshipFile = removeOutliers.getRelatFile();
+					final String prefix = "PeptideExpRep2PeptideNodeExpRep_" + experimentKey + replicateKey;
+					boolean checkRelationshipValidity = params.getFilters().isEmpty();
 					replicateIntegrationResult = SanxotRunner.integrate(relationshipFile,
-							integrationResultForReplicate.getHigherLevelDataFile(), null, prefix, null, workingFolder,
-							false);
-				}
+							integrationResultForReplicate.getHigherLevelDataFile(), infoFile, prefix, null,
+							workingFolder, checkRelationshipValidity);
 
+					if (isRemoveOutliers()) {
+						infoFile = replicateIntegrationResult.getInfoFile();
+						String outliersPrefix = "outliers_removed_" + prefix;
+						final OutlierRemovalResultWrapper removeOutliers = SanxotRunner.removeOutliers(relationshipFile,
+								integrationResultForReplicate.getHigherLevelDataFile(), infoFile, outliersPrefix,
+								getParams().getOutliersRemovalFDR(), workingFolder);
+						relationshipFile = removeOutliers.getRelatFile();
+						replicateIntegrationResult = SanxotRunner.integrate(relationshipFile,
+								integrationResultForReplicate.getHigherLevelDataFile(), null, prefix, null,
+								workingFolder, false);
+					}
+				} else {
+					replicateIntegrationResult = integrationResultForReplicate;
+				}
 				dataFiles.add(replicateIntegrationResult.getHigherLevelDataFile());
 				ret.addReplicateExperimentIntegrationResult(replicateIntegrationResult, experimentName, replicateName);
-
 			}
 			if (dataFiles.size() > 1) {
 				File relationshipFile2 = writeRelationshipFileFromPeptideNodeExpRepToPeptideNodeExp(clusterSet);
@@ -830,7 +935,7 @@ public class ProtClusterQuant {
 	 * @return
 	 * @throws IOException
 	 */
-	private SanXotAnalysisResult calculatePeptideReplicateRatios() throws IOException {
+	private SanXotAnalysisResult calculatePeptideExperimentReplicateRatios() throws IOException {
 		log.info("Running SanXot algorithm for integrating quantitative ratios");
 		long t1 = System.currentTimeMillis();
 		SanxotRunner sanxotRunner = new SanxotRunner(this, getQuantType(), getParams().getTemporalOutputFolder(), cond1,
@@ -843,10 +948,10 @@ public class ProtClusterQuant {
 	}
 
 	private QuantificationType getQuantType() {
-		final InputType inputType = getParams().getInputType();
-		if (inputType == InputType.CENSUS_CHRO) {
+		final AnalysisInputType inputType = getParams().getInputType();
+		if (inputType == AnalysisInputType.CENSUS_CHRO) {
 			return QuantificationType.ISOTOPOLOGUES;
-		} else if (inputType == InputType.CENSUS_OUT) {
+		} else if (inputType == AnalysisInputType.CENSUS_OUT) {
 			return QuantificationType.SILAC;
 		} else
 			// if (inputType == InputType.SEPARATED_VALUES) {
@@ -981,7 +1086,7 @@ public class ProtClusterQuant {
 							&& AlignResult.getSequenceIdentity() >= ProteinClusterQuantParameters.getInstance()
 									.getSequenceIdentity()
 							&& AlignResult.getMaxConsecutiveIdenticalAlignment() >= ProteinClusterQuantParameters
-									.getInstance().getMaxConsecutiveIdenticalAlignment()) {
+									.getInstance().getMinConsecutiveIdenticalAlignment()) {
 
 						String seq2 = AlignResult.getSeq1();
 
@@ -1125,9 +1230,8 @@ public class ProtClusterQuant {
 						final Set<ProteinPair> proteinPairs = cluster.getProteinPairs();
 						Set<Double> ratioValues = new HashSet<Double>();
 						if (proteinPairs.isEmpty()) {
-							final QuantRatio pepRatio = Utils.getConsensusRatio(
-									cluster.getPeptideSet(params.isExcludeUniquePeptides()), cond1, cond2,
-									replicateName);
+							final QuantRatio pepRatio = Utils.getConsensusRatio(cluster.getPeptideSet(false), cond1,
+									cond2, replicateName);
 							if (pepRatio != null) {
 								final Double countRatio = pepRatio.getNonLogRatio(cond1, cond2);
 								if (countRatio != null && !Double.isNaN(countRatio) && !Double.isInfinite(countRatio)) {
@@ -1239,8 +1343,9 @@ public class ProtClusterQuant {
 		if (annotatedProteins == null) {
 			if (getParams().getUniprotReleasesFolder() != null) {
 				log.info("Getting UniprotKB annotations for " + parser.getProteinMap().size() + " proteins");
-				UniprotProteinLocalRetriever uplr = new UniprotProteinLocalRetriever(
-						getParams().getUniprotReleasesFolder(), true);
+
+				UniprotProteinLocalRetriever uplr = Utils
+						.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
 
 				// exporting to xgmml
 				annotatedProteins = uplr.getAnnotatedProteins(getParams().getUniprotVersion(),
@@ -1254,10 +1359,7 @@ public class ProtClusterQuant {
 
 	private void classiffyAndPrintStatistics(Set<ProteinCluster> clusterSet) {
 
-		FileWriter outputCases = null;
-		FileWriter outputGroups = null;
-		FileWriter outputProteins = null;
-		FileWriter outputNames = null;
+		FileWriter outputKMeans = null;
 		FileWriter outputSummary = null;
 		FileWriter outputPairs = null;
 		File outputSummaryFile = null;
@@ -1296,22 +1398,15 @@ public class ProtClusterQuant {
 			final File outputFileFolder = params.getTemporalOutputFolder();
 
 			if (params.isGenerateMiscellaneousFiles()) {
-				outputCases = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix
-						+ "_cases_" + outputSuffix + ".txt");
-				outputGroups = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix
-						+ "_groups_" + outputSuffix + ".txt");
-				outputProteins = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix
-						+ "_prot_" + outputSuffix + ".txt");
-				outputNames = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix
-						+ "_names_" + outputSuffix + ".txt");
+				outputKMeans = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix
+						+ "_kmeans_" + outputSuffix + ".txt");
 
 				outputPairs = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix
 						+ "_proteinPairs_" + outputSuffix + ".txt");
+				// headers
+				outputPairs.append(ProteinPair.getSummaryLinesHeader() + "\n");
 
-				outputGroups.append("Prot" + "\t" + "Edge" + "\t" + "Pep" + "\n");
-				outputNames.append("OriginalName" + "\t" + "NewName" + "\t" + "Description" + "\t" + "Species" + "\t"
-						+ "ProtOrPep" + "\n");
-				outputCases.append("Protein" + "\t" + "Case" + "\n");
+				outputKMeans.append("Protein" + "\t" + "Case" + "\n");
 			}
 			outputSummaryFile = new File(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix
 					+ "_summary_" + outputSuffix + ".txt");
@@ -1335,39 +1430,6 @@ public class ProtClusterQuant {
 				numProt += cluster.getNumIndividualProteins();
 				numPep += cluster.getPeptideSet().size();
 				numPepNodes += cluster.getPeptideNodeKeys().size();
-				if (params.isGenerateMiscellaneousFiles()) {
-					for (PCQProteinNode proteinNode : proteinNodeSet) {
-						Set<PCQPeptideNode> peptideNodeSet2 = proteinNode.getPeptideNodes();
-						// prints out protein and peptides
-						for (PCQPeptideNode peptideNode : peptideNodeSet2) {
-
-							outputProteins.append(proteinNode.getAccession() + "\t");
-							outputProteins.append(proteinNode.getDescription() + "\t");
-							outputProteins.append(peptideNode.getSequence() + "\t");
-							Double ratio = Utils.getRatioValue(peptideNode.getConsensusRatio(cond1, cond2), cond1,
-									cond2);
-
-							if (ratio == Double.NEGATIVE_INFINITY) {
-								outputProteins.append("NEG_INF" + "\t");
-							} else if (ratio == Double.POSITIVE_INFINITY) {
-								outputProteins.append("POS_INF" + "\t");
-							} else {
-
-								outputProteins.append(ratio + "\t");
-							}
-							outputProteins.append("\t");
-							outputProteins.append("1" + "\t");
-							if (params.isGetTax()) {
-								outputProteins.append("0" + "\t");
-								outputProteins.append(proteinNode.getTaxonomy() + "\n");
-							} else {
-								outputProteins.append("0" + "\n");
-							}
-							outputProteins.flush();
-
-						}
-					}
-				}
 
 				for (PCQPeptideNode peptideNode : peptideNodeSet) {
 
@@ -1447,9 +1509,7 @@ public class ProtClusterQuant {
 				Set<ProteinPair> proteinPairs = cluster.getProteinPairs();
 
 				for (ProteinPair proteinPair : proteinPairs) {
-					proteinPair.setOutputCases(outputCases);
-					proteinPair.setOutputGroups(outputGroups);
-					proteinPair.setOutputNames(outputNames);
+					proteinPair.setOutputKMeans(outputKMeans);
 
 					numProteinPairs++;
 
@@ -1493,8 +1553,8 @@ public class ProtClusterQuant {
 			log.info("Printing statistics:");
 			for (ProteinPairPValue proteinPairPValue : ranking) {
 				log.info(proteinPairPValue.getpValue() + "\t");
-				log.info(proteinPairPValue.getProteinpair().getNameProt1() + "\t");
-				log.info(proteinPairPValue.getProteinpair().getNameProt2());
+				log.info(proteinPairPValue.getProteinpair().getAccProt1() + "\t");
+				log.info(proteinPairPValue.getProteinpair().getAccProt2());
 			}
 
 			// log.info("Number Inconsistent with Cluster: " +
@@ -1582,14 +1642,8 @@ public class ProtClusterQuant {
 			log.error(e.getMessage());
 		} finally {
 			try {
-				if (outputCases != null)
-					outputCases.close();
-				if (outputProteins != null)
-					outputProteins.close();
-				if (outputGroups != null)
-					outputGroups.close();
-				if (outputNames != null)
-					outputNames.close();
+				if (outputKMeans != null)
+					outputKMeans.close();
 				if (outputSummary != null)
 					outputSummary.close();
 				if (outputPairs != null)

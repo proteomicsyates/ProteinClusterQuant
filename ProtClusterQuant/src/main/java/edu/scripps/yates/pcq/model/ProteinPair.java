@@ -36,9 +36,7 @@ public class ProteinPair {
 
 	private final Map<String, Classification2Case> classification2Cases = new HashMap<String, Classification2Case>();
 	private final Map<String, Classification1Case> classification1Cases = new HashMap<String, Classification1Case>();
-	private Writer outputCases;
-	private Writer outputGroups;
-	private Writer outputNames;
+	private Writer outputKMeans;
 	ProteinPairPValue firstCase;
 	ProteinPairPValue secondCase;
 	private final ProteinClusterQuantParameters params;
@@ -168,11 +166,11 @@ public class ProteinPair {
 		return flag;
 	}
 
-	public String getNameProt1() {
+	public String getAccProt1() {
 		return protein1.getAccession();
 	}
 
-	public String getNameProt2() {
+	public String getAccProt2() {
 		return protein2.getAccession();
 	}
 
@@ -251,8 +249,8 @@ public class ProteinPair {
 					params.isUniquePepOnly());
 			final Set<QuantifiedPeptideInterface> uniques2 = Utils.getUniquePeptides(protein2, protein1,
 					params.isUniquePepOnly());
-			classifyPairByClassification2(params.isStdAsSignficanceCutoffOn(), params.getThresholdForSignificance(),
-					uniques1, uniques2, sharedPeptides, sharedPeptidesProteinKey, cond1, cond2);
+			classifyPairByClassification2(params.getThresholdForSignificance(), uniques1, uniques2, sharedPeptides,
+					sharedPeptidesProteinKey, cond1, cond2);
 
 			classifyPairByclassification1(threeCombined, pepRatProt1, pepRatShared, pepRatProt2,
 					sharedPeptidesProteinKey, cond1, cond2);
@@ -280,7 +278,7 @@ public class ProteinPair {
 	// }
 	// CASIMIR
 
-	private void classifyPairByClassification2(boolean stdAsSignficanceCutoff, double thresholdForSignificance,
+	private void classifyPairByClassification2(double thresholdForSignificance,
 			Collection<QuantifiedPeptideInterface> uniques1, Collection<QuantifiedPeptideInterface> uniques2,
 			Collection<QuantifiedPeptideInterface> shared, String sharedPeptidesProteinKey, QuantCondition cond1,
 			QuantCondition cond2) throws IOException {
@@ -315,14 +313,9 @@ public class ProteinPair {
 		// DO pair-wise comparison of ratios; the two unique and the shared
 
 		// ratios with threshold or 2* standard deviation
-		if (stdAsSignficanceCutoff) {
-			// use average standard deviation
-			// TODO
-			// foldChange = averageStandardDeviation;
-		} else {
-			// use value defined in thresholdForSignificance
-			foldChange = thresholdForSignificance;
-		}
+
+		// use value defined in thresholdForSignificance
+		foldChange = thresholdForSignificance;
 
 		// System.out.println("This is the fold change cutoff in log2: "
 		// + foldChange);
@@ -468,10 +461,10 @@ public class ProteinPair {
 
 	}
 
-	private void writeOnOutputCases(String string) throws IOException {
+	private void writeOnOutputKMeans(String string) throws IOException {
 		if (ProteinClusterQuantParameters.getInstance().isGenerateMiscellaneousFiles()) {
-			if (outputCases != null) {
-				outputCases.append(string);
+			if (outputKMeans != null) {
+				outputKMeans.append(string);
 			}
 		}
 	}
@@ -497,12 +490,11 @@ public class ProteinPair {
 			classification1Case = Classification1Case.CASE5;
 		} else if (hasRatiosAndINF) {
 			classification1Case = Classification1Case.CASE2;
-			writeOnOutputCases(getNameProt1() + "\t" + classification1Case.getCaseID() + "\n");
-			writeOnOutputCases(getNameProt2() + "\t" + classification1Case.getCaseID() + "\n");
+			writeOnOutputKMeans(getAccProt1() + "\t" + classification1Case.getCaseID() + "\n");
+			writeOnOutputKMeans(getAccProt2() + "\t" + classification1Case.getCaseID() + "\n");
 			if (params.isPrintKMeans()) {
-				writeOnOutputCases(classification1Case.getCaseID() + "\t" + getNameProt1() + "\t" + getNameProt2()
-						+ "\t" + threeCombined.get(0) + "\t" + threeCombined.get(1) + "\t" + threeCombined.get(2)
-						+ "\n");
+				writeOnOutputKMeans(classification1Case.getCaseID() + "\t" + getAccProt1() + "\t" + getAccProt2() + "\t"
+						+ threeCombined.get(0) + "\t" + threeCombined.get(1) + "\t" + threeCombined.get(2) + "\n");
 			}
 		} else {
 			// at this point we have INF OR RATIOS, not both
@@ -540,10 +532,10 @@ public class ProteinPair {
 					// nothing is significant
 					classification1Case = Classification1Case.CASE3;
 				}
-				writeOnOutputCases(getNameProt1() + "\t" + classification1Case.getCaseID() + "\n");
-				writeOnOutputCases(getNameProt2() + "\t" + classification1Case.getCaseID() + "\n");
+				writeOnOutputKMeans(getAccProt1() + "\t" + classification1Case.getCaseID() + "\n");
+				writeOnOutputKMeans(getAccProt2() + "\t" + classification1Case.getCaseID() + "\n");
 				if (params.isPrintKMeans()) {
-					writeOnOutputCases(classification1Case.getCaseID() + "\t" + getNameProt1() + "\t" + getNameProt2()
+					writeOnOutputKMeans(classification1Case.getCaseID() + "\t" + getAccProt1() + "\t" + getAccProt2()
 							+ "\t" + threeCombined.get(0) + "\t" + threeCombined.get(1) + "\t" + threeCombined.get(2)
 							+ "\n");
 				}
@@ -559,19 +551,18 @@ public class ProteinPair {
 				} else {
 					classification1Case = Classification1Case.CASE4;
 				}
-				writeOnOutputCases(getNameProt1() + "\t" + classification1Case.getCaseID() + "\n");
-				writeOnOutputCases(getNameProt2() + "\t" + classification1Case.getCaseID() + "\n");
+				writeOnOutputKMeans(getAccProt1() + "\t" + classification1Case.getCaseID() + "\n");
+				writeOnOutputKMeans(getAccProt2() + "\t" + classification1Case.getCaseID() + "\n");
 				if (params.isPrintKMeans()) {
-					writeOnOutputCases(classification1Case.getCaseID() + "\t" + getNameProt1() + "\t" + getNameProt2()
+					writeOnOutputKMeans(classification1Case.getCaseID() + "\t" + getAccProt1() + "\t" + getAccProt2()
 							+ "\t" + threeCombined.get(0) + "\t" + threeCombined.get(1) + "\t" + threeCombined.get(2)
 							+ "\n");
 				}
 			}
 		}
-		if (ProteinClusterQuantParameters.getInstance().isGenerateMiscellaneousFiles() && outputCases != null) {
-			outputCases.flush();
+		if (ProteinClusterQuantParameters.getInstance().isGenerateMiscellaneousFiles() && outputKMeans != null) {
+			outputKMeans.flush();
 		}
-		printThreeAverages(threeCombined);
 
 		classification1Cases.put(sharedPeptidesProteinKey, classification1Case);
 	}
@@ -583,63 +574,6 @@ public class ProteinPair {
 			return true;
 		}
 		return false;
-	}
-
-	private void printThreeAverages(List<Double> threeCombined) throws IOException {
-		if (ProteinClusterQuantParameters.getInstance().isGenerateMiscellaneousFiles()) {
-			// prints Prot Pep PepNAme PRot Name
-			outputGroups.append(protein1.getAccession() + "\t");
-			outputGroups.append("1\t" + Utils.getPeptidesSequenceString(
-					Utils.getUniquePeptides(protein1, protein2, params.isUniquePepOnly())) + "\n");
-
-			outputGroups.append(protein2.getAccession() + "\t");
-			outputGroups.append("1\t" + Utils.getPeptidesSequenceString(
-					Utils.getUniquePeptides(protein2, protein1, params.isUniquePepOnly())) + "\n");
-
-			outputGroups.append(protein1.getAccession() + "\t");
-			outputGroups.append("1\t"
-					+ Utils.getPeptidesSequenceString(Utils.getSharedPeptidesMap(protein2, protein1, false)) + "\n");
-
-			outputGroups.append(protein2.getAccession() + "\t");
-			outputGroups.append("1\t"
-					+ Utils.getPeptidesSequenceString(Utils.getSharedPeptidesMap(protein2, protein1, false)) + "\n");
-
-			outputGroups.flush();
-
-			outputNames.append(protein1.getAccession() + "\t");
-			outputNames.append(protein1.getAccession() + "\t");
-			outputNames.append(protein1.getDescription() + "\t");
-			if (params.isGetTax()) {
-				outputNames.append(protein1.getTaxonomy() + "\t" + "0\n");
-			} else {
-				outputNames.append("\t" + "0\n");
-			}
-
-			outputNames.append(protein2.getAccession() + "\t");
-			outputNames.append(protein2.getAccession() + "\t");
-			outputNames.append(protein2.getDescription() + "\t");
-			if (params.isGetTax()) {
-				outputNames.append(protein2.getTaxonomy() + "\t" + "0\n");
-			} else {
-				outputNames.append("\t" + "0\n");
-			}
-			if (!Utils.getUniquePeptides(protein1, protein2, params.isUniquePepOnly()).isEmpty()) {
-				outputNames.append(Utils.getPeptidesSequenceString(
-						Utils.getUniquePeptides(protein1, protein2, params.isUniquePepOnly())) + "\t");
-				outputNames.append(Utils.format(threeCombined.get(0)) + "\t" + "\t" + "\t" + "1\t" + "\n");
-			}
-
-			outputNames.append(
-					Utils.getPeptidesSequenceString(Utils.getSharedPeptidesMap(protein1, protein2, false)) + "\t");
-			outputNames.append(Utils.format(threeCombined.get(1)) + "\t" + "\t" + "\t" + "1\t" + "\n");
-
-			if (!Utils.getUniquePeptides(protein2, protein1, params.isUniquePepOnly()).isEmpty()) {
-				outputNames.append(Utils.getPeptidesSequenceString(
-						Utils.getUniquePeptides(protein2, protein1, params.isUniquePepOnly())) + "\t");
-				outputNames.append(Utils.format(threeCombined.get(2)) + "\t" + "\t" + "\t" + "1\t" + "\n");
-			}
-			outputNames.flush();
-		}
 	}
 
 	/**
@@ -736,16 +670,8 @@ public class ProteinPair {
 		return classification1Cases;
 	}
 
-	public void setOutputCases(Writer output) {
-		outputCases = output;
-	}
-
-	public void setOutputGroups(Writer output) {
-		outputGroups = output;
-	}
-
-	public void setOutputNames(Writer output) {
-		outputNames = output;
+	public void setOutputKMeans(Writer output) {
+		outputKMeans = output;
 	}
 
 	public ProteinPairPValue getFirstCase() {
@@ -832,6 +758,16 @@ public class ProteinPair {
 	 */
 	public boolean isSharedPeptidesInconsistent() {
 		return sharedPeptidesInconsistent;
+	}
+
+	public static String getSummaryLinesHeader() {
+		StringBuilder sb = new StringBuilder();
+
+		sb.append("Unique Pep1 (U1)").append("\t").append("Ratio (U1)").append("\t").append("Protein 1").append("\t")
+				.append("Shared Pep (S)").append("\t").append("Ratio (S)").append("\t").append("Protein 2")
+				.append("\tUnique Pep2 (U2)").append("\t").append("Ratio (U2)").append("\t")
+				.append("ClassificationCase1").append("\t").append("ClassificationCase2");
+		return sb.toString();
 	}
 
 	/**

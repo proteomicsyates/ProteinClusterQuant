@@ -50,15 +50,15 @@ public class PropertiesReader {
 
 	}
 
-	private static void readParametersFromProperties(ProteinClusterQuantProperties properties)
-			throws FileNotFoundException {
+	private static void readParametersFromProperties(ProteinClusterQuantProperties properties) throws IOException {
 		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+
 		try {
-			InputType inputType = InputType.valueOf(properties.getProperty("inputType", true));
+			AnalysisInputType inputType = AnalysisInputType.valueOf(properties.getProperty("inputType", true));
 			params.setInputType(inputType);
 		} catch (Exception e) {
-			throw new IllegalArgumentException(
-					"'inputType' parameter can only have the following values: " + InputType.getPossibleValues());
+			throw new IllegalArgumentException("'inputType' parameter can only have the following values: "
+					+ AnalysisInputType.getPossibleValues());
 		}
 
 		if (properties.containsKey("onlyOneSpectrumPerChromatographicPeakAndPerSaltStep")) {
@@ -71,22 +71,19 @@ public class PropertiesReader {
 			boolean skipSingletons = Boolean.valueOf(properties.getProperty("skipSingletons", false));
 			params.setSkipSingletons(skipSingletons);
 		}
-		// CASIMIR
-		// protein pair analysis based on significant value cutoff
-		boolean significantProteinPairAnalysis = Boolean
-				.valueOf(properties.getProperty("significantProteinPairAnalysis", "false"));
-		params.setSignificantProteinPairAnalysis(significantProteinPairAnalysis);
-		// CASIMIR
-		// protein pair analysis based on significant value cutoff
+		boolean generateMiscellaneousFiles = Boolean
+				.valueOf(properties.getProperty("generateMiscellaneousFiles", "false"));
+		params.setGenerateMiscellaneousFiles(generateMiscellaneousFiles);
+
+		boolean applyClassificationsByProteinPair = Boolean
+				.valueOf(properties.getProperty("applyClassificationsByProteinPairs", "false"));
+		params.setApplyClassificationsByProteinPair(applyClassificationsByProteinPair);
+
 		boolean labelSwap = Boolean.valueOf(properties.getProperty("labelSwap", "false"));
 		params.setLabelSwap(labelSwap);
-		// CASIMIR
-		// Standard deviation of peptide measurements as significance cutoff
-		boolean stdAsSignficanceCutoff = Boolean.valueOf(properties.getProperty("stdAsSignficanceCutoff", "false"));
-		params.setStdAsSignficanceCutoffOn(stdAsSignficanceCutoff);
-		// CASIMIR
+
 		// cutoff for significance
-		double thresholdForSignificance = Double.valueOf(properties.getProperty("thresholdForSignificance", "0.05"));
+		double thresholdForSignificance = Double.valueOf(properties.getProperty("thresholdForSignificance", "2"));
 		params.setThresholdForSignificance(thresholdForSignificance);
 		boolean printOnlyFirstGene = Boolean.valueOf(properties.getProperty("printOnlyFirstGene", "true"));
 		params.setPrintOnlyFirstGene(printOnlyFirstGene);
@@ -95,7 +92,7 @@ public class PropertiesReader {
 				.valueOf(properties.getProperty("ionsPerPeptideNodeThresholdOn", "false"));
 		params.setIonsPerPeptideNodeThresholdOn(ionsPerPeptideNodeThresholdOn);
 		// threshold for minimum ions per peptide node
-		int ionsPerPeptideNodeThreshold = Integer.valueOf(properties.getProperty("ionsPerPeptideNodeThreshold", "8"));
+		int ionsPerPeptideNodeThreshold = Integer.valueOf(properties.getProperty("ionsPerPeptideNodeThreshold", "0"));
 		params.setIonsPerPeptideNodeThreshold(ionsPerPeptideNodeThreshold);
 		// threshold for minimum PSMs per Peptide
 		boolean psmsPerPeptideNodeThresholdOn = Boolean
@@ -118,10 +115,10 @@ public class PropertiesReader {
 				.valueOf(properties.getProperty("collapseIndistinguishablePeptides", "true"));
 		params.setCollapseIndistinguishablePeptides(collapseIndistinguishablePeptides);
 		// determines if we align the peptides or not
-		boolean makeAlignments = Boolean.valueOf(properties.getProperty("makeAlignments", "true"));
+		boolean makeAlignments = Boolean.valueOf(properties.getProperty("makeAlignments", "false"));
 		params.setMakeAlignments(makeAlignments);
 		// if prints out data for k-means clustering
-		boolean printKMeans = Boolean.valueOf(properties.getProperty("k_means", "true"));
+		boolean printKMeans = Boolean.valueOf(properties.getProperty("kMeans", "true"));
 		params.setPrintKMeans(printKMeans);
 		// DmDv, A, B, and E use 'K'
 		// Human samples use 'K', 'R'
@@ -143,14 +140,12 @@ public class PropertiesReader {
 		}
 		params.setEnzymeArray(enzymeArray);
 		// missedcleavages
-		int missedCleavages = Integer.valueOf(properties.getProperty("missedcleavages", "1"));
+		int missedCleavages = Integer.valueOf(properties.getProperty("missedCleavages", "0"));
 		params.setMissedCleavages(missedCleavages);
 		// do we only count truly unique peptides as unique
 		boolean uniquePepOnly = Boolean.valueOf(properties.getProperty("uniquePepOnly", "true"));
 		params.setUniquePepOnly(uniquePepOnly);
-		// if want to get Taxonomy
-		boolean getTax = Boolean.valueOf(properties.getProperty("getTax", "false"));
-		params.setGetTax(getTax);
+
 		File uniprotReleasesFolder = new File(
 				properties.getProperty("uniprotReleasesFolder", System.getProperty("user.dir")));
 		params.setUniprotReleasesFolder(uniprotReleasesFolder);
@@ -159,13 +154,13 @@ public class PropertiesReader {
 		params.setUniprotVersion(uniprotVersion);
 
 		// output prefix
-		String outputPrefix = properties.getProperty("output_prefix", true);
+		String outputPrefix = properties.getProperty("outputPrefix", true);
 		params.setOutputPrefix(outputPrefix);
 		// output suffix
-		String outputSuffix = properties.getProperty("output_sufix", true);
+		String outputSuffix = properties.getProperty("outputSuffix", true);
 		params.setOutputSuffix(outputSuffix);
 		// input file folder
-		File inputFileFolder = new File(properties.getProperty("input_file_path", System.getProperty("user.dir")));
+		File inputFileFolder = new File(properties.getProperty("inputFilePath", System.getProperty("user.dir")));
 		if (!inputFileFolder.exists()) {
 			throw new FileNotFoundException(
 					"Input file folder " + inputFileFolder.getAbsolutePath() + " doesn't exist");
@@ -173,7 +168,7 @@ public class PropertiesReader {
 		params.setInputFileFolder(inputFileFolder);
 
 		String timeStamp = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date());
-		File outputFileFolder = new File(properties.getProperty("output_file_path", System.getProperty("user.dir"))
+		File outputFileFolder = new File(properties.getProperty("outputFilePath", System.getProperty("user.dir"))
 				+ File.separator + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + File.separator + outputPrefix
 				+ "_" + outputSuffix + "_" + timeStamp);
 		File temporalOutputFolder = new File(outputFileFolder.getAbsolutePath() + "_TEMP");
@@ -186,7 +181,7 @@ public class PropertiesReader {
 		params.setOutputFileFolder(outputFileFolder);
 
 		// input files
-		String fileNamesString = properties.getProperty("input_files");
+		String fileNamesString = properties.getProperty("inputFiles", true);
 		if (fileNamesString.contains("|")) {
 			String[] tmp = fileNamesString.split("\\|");
 			for (int i = 0; i < tmp.length; i++) {
@@ -199,7 +194,7 @@ public class PropertiesReader {
 		}
 
 		// fasta file
-		final String fastaFileProp = properties.getProperty("fasta_file", false);
+		final String fastaFileProp = properties.getProperty("fastaFile", false);
 		if (fastaFileProp != null && !"".equals(fastaFileProp)) {
 			File fastaFile = new File(fastaFileProp);
 			if (!fastaFile.exists()) {
@@ -212,25 +207,17 @@ public class PropertiesReader {
 				.valueOf(properties.getProperty("ignoreNotFoundPeptidesInDB", "false"));
 		params.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 
-		String lightSpecies = properties.getProperty("light_species", false);
+		String lightSpecies = properties.getProperty("lightSpecies", false);
 		if (lightSpecies != null)
 			params.setLightSpecies(lightSpecies);
 
-		String heavySpecies = properties.getProperty("heavy_species", false);
+		String heavySpecies = properties.getProperty("heavySpecies", false);
 		if (heavySpecies != null)
 			params.setHeavySpecies(heavySpecies);
 
-		//////////////
-		// PSEA QUANT
-		// replicate_identifiers
-
-		boolean excludeUniquePeptides = Boolean.valueOf(properties.getProperty("excludeUniquePeptides", "true"));
-		params.setExcludeUniquePeptides(excludeUniquePeptides);
-		/////////////////
-
 		// graphic options
 		ColorManager colorManager = ColorManager.getInstance();
-		final String colorsByTax = properties.getProperty("colors_by_taxonomy");
+		final String colorsByTax = properties.getProperty("colorsByTaxonomy");
 		if (colorsByTax != null && !"".equals(colorsByTax)) {
 			if (colorsByTax.contains(",")) {
 				final String[] split = colorsByTax.split(",");
@@ -242,15 +229,17 @@ public class PropertiesReader {
 				}
 			}
 		}
-		final String multiTaxonomyColor = properties.getProperty("color_multi_taxonomy", "#ff66ff");
+		final String multiTaxonomyColor = properties.getProperty("colorMultiTaxonomy", "#ff66ff");
 		if (multiTaxonomyColor != null && !"".equals(multiTaxonomyColor)) {
 			colorManager.setMultiTaxonomyColor(multiTaxonomyColor);
 		}
-		final String sharedNodeLabelColor = properties.getProperty("shared_node_label_color", "#606060");
-		if (sharedNodeLabelColor != null && !"".equals(sharedNodeLabelColor)) {
-			colorManager.setSharedNodeLabelColor(sharedNodeLabelColor);
-		}
-		final String alignedPeptideEdgecolor = properties.getProperty("color_aligned_peptides_edge", "#00ff00");
+		// final String sharedNodeLabelColor =
+		// properties.getProperty("shared_node_label_color", "#606060");
+		// if (sharedNodeLabelColor != null && !"".equals(sharedNodeLabelColor))
+		// {
+		// colorManager.setSharedNodeLabelColor(sharedNodeLabelColor);
+		// }
+		final String alignedPeptideEdgecolor = properties.getProperty("colorAlignedPeptidesEdge", "#00ff00");
 		if (alignedPeptideEdgecolor != null && !"".equals(alignedPeptideEdgecolor)) {
 			colorManager.setAlignedPeptidesEdgeColor(alignedPeptideEdgecolor);
 		}
@@ -259,43 +248,43 @@ public class PropertiesReader {
 		String decoyRegexp = properties.getProperty("discardDecoys", null);
 		params.setDecoyRegexp(decoyRegexp);
 
-		String finalAlignmentScore = properties.getProperty("final_alignment_score", "30");
+		String finalAlignmentScore = properties.getProperty("finalAlignmentScore", "30");
 		if (finalAlignmentScore != null)
 			params.setFinalAlignmentScore(Integer.valueOf(finalAlignmentScore));
 
-		String sequenceIdentity = properties.getProperty("sequence_identity", "0.8");
+		String sequenceIdentity = properties.getProperty("sequenceIdentity", "0.8");
 		if (sequenceIdentity != null)
 			params.setSequenceIdentity(Double.valueOf(sequenceIdentity));
 
-		String maxConsecutiveIdenticalAlignment = properties.getProperty("max_consecutive_identical_alignment", "6");
-		if (maxConsecutiveIdenticalAlignment != null)
-			params.setMaxConsecutiveIdenticalAlignment(Integer.valueOf(maxConsecutiveIdenticalAlignment));
+		String minConsecutiveIdenticalAlignment = properties.getProperty("minConsecutiveIdenticalAlignment", "6");
+		if (minConsecutiveIdenticalAlignment != null)
+			params.setMinConsecutiveIdenticalAlignment(Integer.valueOf(minConsecutiveIdenticalAlignment));
 
-		ProteinLabel proteinLabel = ProteinLabel.getFrom(properties.getProperty("protein_label", false));
+		ProteinLabel proteinLabel = ProteinLabel.getFrom(properties.getProperty("proteinLabel", false));
 		if (proteinLabel != null) {
 			params.setProteinLabel(proteinLabel);
 		} else {
 			params.setProteinLabel(ProteinLabel.ACC);
 		}
 
-		int proteinNodeWidth = Integer.valueOf(properties.getProperty("protein_node_width", "70"));
+		int proteinNodeWidth = Integer.valueOf(properties.getProperty("proteinNodeWidth", "70"));
 		params.setProteinNodeWidth(proteinNodeWidth);
-		int proteinNodeHeigth = Integer.valueOf(properties.getProperty("protein_node_height", "30"));
+		int proteinNodeHeigth = Integer.valueOf(properties.getProperty("proteinNodeHeight", "30"));
 		params.setProteinNodeHeight(proteinNodeHeigth);
-		int peptideNodeWidth = Integer.valueOf(properties.getProperty("peptide_node_width", "70"));
+		int peptideNodeWidth = Integer.valueOf(properties.getProperty("peptideNodeWidth", "70"));
 		params.setPeptideNodeWidth(peptideNodeWidth);
-		int peptideNodeHeigth = Integer.valueOf(properties.getProperty("peptide_node_height", "30"));
+		int peptideNodeHeigth = Integer.valueOf(properties.getProperty("peptideNodeHeight", "30"));
 		params.setPeptideNodeHeight(peptideNodeHeigth);
 
-		Shape proteinShape = Shape.valueOf(properties.getProperty("protein_node_shape", "ELLIPSE"));
+		Shape proteinShape = Shape.valueOf(properties.getProperty("proteinNodeShape", "ELLIPSE"));
 		params.setProteinNodeShape(proteinShape);
-		Shape peptideShape = Shape.valueOf(properties.getProperty("peptide_node_shape", "ROUNDRECT"));
+		Shape peptideShape = Shape.valueOf(properties.getProperty("peptideNodeShape", "ROUNDRECT"));
 		params.setPeptideNodeShape(peptideShape);
 
-		Color colorRatioMin = ColorManager.hex2Rgb(properties.getProperty("color_ratio_min", "#00ff00"));
+		Color colorRatioMin = ColorManager.hex2Rgb(properties.getProperty("colorRatioMin", "#0000ff"));
 		params.setColorRatioMin(colorRatioMin);
 
-		Color colorRatioMax = ColorManager.hex2Rgb(properties.getProperty("color_ratio_max", "#ff0000"));
+		Color colorRatioMax = ColorManager.hex2Rgb(properties.getProperty("colorRatioMax", "#ff0000"));
 		params.setColorRatioMax(colorRatioMax);
 
 		final String colorNonRegulatedString = properties.getProperty("color_non_regulated", false);
@@ -304,18 +293,18 @@ public class PropertiesReader {
 			params.setColorNonRegulated(colorNonRegulated);
 		}
 
-		double minimumRatioForColor = Double.valueOf(properties.getProperty("minimum_ratio_for_color", "-10"));
+		double minimumRatioForColor = Double.valueOf(properties.getProperty("minimumRatioForColor", "-10"));
 		params.setMinimumRatioForColor(minimumRatioForColor);
-		double maximumRatioForColor = Double.valueOf(properties.getProperty("maximum_ratio_for_color", "10"));
+		double maximumRatioForColor = Double.valueOf(properties.getProperty("maximumRatioForColor", "10"));
 		params.setMaximumRatioForColor(maximumRatioForColor);
 
 		// show cases in edges
-		boolean showCasesInEdges = Boolean.valueOf(properties.getProperty("show_cases_in_edges", "true"));
+		boolean showCasesInEdges = Boolean.valueOf(properties.getProperty("showCasesInEdges", "true"));
 		params.setShowCasesInEdges(showCasesInEdges);
 
 		// remark significant peptides
 		boolean remarkSignificantPeptides = Boolean
-				.valueOf(properties.getProperty("remark_significant_peptides", "true"));
+				.valueOf(properties.getProperty("remarkSignificantPeptides", "true"));
 		params.setRemarkSignificantPeptides(remarkSignificantPeptides);
 
 		// MONGO DB
@@ -332,29 +321,25 @@ public class PropertiesReader {
 		params.setMongoSeqDBName(mongoSeqDBName);
 
 		// SANXOT
-		boolean performRatioIntegration = Boolean.valueOf(properties.getProperty("perform_ratio_integration", "false"));
+		boolean performRatioIntegration = Boolean.valueOf(properties.getProperty("performRatioIntegration", "false"));
 		params.setPerformRatioIntegration(performRatioIntegration);
 		try {
-			if (properties.containsKey("outliers_removal_FDR")) {
-				double outlierRemovalFDR = Double.valueOf(properties.getProperty("outliers_removal_FDR", false));
+			if (properties.containsKey("outliersRemovalFDR")) {
+				double outlierRemovalFDR = Double.valueOf(properties.getProperty("outliersRemovalFDR", false));
 				params.setOutliersRemovalFDR(outlierRemovalFDR);
 			}
 		} catch (NumberFormatException e) {
 			// do nothing
 		}
 		try {
-			if (properties.containsKey("significant_FDR_threshold")) {
+			if (properties.containsKey("significantFDRThreshold")) {
 				double significantFDRThreshold = Double
-						.valueOf(properties.getProperty("significant_FDR_threshold", false));
+						.valueOf(properties.getProperty("significantFDRThreshold", false));
 				params.setSignificantFDRThreshold(significantFDRThreshold);
 			}
 		} catch (NumberFormatException e) {
 			// do nothing
 		}
-
-		boolean applyClassificationsByProteinPair = Boolean
-				.valueOf(properties.getProperty("apply_classifications_by_protein_pair", "false"));
-		params.setApplyClassificationsByProteinPair(applyClassificationsByProteinPair);
 		// check errors
 		checkErrorsInParameters(params);
 	}
@@ -401,4 +386,5 @@ public class PropertiesReader {
 		}
 
 	}
+
 }

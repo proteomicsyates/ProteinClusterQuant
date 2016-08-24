@@ -1108,9 +1108,6 @@ public class XgmmlExporter {
 		StringBuilder sb = new StringBuilder();
 		sb.append(peptideNode.getIndividualPeptides().size() + " Peptide sequences\n");
 
-		// if (!"".equals(sb.toString()))
-		// sb.append("\n");
-
 		sb.append(peptideNode.getSequence() + "\n" + peptideNode.getQuantifiedPSMs().size() + " PSMs\n" + "Shared by "
 				+ peptideNode.getPCQProteinNodes().size() + " protein Nodes\n" + "Shared by "
 				+ Utils.getIndividualProteinsMap(peptideNode).size() + " proteins\n" + "Detected in "
@@ -1616,13 +1613,15 @@ public class XgmmlExporter {
 		return colorManager.getColorForProteinTaxonomy(taxonomy);
 	}
 
-	private Color getOutlineColorByCase1(Classification1Case classificationCase) {
-		return colorManager.getColorByClassification1Case(classificationCase);
-	}
-
-	private Color getOutlineColorByCase2(Classification2Case classificationCase) {
-		return colorManager.getColorByClassification2Case(classificationCase);
-	}
+	// private Color getOutlineColorByCase1(Classification1Case
+	// classificationCase) {
+	// return colorManager.getColorByClassification1Case(classificationCase);
+	// }
+	//
+	// private Color getOutlineColorByCase2(Classification2Case
+	// classificationCase) {
+	// return colorManager.getColorByClassification2Case(classificationCase);
+	// }
 
 	private edu.scripps.yates.pcq.xgmml.jaxb.Graph.Node.Graphics createGraphicsNode(String label, String tooltip,
 			Shape shape, int heigth, int width, Color outlineColor, Color fillColor, Color labelColor,
