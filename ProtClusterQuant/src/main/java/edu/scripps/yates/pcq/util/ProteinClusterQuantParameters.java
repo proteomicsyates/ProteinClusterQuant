@@ -46,7 +46,7 @@ public class ProteinClusterQuantParameters {
 	private int minConsecutiveIdenticalAlignment;
 	private File temporalOutputFolder;
 	private static ProteinClusterQuantParameters instance;
-	private ProteinLabel proteinLabel;
+	private ProteinNodeLabel proteinLabel;
 	private int proteinNodeWidth;
 	private int proteinNodeHeight;
 	private int peptideNodeWidth;
@@ -441,7 +441,7 @@ public class ProteinClusterQuantParameters {
 	/**
 	 * @return the proteinLabel
 	 */
-	public ProteinLabel getProteinLabel() {
+	public ProteinNodeLabel getProteinLabel() {
 		return proteinLabel;
 	}
 
@@ -449,7 +449,7 @@ public class ProteinClusterQuantParameters {
 	 * @param proteinLabel
 	 *            the proteinLabel to set
 	 */
-	public void setProteinLabel(ProteinLabel proteinLabel) {
+	public void setProteinLabel(ProteinNodeLabel proteinLabel) {
 		this.proteinLabel = proteinLabel;
 	}
 

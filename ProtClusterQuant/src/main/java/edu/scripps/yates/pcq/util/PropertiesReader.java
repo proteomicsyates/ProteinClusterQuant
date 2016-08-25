@@ -260,11 +260,11 @@ public class PropertiesReader {
 		if (minConsecutiveIdenticalAlignment != null)
 			params.setMinConsecutiveIdenticalAlignment(Integer.valueOf(minConsecutiveIdenticalAlignment));
 
-		ProteinLabel proteinLabel = ProteinLabel.getFrom(properties.getProperty("proteinLabel", false));
+		ProteinNodeLabel proteinLabel = ProteinNodeLabel.getFrom(properties.getProperty("proteinLabel", false));
 		if (proteinLabel != null) {
 			params.setProteinLabel(proteinLabel);
 		} else {
-			params.setProteinLabel(ProteinLabel.ACC);
+			params.setProteinLabel(ProteinNodeLabel.ACC);
 		}
 
 		int proteinNodeWidth = Integer.valueOf(properties.getProperty("proteinNodeWidth", "70"));

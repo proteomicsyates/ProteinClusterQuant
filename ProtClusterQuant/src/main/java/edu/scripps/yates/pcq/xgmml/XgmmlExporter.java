@@ -44,7 +44,7 @@ import edu.scripps.yates.pcq.model.ProteinCluster;
 import edu.scripps.yates.pcq.model.ProteinPair;
 import edu.scripps.yates.pcq.util.ColorManager;
 import edu.scripps.yates.pcq.util.ProteinClusterQuantParameters;
-import edu.scripps.yates.pcq.util.ProteinLabel;
+import edu.scripps.yates.pcq.util.ProteinNodeLabel;
 import edu.scripps.yates.pcq.util.Shape;
 import edu.scripps.yates.pcq.util.Utils;
 import edu.scripps.yates.pcq.xgmml.jaxb.Graph;
@@ -930,11 +930,28 @@ public class XgmmlExporter {
 		return Utils.getPeptidesSequenceString(set);
 	}
 
-	private String getUniqueID(QuantifiedProteinInterface protein) {
-		if (ProteinClusterQuantParameters.getInstance().getProteinLabel() == ProteinLabel.ACC) {
+	private String getUniqueID(PCQProteinNode protein) {
+		if (ProteinClusterQuantParameters.getInstance().getProteinLabel() == ProteinNodeLabel.ACC) {
 			return protein.getAccession();
 		} else {
-			return getProteinNameString(protein.getAccession());
+			return getProteinNameString(protein);
+		}
+	}
+
+	/**
+	 * Get the label for a protein node, depending on the 'getProteinLabel()'
+	 * from the input parameters
+	 * 
+	 * @param protein
+	 * @return
+	 */
+	private String getProteinNodeLabel(PCQProteinNode protein) {
+		if (ProteinClusterQuantParameters.getInstance().getProteinLabel() == ProteinNodeLabel.ACC) {
+			return protein.getAccession();
+		} else if (ProteinClusterQuantParameters.getInstance().getProteinLabel() == ProteinNodeLabel.ID) {
+			return getProteinNameString(protein);
+		} else {
+			return getGeneString(protein);
 		}
 	}
 
@@ -1040,11 +1057,9 @@ public class XgmmlExporter {
 		}
 		attributes.put("numProteins", new AttributeValueType(numdifferentAccs));
 		attributes.put("isProtein", new AttributeValueType(1));
-		if (protein instanceof PCQProteinNode) {
-			PCQProteinNode proteinNode = protein;
-			attributes.put("numPeptideSequencesInProteins",
-					new AttributeValueType(Utils.getIndividualPeptides(proteinNode.getQuantifiedPeptides()).size()));
-		}
+		attributes.put("numPeptideSequencesInProteins",
+				new AttributeValueType(Utils.getIndividualPeptides(protein.getQuantifiedPeptides()).size()));
+
 		attributes.put("numPsmsInProtein", new AttributeValueType(protein.getQuantifiedPSMs().size()));
 		attributes.put("numConnectedPeptideNodes", new AttributeValueType(protein.getQuantifiedPeptides().size()));
 
@@ -1092,7 +1107,7 @@ public class XgmmlExporter {
 		if (geneString != null && !"".equals(geneString)) {
 			attributes.put("GeneName", new AttributeValueType(geneString, AttType.string));
 		}
-		attributes.put("ID", new AttributeValueType(getProteinNameString(protein.getAccession()), AttType.string));
+		attributes.put("ID", new AttributeValueType(getProteinNameString(protein), AttType.string));
 		attributes.put("ACC", new AttributeValueType(protein.getAccession(), AttType.string));
 		BORDER_TYPE borderType = BORDER_TYPE.SOLID;
 
@@ -1108,7 +1123,7 @@ public class XgmmlExporter {
 			attributes.put("conclusiveProteinNode", new AttributeValueType("0"));
 		}
 
-		final String label = controlProteinNodeIDLength(getUniqueID(protein));
+		final String label = controlProteinNodeIDLength(getProteinNodeLabel(protein));
 		Node node = createNode(getUniqueID(protein), label, attributes);
 
 		String tooltipText = getProteinNodeTooltip(protein, geneString, classification1Cases, classification1String,
@@ -1146,12 +1161,13 @@ public class XgmmlExporter {
 		return geneNameString;
 	}
 
-	private String getProteinNameString(String accString) {
+	private String getProteinNameString(PCQProteinNode proteinNode) {
+		String accString = proteinNode.getAccession();
 		List<String> list = new ArrayList<String>();
 		if (accString.contains(Utils.PROTEIN_ACC_SEPARATOR)) {
 			final String[] split = accString.split(Utils.PROTEIN_ACC_SEPARATOR);
 			for (String acc : split) {
-				final String proteinName = getProteinName(acc);
+				final String proteinName = getProteinNameFromUniprot(acc);
 				if (proteinName != null) {
 					list.add(proteinName);
 				} else {
@@ -1159,7 +1175,7 @@ public class XgmmlExporter {
 				}
 			}
 		} else {
-			final String proteinName = getProteinName(accString);
+			final String proteinName = getProteinNameFromUniprot(accString);
 			if (proteinName != null) {
 				list.add(proteinName);
 			} else {
@@ -1179,7 +1195,14 @@ public class XgmmlExporter {
 		return sb.toString();
 	}
 
-	private String getProteinName(String acc) {
+	/**
+	 * Get protein name from uniprot entry, that is the Uniprot ID, like
+	 * ALDOA_HUMAN
+	 *
+	 * @param acc
+	 * @return
+	 */
+	private String getProteinNameFromUniprot(String acc) {
 
 		final Map<String, Entry> annotatedProteins = getAnnotatedProtein(acc);
 		if (annotatedProteins.containsKey(acc)) {
