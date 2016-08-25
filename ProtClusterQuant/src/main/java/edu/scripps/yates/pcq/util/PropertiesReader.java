@@ -370,7 +370,7 @@ public class PropertiesReader {
 			}
 		} catch (Exception e) {
 			if (e instanceof IllegalArgumentException) {
-				throw e;
+				throw (IllegalArgumentException) e;
 			}
 			throw new IllegalArgumentException("File name string is not well formed: '" + string
 					+ "'\nTry something like: exp1[rep11_file.xml, rep12_file.xml] | exp2[rep21_file.xml, rep22_file.xml]");

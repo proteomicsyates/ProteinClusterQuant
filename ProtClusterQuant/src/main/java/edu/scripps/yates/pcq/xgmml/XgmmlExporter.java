@@ -1016,7 +1016,7 @@ public class XgmmlExporter {
 		List<Classification1Case> list = new ArrayList<Classification1Case>();
 		for (Classification1Case classification1Case : classification1Cases) {
 			if (classification1Case == Classification1Case.CASE4 || classification1Case == Classification1Case.CASE5
-					|| classification1Case == Classification1Case.CASE3) {
+					|| classification1Case == Classification1Case.CASE0) {
 				continue;
 			}
 			if (!list.contains(classification1Case))
@@ -1049,8 +1049,8 @@ public class XgmmlExporter {
 		int index = 0;
 		List<Classification2Case> list = new ArrayList<Classification2Case>();
 		for (Classification2Case classification2Case : classification2Cases) {
-			if (classification2Case == Classification2Case.unclassified
-					|| classification2Case == Classification2Case.no_difference) {
+			if (classification2Case == Classification2Case.CASE7
+					|| classification2Case == Classification2Case.CASE6) {
 				continue;
 			}
 			if (!list.contains(classification2Case))

@@ -322,7 +322,7 @@ public class ProteinPair {
 
 		if (threeCombined.contains(null) || threeCombined.contains(Double.NaN)) {
 			// unclassified
-			classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.unclassified);
+			classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.CASE7);
 			// System.out.println("unclassified");
 		}
 		// make sure the unique1 is larger or equal to unique2
@@ -352,7 +352,7 @@ public class ProteinPair {
 			StringBuilder logString = new StringBuilder();
 			// make sure order is correct
 			if (Double.compare(unique1Ratio, unique2Ratio) > 0) {
-				classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.error);
+				classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.CASE5);
 				log.error("error\t");
 				throw new IllegalArgumentException("Error sorting the ratios for classifying them.");
 			} else {
@@ -380,12 +380,12 @@ public class ProteinPair {
 										// ||
 										// (Double.isInfinite(distanceBetweenRatio1Ratio2)
 										&& !Double.isInfinite(sharedRatio))) {
-							classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.sign_unique_both);
+							classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.CASE4);
 							uniquePeptidesProt1Inconsistent = true;
 							uniquePeptidesProt2Inconsistent = true;
 							logString.append("sign_unique_both\t");
 						} else {
-							classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.sign_unique);
+							classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.CASE3);
 							logString.append("sign_unique_1\t");
 							if (Double.compare(sharedRatio, unique1Ratio + distanceBetweenRatio1Ratio2 / 4) > 0) {
 								if (swapped) {
@@ -403,7 +403,7 @@ public class ProteinPair {
 							}
 						}
 					} else {
-						classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.no_difference);
+						classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.CASE6);
 						logString.append("no_difference_1\t");
 					}
 				} else {
@@ -419,11 +419,11 @@ public class ProteinPair {
 								cond1, cond2);
 						if (isSharedPeptideSharedByOtherProteinOutOfThePair) {
 							classification2Cases.put(sharedPeptidesProteinKey,
-									Classification2Case.sign_shared_third_protein);
+									Classification2Case.CASE2);
 							logString.append("sign_shared_with_shared_peptide\t");
 
 						} else {
-							classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.sign_shared);
+							classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.CASE1);
 							logString.append("sign_shared_1\t");
 						}
 						sharedPeptidesInconsistent = true;
@@ -431,7 +431,7 @@ public class ProteinPair {
 						// check if difference of unique is larger than fold
 						// change
 						if (Double.compare(distanceBetweenRatio1Ratio2, foldChange) > 0) {
-							classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.sign_unique);
+							classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.CASE3);
 							logString.append("sign_unique_2\t");
 							if (Double.compare(sharedRatio, unique1Ratio) < 0) {
 								if (swapped) {
@@ -448,7 +448,7 @@ public class ProteinPair {
 								}
 							}
 						} else {
-							classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.no_difference);
+							classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.CASE6);
 							logString.append("no_difference_2\t");
 						}
 					}
@@ -506,13 +506,13 @@ public class ProteinPair {
 				final int uniquePeptideOutlier = outlierTestUniquePeptides(threeCombined, pepRatProt1, pepRatShared,
 						pepRatProt2);
 				boolean sharedPeptideOutlier = outlierTest(threeCombined.get(1), pepRatProt1, pepRatProt2);
-				if (uniquePeptideOutlier != 0) {
+				if (uniquePeptideOutlier != 0) { // there are some outliers
 					if (uniquePeptideOutlier == 1 || uniquePeptideOutlier == 3) {
 						uniquePeptidesProt1Inconsistent = true;
 					} else if (uniquePeptideOutlier == 2 || uniquePeptideOutlier == 3) {
 						uniquePeptidesProt2Inconsistent = true;
 					}
-					classification1Case = Classification1Case.CASE3Sig;
+					classification1Case = Classification1Case.CASE3;
 				} else if (sharedPeptideOutlier) {
 					sharedPeptideOutlier = true;
 					// shared peptide is significant
@@ -524,13 +524,13 @@ public class ProteinPair {
 							cond1, cond2);
 					sharedPeptidesInconsistent = true;
 					if (isSharedPeptideSharedByOtherProteinOutOfThePair) {
-						classification1Case = Classification1Case.CASE3ExplainedMiddleSig;
+						classification1Case = Classification1Case.CASE6;
 					} else {
-						classification1Case = Classification1Case.CASE3WrongMeassurementMiddleSig;
+						classification1Case = Classification1Case.CASE7;
 					}
 				} else {
 					// nothing is significant
-					classification1Case = Classification1Case.CASE3;
+					classification1Case = Classification1Case.CASE0;
 				}
 				writeOnOutputKMeans(getAccProt1() + "\t" + classification1Case.getCaseID() + "\n");
 				writeOnOutputKMeans(getAccProt2() + "\t" + classification1Case.getCaseID() + "\n");

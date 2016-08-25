@@ -2,19 +2,19 @@ package edu.scripps.yates.pcq;
 
 public enum Classification2Case {
 
-	sign_shared(1, "Shared peptide is significantly different and is not shared by other protein", true), //
-	sign_shared_third_protein(2, "Shared peptide is significant and is shared by other protein", true), //
-	sign_unique(3,
+	CASE1(1, "Shared peptide is significantly different and is not shared by other protein", true), //
+	CASE2(2, "Shared peptide is significant and is shared by other protein", true), //
+	CASE3(3,
 			"Unique peptide is significantly different, or different between the two unique peptides is larger than threshold",
 			true), //
-			sign_unique_both(4,
+			CASE4(4,
 					"Both unique peptides are significantly different and shared peptide is sgnificantly different in between",
 					true), //
-					error(5, "Error. This should not happen.", false), //
-					no_difference(6,
+					CASE5(5, "Error. This should not happen.", false), //
+					CASE6(6,
 							"There is not a significant differences. Difference between unique peptides is less than threshold",
 							false), //
-							unclassified(7, "Not classified", false);
+							CASE7(7, "Not classified", false);
 	private final String explanation;
 	private final boolean inconsistence;
 	private final int caseID;
