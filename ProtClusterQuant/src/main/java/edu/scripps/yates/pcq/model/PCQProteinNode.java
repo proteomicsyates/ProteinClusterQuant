@@ -8,8 +8,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
-
 import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
@@ -29,7 +27,7 @@ import edu.scripps.yates.utilities.proteomicsmodel.Amount;
  *
  */
 public class PCQProteinNode implements QuantifiedProteinInterface {
-	private final static Logger log = Logger.getLogger(PCQProteinNode.class);
+	// private final static Logger log = Logger.getLogger(PCQProteinNode.class);
 	private final Set<QuantifiedProteinInterface> proteinSet = new HashSet<QuantifiedProteinInterface>();
 	private final Set<PCQPeptideNode> peptideNodes = new HashSet<PCQPeptideNode>();
 	private final Set<String> fileNames = new HashSet<String>();

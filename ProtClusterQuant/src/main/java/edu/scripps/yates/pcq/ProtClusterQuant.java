@@ -79,7 +79,6 @@ public class ProtClusterQuant {
 	private Map<String, Set<NWResult>> peptideAlignmentsBySequence;
 	private final File setupPropertiesFile;
 	private QuantParser parser;
-	private HashSet<String> replicateNames;
 	private final ProteinClusterQuantParameters params;
 	private Map<String, Entry> annotatedProteins;
 
@@ -917,18 +916,6 @@ public class ProtClusterQuant {
 		return outputFile;
 	}
 
-	private Set<String> getReplicateNamesFromClusters(Set<ProteinCluster> clusterSet) {
-		if (replicateNames == null) {
-			replicateNames = new HashSet<String>();
-			for (ProteinCluster cluster : clusterSet) {
-				final Set<QuantifiedPeptideInterface> peptideSet = cluster.getPeptideSet();
-				replicateNames.addAll(getReplicateNamesFromPeptides(peptideSet));
-
-			}
-		}
-		return replicateNames;
-	}
-
 	/**
 	 * make a custom sanxot analysis from peptide_node_rep to peptide_node
 	 *
@@ -1076,7 +1063,7 @@ public class ProtClusterQuant {
 				log.info(cluster.getPeptideSet());
 			}
 			// put peptide in cluster
-			cluster.addPeptide(peptide1);
+			cluster.addIndividualQuantifiedPeptide(peptide1);
 			// in case of having peptide alignments done
 			if (peptideAlignmentsBySequence != null && peptideAlignmentsBySequence.containsKey(sequence1)) {
 				Set<NWResult> gAS = peptideAlignmentsBySequence.get(sequence1);
@@ -1114,7 +1101,7 @@ public class ProtClusterQuant {
 								}
 
 								// Add (Quant pep2, hisProtein) to Cluster)
-								cluster.addPeptide(pep2);
+								cluster.addIndividualQuantifiedPeptide(pep2);
 								clustersByPeptideSequence.put(pep2.getSequence(), cluster);
 							}
 							// add alignment to the cluster
@@ -1127,7 +1114,7 @@ public class ProtClusterQuant {
 			Set<QuantifiedProteinInterface> proteinSet = peptide1.getQuantifiedProteins();
 			for (QuantifiedProteinInterface protein : proteinSet) {
 				// put protein in cluster
-				cluster.addProtein(protein);
+				cluster.addIndividualQuantifiedProtein(protein);
 
 				// peptide 2 <- protein
 				for (QuantifiedPeptideInterface peptide2 : protein.getQuantifiedPeptides()) {
@@ -1146,7 +1133,7 @@ public class ProtClusterQuant {
 					}
 
 					// add new peptide 2 to cluster
-					cluster.addPeptide(peptide2);
+					cluster.addIndividualQuantifiedPeptide(peptide2);
 
 					// Map <- peptide, cluster
 					clustersByPeptideSequence.put(peptide2.getSequence(), cluster);
@@ -1683,33 +1670,6 @@ public class ProtClusterQuant {
 
 	}
 
-	/**
-	 * Given a set of peptides, returns the set of psms detected in a given
-	 * replicate
-	 *
-	 * @param replicateName
-	 * @param peptideSet
-	 * @return
-	 */
-	private Set<QuantifiedPSMInterface> getPSMsFromReplicate(String replicateName,
-			Set<QuantifiedPeptideInterface> peptideSet) {
-		Set<QuantifiedPSMInterface> ret = new HashSet<QuantifiedPSMInterface>();
-		for (QuantifiedPeptideInterface quantifiedPeptide : peptideSet) {
-			final Set<QuantifiedPSMInterface> quantifiedPSMs = quantifiedPeptide.getQuantifiedPSMs();
-			for (QuantifiedPSMInterface quantifiedPSM : quantifiedPSMs) {
-				final String fileName = quantifiedPSM.getRawFileName();
-				if (fileName.contains(replicateName)) {
-					ret.add(quantifiedPSM);
-				} else {
-					if (replicateName.equals("E1")) {
-						ret.add(quantifiedPSM);
-					}
-				}
-			}
-		}
-		return ret;
-	}
-
 	private Set<String> getReplicateNamesFromPeptides(Set<QuantifiedPeptideInterface> peptideSet) {
 		Set<String> ret = new HashSet<String>();
 		for (QuantifiedPeptideInterface quantifiedPeptide : peptideSet) {
@@ -1729,19 +1689,7 @@ public class ProtClusterQuant {
 				if (!someAdded) {
 					ret.add(string);
 				}
-				// FOR SERIES:
-				// if (string.contains("_A1_")) {
-				// ret.add("A1");
-				// } else if (string.contains("_A2_")) {
-				// ret.add("A2");
-				// } else if (string.contains("_A3_")) {
-				// ret.add("A3");
-				// } else {
-				// ret.add("A1");
-				// }
 
-				// for DmDv
-				// ret.add(string);
 			}
 		}
 		return ret;

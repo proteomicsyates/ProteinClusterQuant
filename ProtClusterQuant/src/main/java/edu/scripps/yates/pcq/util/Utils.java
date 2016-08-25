@@ -187,11 +187,11 @@ public class Utils {
 	// clusters
 	public static ProteinCluster mergeClusters(ProteinCluster cluster, ProteinCluster cluster2) {
 		for (QuantifiedPeptideInterface peptide : cluster2.getPeptideSet()) {
-			cluster.addPeptide(peptide);
+			cluster.addIndividualQuantifiedPeptide(peptide);
 		}
 
 		for (QuantifiedProteinInterface protein : cluster2.getProteinSet()) {
-			cluster.addProtein(protein);
+			cluster.addIndividualQuantifiedProtein(protein);
 		}
 		return cluster;
 	}
@@ -683,7 +683,7 @@ public class Utils {
 	 */
 	public static QuantRatio getSharedConsensusPeptideRatio(QuantifiedProteinInterface protein1,
 			QuantifiedProteinInterface protein2, QuantCondition cond1, QuantCondition cond2) {
-		final Set<QuantifiedPeptideInterface> sharedPeptides = getSharedPeptides(protein1, protein2, false);
+		final Set<QuantifiedPeptideInterface> sharedPeptides = getSharedPeptideSet(protein1, protein2, false);
 		return getConsensusRatio(sharedPeptides, cond1, cond2, null);
 	}
 
@@ -716,7 +716,7 @@ public class Utils {
 
 	}
 
-	public static Set<QuantifiedPeptideInterface> getSharedPeptides(QuantifiedProteinInterface protein1,
+	public static Set<QuantifiedPeptideInterface> getSharedPeptideSet(QuantifiedProteinInterface protein1,
 			QuantifiedProteinInterface protein2, boolean onlysharedByThisToProteins) {
 		Set<QuantifiedPeptideInterface> peptides1 = protein1.getQuantifiedPeptides();
 		Set<QuantifiedPeptideInterface> peptides2 = protein2.getQuantifiedPeptides();

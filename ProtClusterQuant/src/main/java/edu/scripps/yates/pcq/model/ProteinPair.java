@@ -39,14 +39,19 @@ public class ProteinPair {
 	private Writer outputKMeans;
 	ProteinPairPValue firstCase;
 	ProteinPairPValue secondCase;
-	private final ProteinClusterQuantParameters params;
+	private final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+
+	public ProteinPair(PCQProteinNode proteinNode1, PCQProteinNode proteinNode2, ProteinCluster proteinCluster) {
+		protein1 = proteinNode1;
+		protein2 = proteinNode2;
+		this.proteinCluster = proteinCluster;
+	}
 
 	public ProteinPair(QuantifiedProteinInterface protein1, QuantifiedProteinInterface protein2,
 			ProteinCluster proteinCluster) {
 		this.protein1 = protein1;
 		this.protein2 = protein2;
 		this.proteinCluster = proteinCluster;
-		params = ProteinClusterQuantParameters.getInstance();
 	}
 
 	/**
@@ -418,8 +423,7 @@ public class ProteinPair {
 						boolean isSharedPeptideSharedByOtherProteinOutOfThePair = isSharedPeptideSharedByOtherProteinOutOfThePair(
 								cond1, cond2);
 						if (isSharedPeptideSharedByOtherProteinOutOfThePair) {
-							classification2Cases.put(sharedPeptidesProteinKey,
-									Classification2Case.CASE2);
+							classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.CASE2);
 							logString.append("sign_shared_with_shared_peptide\t");
 
 						} else {

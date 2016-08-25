@@ -9,11 +9,6 @@ public class AttributeValueType {
 		this.type = type;
 	}
 
-	public static void main(String[] ar) {
-		final Double valueOf = Double.valueOf("-Infinity");
-		System.out.println(Double.POSITIVE_INFINITY);
-	}
-
 	public AttributeValueType(Object value) {
 		this.value = value;
 		if (isNumeric(value)) {
@@ -29,7 +24,7 @@ public class AttributeValueType {
 
 	private boolean isNumeric(Object obj) {
 		try {
-			double d = Double.parseDouble(obj.toString());
+			Double.parseDouble(obj.toString());
 		} catch (NumberFormatException nfe) {
 			return false;
 		}
@@ -38,7 +33,7 @@ public class AttributeValueType {
 
 	private boolean isInteger(Object obj) {
 		try {
-			int d = Integer.parseInt(obj.toString());
+			Integer.parseInt(obj.toString());
 		} catch (NumberFormatException nfe) {
 			return false;
 		}

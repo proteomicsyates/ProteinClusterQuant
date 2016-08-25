@@ -740,19 +740,6 @@ public class ProteinClusterQuantParameters {
 				+ ", significantFDRThreshold=" + significantFDRThreshold + " ]";
 	}
 
-	private String printInputFileNames() {
-		StringBuilder sb = new StringBuilder();
-		for (ExperimentFiles experimentFiles : inputFiles) {
-
-			sb.append(experimentFiles.getExperimentName()).append(" [");
-			for (String fileName : experimentFiles.getRelicateFileNames()) {
-				sb.append(fileName).append(",");
-			}
-			sb.append("] | ");
-		}
-		return sb.toString();
-	}
-
 	public String[] getInputFileNamesArray() {
 		int size = 0;
 		for (ExperimentFiles experimentFileName : inputFiles) {

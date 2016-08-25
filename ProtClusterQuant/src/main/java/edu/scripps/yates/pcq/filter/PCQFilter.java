@@ -18,7 +18,7 @@ public abstract class PCQFilter {
 	public void filter(ProteinCluster cluster) {
 		final Iterator<PCQProteinNode> proteinNodesIterator = cluster.getProteinNodes().iterator();
 		Set<PCQProteinNode> discardedProteinNodes = new HashSet<PCQProteinNode>();
-		final int originalSize = cluster.getProteinNodes().size();
+		// final int originalSize = cluster.getProteinNodes().size();
 		// log.debug("Filtering " + originalSize + " protein nodes");
 		while (proteinNodesIterator.hasNext()) {
 			PCQProteinNode pcqProteinNode = proteinNodesIterator.next();
@@ -45,7 +45,7 @@ public abstract class PCQFilter {
 		// }
 		Set<PCQPeptideNode> discardedPeptideNodes = new HashSet<PCQPeptideNode>();
 		final Iterator<PCQPeptideNode> peptideNodesIterator = cluster.getPeptideNodes().iterator();
-		final int originalSize2 = cluster.getPeptideNodes().size();
+		// final int originalSize2 = cluster.getPeptideNodes().size();
 		// log.debug("Filtering " + originalSize2 + " peptide nodes");
 		while (peptideNodesIterator.hasNext()) {
 			PCQPeptideNode pcqPeptideNode = peptideNodesIterator.next();
