@@ -17,10 +17,10 @@ import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
-import edu.scripps.yates.pcq.Classification1Case;
-import edu.scripps.yates.pcq.Classification2Case;
-import edu.scripps.yates.pcq.ProteinPairPValue;
+import edu.scripps.yates.pcq.cases.Classification1Case;
+import edu.scripps.yates.pcq.cases.Classification2Case;
 import edu.scripps.yates.pcq.util.ProteinClusterQuantParameters;
+import edu.scripps.yates.pcq.util.ProteinPairPValue;
 import edu.scripps.yates.pcq.util.Utils;
 import edu.scripps.yates.utilities.maths.Maths;
 

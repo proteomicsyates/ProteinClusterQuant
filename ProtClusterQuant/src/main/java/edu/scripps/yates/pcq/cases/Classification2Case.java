@@ -1,4 +1,4 @@
-package edu.scripps.yates.pcq;
+package edu.scripps.yates.pcq.cases;
 
 public enum Classification2Case {
 

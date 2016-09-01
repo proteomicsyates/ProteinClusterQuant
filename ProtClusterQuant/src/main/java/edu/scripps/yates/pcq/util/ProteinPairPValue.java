@@ -1,4 +1,4 @@
-package edu.scripps.yates.pcq;
+package edu.scripps.yates.pcq.util;
 
 import edu.scripps.yates.pcq.model.ProteinPair;
 

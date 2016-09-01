@@ -1,4 +1,4 @@
-package edu.scripps.yates.pcq;
+package edu.scripps.yates.pcq.cases;
 
 public enum Classification1Case {
 	CASE0(0, "Having ratios but not significantly different", false), //
