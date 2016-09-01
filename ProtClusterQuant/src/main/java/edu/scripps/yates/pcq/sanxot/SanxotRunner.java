@@ -23,7 +23,7 @@ import edu.scripps.yates.census.analysis.wrappers.OutlierRemovalResultWrapper;
 import edu.scripps.yates.census.analysis.wrappers.SanXotAnalysisResult;
 import edu.scripps.yates.census.read.model.interfaces.QuantParser;
 import edu.scripps.yates.census.read.util.QuantificationLabel;
-import edu.scripps.yates.pcq.ProtClusterQuant;
+import edu.scripps.yates.pcq.ProteinClusterQuant;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
 import edu.scripps.yates.pcq.util.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.util.Utils;
@@ -35,7 +35,7 @@ public class SanxotRunner {
 	private final static Logger log = Logger.getLogger(SanxotRunner.class);
 	public static final long DEFAULT_TIMEOUT = 1000 * 60 * 1;// 1 min
 
-	public SanxotRunner(ProtClusterQuant pcq, QuantificationType quantType, File workingFolder,
+	public SanxotRunner(ProteinClusterQuant pcq, QuantificationType quantType, File workingFolder,
 			QuantCondition condition1, QuantCondition condition2, File fastaFile, Double fdr)
 			throws FileNotFoundException {
 		quantAnalysis = new QuantAnalysis(quantType, workingFolder, condition1, condition2,

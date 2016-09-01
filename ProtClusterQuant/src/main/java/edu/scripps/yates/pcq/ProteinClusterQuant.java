@@ -68,8 +68,8 @@ import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.model.enums.CombinationType;
 import edu.scripps.yates.utilities.proteomicsmodel.Score;
 
-public class ProtClusterQuant {
-	private final static Logger log = Logger.getLogger(ProtClusterQuant.class);
+public class ProteinClusterQuant {
+	private final static Logger log = Logger.getLogger(ProteinClusterQuant.class);
 	private static final String SETUP_PROPERTIES = "setup.properties";
 	private static final String sep = "\t";
 	private static Options options;
@@ -82,11 +82,11 @@ public class ProtClusterQuant {
 	private final ProteinClusterQuantParameters params;
 	private Map<String, Entry> annotatedProteins;
 
-	public ProtClusterQuant(File setupPropertiesFile) {
+	public ProteinClusterQuant(File setupPropertiesFile) {
 		this(ProteinClusterQuantParameters.getInstance(), setupPropertiesFile);
 	}
 
-	public ProtClusterQuant(ProteinClusterQuantParameters params, File setupPropertiesFile) {
+	public ProteinClusterQuant(ProteinClusterQuantParameters params, File setupPropertiesFile) {
 		this.setupPropertiesFile = setupPropertiesFile;
 		this.params = params;
 		printWelcome();
@@ -132,7 +132,7 @@ public class ProtClusterQuant {
 				final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 				params.setComparisonInput(comparisonInput);
 				params.setAnalysisRun(true);
-				ProtClusterQuant pcq = new ProtClusterQuant(params, null);
+				ProteinClusterQuant pcq = new ProteinClusterQuant(params, null);
 				pcq.run();
 
 			} else {
@@ -146,7 +146,7 @@ public class ProtClusterQuant {
 				final File setupPropertiesFile = new File(propertiesFilePath);
 				PropertiesReader.readProperties(setupPropertiesFile);
 				ProteinClusterQuantParameters.getInstance().setAnalysisRun(true);
-				ProtClusterQuant clusterCreator = new ProtClusterQuant(setupPropertiesFile);
+				ProteinClusterQuant clusterCreator = new ProteinClusterQuant(setupPropertiesFile);
 				clusterCreator.run();
 			}
 		} catch (Exception e) {
