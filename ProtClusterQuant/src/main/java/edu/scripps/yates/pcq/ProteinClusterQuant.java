@@ -1187,10 +1187,9 @@ public class ProteinClusterQuant {
 						continue;
 					}
 					List<Double> ratioMeans = new ArrayList<Double>();
-					// TODO
+
 					// according to the manuscript, it is the average of the
-					// ratios
-					// of the peptide nodes.
+					// ratios of the peptide nodes.
 
 					for (String replicateName : replicateNameList) {
 						final Set<ProteinPair> proteinPairs = cluster.getProteinPairs();
@@ -1399,8 +1398,8 @@ public class ProteinClusterQuant {
 
 				for (PCQPeptideNode peptideNode : peptideNodeSet) {
 
-					Double ratioValue = PCQUtils.getRatioValue(peptideNode.getConsensusRatio(cond1, cond2), cond1,
-							cond2);
+					final QuantRatio peptideNodeConsensusRatio = peptideNode.getConsensusRatio(cond1, cond2);
+					Double ratioValue = PCQUtils.getRatioValue(peptideNodeConsensusRatio, cond1, cond2);
 
 					if (Double.isNaN(ratioValue)) {
 						continue;
@@ -1417,7 +1416,7 @@ public class ProteinClusterQuant {
 					}
 					if (params.getSignificantFDRThreshold() != null) {
 
-						final QuantRatio consensusRatio = peptideNode.getConsensusRatio(cond1, cond2);
+						final QuantRatio consensusRatio = peptideNodeConsensusRatio;
 						if (consensusRatio != null) {
 							final Score score = consensusRatio.getAssociatedConfidenceScore();
 							if (score != null) {
