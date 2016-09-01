@@ -142,7 +142,7 @@ public class XgmmlExporter {
 	/**
 	 * Scale all colors of the peptide nodes according to input parameters
 	 * settings. See parameters: minimumRatioForColor, maximumRatioForColor,
-	 * 
+	 *
 	 * @param graph
 	 */
 	private void scaleColors(Graph graph) {
@@ -1013,7 +1013,7 @@ public class XgmmlExporter {
 
 				if (params.getSignificantFDRThreshold() != null && params.getSignificantFDRThreshold() >= Double
 						.valueOf(associatedConfidenceScore.getValue())) {
-					label_sufix = "*";
+
 					if (params.getColorNonRegulated() != null) {
 						fillColor = params.getColorNonRegulated();
 					}
@@ -1023,6 +1023,9 @@ public class XgmmlExporter {
 			if (finalRatioValue != null && Double.isInfinite(finalRatioValue)) {
 				significant = 1;
 			}
+		}
+		if (significant == 1) {
+			label_sufix = "*";
 		}
 		attributes.put(SIGNIFICANTLY_REGULATED_ATTRIBUTE, new AttributeValueType(significant));
 		if (peptideNode.getConfidenceValue() != null) {
