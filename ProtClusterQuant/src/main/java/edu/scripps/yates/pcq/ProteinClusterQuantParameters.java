@@ -1,4 +1,4 @@
-package edu.scripps.yates.pcq.util;
+package edu.scripps.yates.pcq;
 
 import java.awt.Color;
 import java.io.File;
@@ -12,6 +12,11 @@ import edu.scripps.yates.pcq.compare.ComparisonInput;
 import edu.scripps.yates.pcq.filter.PCQFilter;
 import edu.scripps.yates.pcq.filter.PCQFilterByIonCount;
 import edu.scripps.yates.pcq.filter.PCQFilterByPSMCount;
+import edu.scripps.yates.pcq.util.AnalysisInputType;
+import edu.scripps.yates.pcq.util.ExperimentFiles;
+import edu.scripps.yates.pcq.xgmml.util.ColorManager;
+import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
+import edu.scripps.yates.pcq.xgmml.util.Shape;
 
 public class ProteinClusterQuantParameters {
 

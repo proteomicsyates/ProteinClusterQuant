@@ -60,9 +60,8 @@ import edu.scripps.yates.pcq.sanxot.SanxotRunner;
 import edu.scripps.yates.pcq.util.AnalysisInputType;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
 import edu.scripps.yates.pcq.util.PropertiesReader;
-import edu.scripps.yates.pcq.util.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.util.ProteinPairPValue;
-import edu.scripps.yates.pcq.util.Utils;
+import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.pcq.xgmml.XgmmlExporter;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.dates.DatesUtil;
@@ -182,7 +181,7 @@ public class ProteinClusterQuant {
 		try {
 			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList();
 
-			parser = Utils.getQuantParser(params, labelsByConditionsList, params.getInputFileNamesArray());
+			parser = PCQUtils.getQuantParser(params, labelsByConditionsList, params.getInputFileNamesArray());
 
 			log.info("Reading input files...");
 			Map<String, QuantifiedPeptideInterface> pepMap = parser.getPeptideMap();
@@ -226,7 +225,7 @@ public class ProteinClusterQuant {
 				}
 				numClusters = clusterSet.size();
 				// get peptide map
-				pepMap = Utils.getPeptideMapFromClusters(clusterSet);
+				pepMap = PCQUtils.getPeptideMapFromClusters(clusterSet);
 			}
 			log.info("Final number of clusters after iterations: \t" + clusterSet.size());
 
@@ -356,7 +355,7 @@ public class ProteinClusterQuant {
 					proteinClustersByNodeID.keySet());
 			for (String peptideNodeID : peptideNodeIDsSortedByFDR) {
 				ProteinCluster cluster = proteinClustersByNodeID.get(peptideNodeID);
-				final String geneNameString = Utils.getGeneNameString(annotatedProteins, cluster, null,
+				final String geneNameString = PCQUtils.getGeneNameString(annotatedProteins, cluster, null,
 						params.isPrintOnlyFirstGene());
 
 				String peptideNodeLine = getPeptideNodeLine(peptideNodeID, cluster, geneNameString,
@@ -975,8 +974,8 @@ public class ProteinClusterQuant {
 					+ outputSuffix + ".txt");
 			long t = System.currentTimeMillis();
 			// store the peptide alignments
-			peptideAlignmentsBySequence = Utils.alignPeptides(peptideList, cond1, cond2, output);
-			log.debug("Alignments done in " + Utils.format((t - System.currentTimeMillis()) * 1.0 / 1000.0) + "sg.");
+			peptideAlignmentsBySequence = PCQUtils.alignPeptides(peptideList, cond1, cond2, output);
+			log.debug("Alignments done in " + PCQUtils.format((t - System.currentTimeMillis()) * 1.0 / 1000.0) + "sg.");
 		} finally {
 			if (output != null)
 				output.close();
@@ -1096,7 +1095,7 @@ public class ProteinClusterQuant {
 								ProteinCluster cluster2 = clustersByPeptideSequence.get(pep2.getSequence());
 								if (!cluster.equals(cluster2)) {
 									// merges the clusters with similar peptides
-									cluster = Utils.mergeClusters(cluster, cluster2);
+									cluster = PCQUtils.mergeClusters(cluster, cluster2);
 									clusterSet.remove(cluster2);
 									for (QuantifiedPeptideInterface quantifiedPeptide : cluster.getPeptideSet()) {
 										clustersByPeptideSequence.put(quantifiedPeptide.getSequence(), cluster);
@@ -1127,7 +1126,7 @@ public class ProteinClusterQuant {
 						ProteinCluster cluster2 = clustersByPeptideSequence.get(peptide2.getSequence());
 						if (!cluster.equals(cluster2)) {
 							// merge the clusters
-							cluster = Utils.mergeClusters(cluster, cluster2);
+							cluster = PCQUtils.mergeClusters(cluster, cluster2);
 							clusterSet.remove(cluster2);
 							for (QuantifiedPeptideInterface quantifiedPeptide : cluster.getPeptideSet()) {
 								clustersByPeptideSequence.put(quantifiedPeptide.getSequence(), cluster);
@@ -1200,10 +1199,10 @@ public class ProteinClusterQuant {
 				validTaxonomies.add("cerevisiae");
 				for (ProteinCluster cluster : clusterSet) {
 
-					final String geneNameString = Utils.getGeneNameString(annotatedProteins, cluster, validTaxonomies,
+					final String geneNameString = PCQUtils.getGeneNameString(annotatedProteins, cluster, validTaxonomies,
 							params.isPrintOnlyFirstGene());
 					if (geneNameString.contains("Dsim")) {
-						log.info(Utils.getGeneNameString(annotatedProteins, cluster, validTaxonomies,
+						log.info(PCQUtils.getGeneNameString(annotatedProteins, cluster, validTaxonomies,
 								params.isPrintOnlyFirstGene()));
 					}
 					if ("".equals(geneNameString)) {
@@ -1220,7 +1219,7 @@ public class ProteinClusterQuant {
 						final Set<ProteinPair> proteinPairs = cluster.getProteinPairs();
 						Set<Double> ratioValues = new HashSet<Double>();
 						if (proteinPairs.isEmpty()) {
-							final QuantRatio pepRatio = Utils.getConsensusRatio(cluster.getPeptideSet(false), cond1,
+							final QuantRatio pepRatio = PCQUtils.getConsensusRatio(cluster.getPeptideSet(false), cond1,
 									cond2, replicateName);
 							if (pepRatio != null) {
 								final Double countRatio = pepRatio.getNonLogRatio(cond1, cond2);
@@ -1230,7 +1229,7 @@ public class ProteinClusterQuant {
 							}
 						} else {
 							for (ProteinPair proteinPair : proteinPairs) {
-								final Map<String, Set<QuantifiedPeptideInterface>> sharedPeptidesMap_S12 = Utils
+								final Map<String, Set<QuantifiedPeptideInterface>> sharedPeptidesMap_S12 = PCQUtils
 										.getSharedPeptidesMap(proteinPair.getProtein1(), proteinPair.getProtein2(),
 												false);
 								for (Set<QuantifiedPeptideInterface> peptidesS12 : sharedPeptidesMap_S12.values()) {
@@ -1246,7 +1245,7 @@ public class ProteinClusterQuant {
 										}
 									}
 									for (Set<QuantifiedPeptideInterface> sharedPeptides_S12 : pep12DoubleList) {
-										final QuantRatio pepRatio = Utils.getConsensusRatio(sharedPeptides_S12, cond1,
+										final QuantRatio pepRatio = PCQUtils.getConsensusRatio(sharedPeptides_S12, cond1,
 												cond2, replicateName);
 										if (pepRatio != null) {
 											final Double countRatio = pepRatio.getNonLogRatio(cond1, cond2);
@@ -1334,7 +1333,7 @@ public class ProteinClusterQuant {
 			if (getParams().getUniprotReleasesFolder() != null) {
 				log.info("Getting UniprotKB annotations for " + parser.getProteinMap().size() + " proteins");
 
-				UniprotProteinLocalRetriever uplr = Utils
+				UniprotProteinLocalRetriever uplr = PCQUtils
 						.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
 
 				// exporting to xgmml
@@ -1423,7 +1422,7 @@ public class ProteinClusterQuant {
 
 				for (PCQPeptideNode peptideNode : peptideNodeSet) {
 
-					Double ratioValue = Utils.getRatioValue(peptideNode.getConsensusRatio(cond1, cond2), cond1, cond2);
+					Double ratioValue = PCQUtils.getRatioValue(peptideNode.getConsensusRatio(cond1, cond2), cond1, cond2);
 
 					if (Double.isNaN(ratioValue)) {
 						continue;

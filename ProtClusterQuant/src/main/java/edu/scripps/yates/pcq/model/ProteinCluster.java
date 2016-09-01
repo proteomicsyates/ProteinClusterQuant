@@ -13,8 +13,8 @@ import org.apache.log4j.Logger;
 import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
-import edu.scripps.yates.pcq.util.ProteinClusterQuantParameters;
-import edu.scripps.yates.pcq.util.Utils;
+import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
+import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.utilities.alignment.nwalign.NWAlign;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 
@@ -101,7 +101,7 @@ public class ProteinCluster {
 				for (int j = i + 1; j < peptides.size(); j++) {
 					QuantifiedPeptideInterface peptide2 = peptides.get(j);
 					if (getParams().isCollapseIndistinguishablePeptides()
-							&& Utils.peptidesShareAllProteins(peptide1, peptide2)) {
+							&& PCQUtils.peptidesShareAllProteins(peptide1, peptide2)) {
 						PCQPeptideNode peptideNode = null;
 						PCQPeptideNode peptideNode2 = null;
 						// if the protein was already associated with some
@@ -121,7 +121,7 @@ public class ProteinCluster {
 								peptideNodes.remove(peptideNode);
 								peptideNodes.remove(peptideNode2);
 								// merge nodes into peptideNode
-								peptideNode = Utils.mergePeptideNodes(peptideNode, peptideNode2);
+								peptideNode = PCQUtils.mergePeptideNodes(peptideNode, peptideNode2);
 							} else if (peptideNode == null && peptideNode2 != null) {
 								peptideNode = peptideNode2;
 							}
@@ -192,7 +192,7 @@ public class ProteinCluster {
 					Set<QuantifiedProteinInterface> proteins2 = proteinMap.get(acc2);
 
 					if (getParams().isCollapseIndistinguishableProteins()
-							&& Utils.proteinsShareAllPeptides(proteins1, proteins2)) {
+							&& PCQUtils.proteinsShareAllPeptides(proteins1, proteins2)) {
 						PCQProteinNode proteinNode = null;
 						PCQProteinNode proteinNode2 = null;
 						// if the protein was already associated with some
@@ -221,7 +221,7 @@ public class ProteinCluster {
 
 									// merge protein nodes in the first protein
 									// node
-									Utils.mergeProteinNodes(proteinNode, proteinNode2);
+									PCQUtils.mergeProteinNodes(proteinNode, proteinNode2);
 
 									// look for any other protein pointing to
 									// proteinNode2 and assign it to
@@ -385,8 +385,8 @@ public class ProteinCluster {
 			for (int j = i + 1; j < proteinList.size(); j++) {
 				PCQProteinNode protein1 = proteinList.get(i);
 				PCQProteinNode protein2 = proteinList.get(j);
-				if (Utils.shareAtLeastOnePeptide(protein1, protein2)
-						|| (gAM != null && Utils.shareAtLeastOnePeptideBySimilarity(protein1, protein2, gAM))) {
+				if (PCQUtils.shareAtLeastOnePeptide(protein1, protein2)
+						|| (gAM != null && PCQUtils.shareAtLeastOnePeptideBySimilarity(protein1, protein2, gAM))) {
 					ProteinPair pair = new ProteinPair(protein1, protein2, this);
 					// final String string = pair.toString();
 					proteinPairs.add(pair);
@@ -420,7 +420,7 @@ public class ProteinCluster {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		sb.append("PROTN[");
-		for (PCQProteinNode protein : Utils.getSortedProteinNodesByAcc(proteinNodes)) {
+		for (PCQProteinNode protein : PCQUtils.getSortedProteinNodesByAcc(proteinNodes)) {
 			if (!"PROTN[".equals(sb.toString())) {
 				sb.append(",");
 			}
@@ -429,7 +429,7 @@ public class ProteinCluster {
 		sb.append("]NTORP");
 		StringBuilder sb2 = new StringBuilder();
 		sb2.append("PEPN[");
-		for (QuantifiedPeptideInterface peptide : Utils.getSortedPeptideNodesBySequence(peptideNodes)) {
+		for (QuantifiedPeptideInterface peptide : PCQUtils.getSortedPeptideNodesBySequence(peptideNodes)) {
 			if (!"PEPN[".equals(sb2.toString())) {
 				sb2.append(",");
 			}

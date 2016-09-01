@@ -13,7 +13,7 @@ import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
-import edu.scripps.yates.pcq.util.Utils;
+import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.utilities.grouping.GroupablePSM;
 import edu.scripps.yates.utilities.grouping.ProteinEvidence;
 import edu.scripps.yates.utilities.grouping.ProteinGroup;
@@ -92,7 +92,7 @@ public class PCQProteinNode implements QuantifiedProteinInterface {
 	@Override
 	public String getAccession() {
 		if (accessionString == null) {
-			accessionString = Utils.getAccessionString(proteinSet);
+			accessionString = PCQUtils.getAccessionString(proteinSet);
 		}
 		return accessionString;
 	}
@@ -155,7 +155,7 @@ public class PCQProteinNode implements QuantifiedProteinInterface {
 	@Override
 	public String getDescription() {
 		if (descriptionString == null) {
-			descriptionString = Utils.getDescriptionString(proteinSet, true);
+			descriptionString = PCQUtils.getDescriptionString(proteinSet, true);
 		}
 		return descriptionString;
 	}
@@ -163,7 +163,7 @@ public class PCQProteinNode implements QuantifiedProteinInterface {
 	@Override
 	public String getTaxonomy() {
 		if (taxonomiesString == null) {
-			taxonomiesString = Utils.getTaxonomiesString(proteinSet);
+			taxonomiesString = PCQUtils.getTaxonomiesString(proteinSet);
 		}
 		return taxonomiesString;
 	}
@@ -313,7 +313,7 @@ public class PCQProteinNode implements QuantifiedProteinInterface {
 
 	public void disconnectProteinsInNode() {
 		for (QuantifiedProteinInterface protein : proteinSet) {
-			Utils.discardProtein(protein);
+			PCQUtils.discardProtein(protein);
 		}
 	}
 

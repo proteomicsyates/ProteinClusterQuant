@@ -15,7 +15,7 @@ import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
-import edu.scripps.yates.pcq.util.Utils;
+import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.utilities.proteomicsmodel.Amount;
 
 /**
@@ -80,12 +80,12 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 
 	@Override
 	public String getSequence() {
-		return Utils.getPeptidesSequenceString(peptideSet);
+		return PCQUtils.getPeptidesSequenceString(peptideSet);
 	}
 
 	@Override
 	public String getFullSequence() {
-		return Utils.getPeptidesFullSequenceString(peptideSet);
+		return PCQUtils.getPeptidesFullSequenceString(peptideSet);
 	}
 
 	@Override
@@ -155,7 +155,7 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 		if (isobaricPeptides.isEmpty()) {
 			return null;
 		}
-		return Utils.getConsensusIonCountRatio(isobaricPeptides, cond1, cond2);
+		return PCQUtils.getConsensusIonCountRatio(isobaricPeptides, cond1, cond2);
 	}
 
 	public boolean addConsensusRatio(QuantRatio ratio) {
@@ -255,13 +255,13 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 
 	public void disconnectPeptidesInNode() {
 		for (QuantifiedPeptideInterface peptide : peptideSet) {
-			Utils.discardPeptide(peptide);
+			PCQUtils.discardPeptide(peptide);
 		}
 	}
 
 	@Override
 	public String toString() {
-		final List<QuantifiedPeptideInterface> quantifiedPeptides = Utils.getSortedPeptidesBySequence(peptideSet);
+		final List<QuantifiedPeptideInterface> quantifiedPeptides = PCQUtils.getSortedPeptidesBySequence(peptideSet);
 		StringBuilder sb = new StringBuilder();
 		for (QuantifiedPeptideInterface quantifiedPeptideInterface : quantifiedPeptides) {
 			if (!"".equals(sb.toString())) {

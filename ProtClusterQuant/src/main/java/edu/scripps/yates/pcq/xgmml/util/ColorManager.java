@@ -1,8 +1,10 @@
-package edu.scripps.yates.pcq.util;
+package edu.scripps.yates.pcq.xgmml.util;
 
 import java.awt.Color;
 import java.util.HashMap;
 import java.util.Map;
+
+import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
 
 public class ColorManager {
 	private final Map<String, Color> colorsByTaxonomies = new HashMap<String, Color>();

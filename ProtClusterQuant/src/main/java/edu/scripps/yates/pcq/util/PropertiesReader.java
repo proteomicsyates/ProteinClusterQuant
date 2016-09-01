@@ -9,6 +9,12 @@ import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
+import edu.scripps.yates.pcq.ProteinClusterQuantProperties;
+import edu.scripps.yates.pcq.xgmml.util.ColorManager;
+import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
+import edu.scripps.yates.pcq.xgmml.util.Shape;
+
 public class PropertiesReader {
 	private static final String PROPERTIES_FILE_NAME = "setup.properties";
 	private final static org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(PropertiesReader.class);

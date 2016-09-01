@@ -1,4 +1,4 @@
-package edu.scripps.yates.pcq;
+package edu.scripps.yates.pcq.model;
 
 import java.util.ArrayList;
 import java.util.Collections;

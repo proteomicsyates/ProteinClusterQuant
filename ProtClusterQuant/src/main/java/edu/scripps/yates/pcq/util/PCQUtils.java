@@ -44,7 +44,8 @@ import edu.scripps.yates.dbindex.DBIndexInterface;
 import edu.scripps.yates.dbindex.io.DBIndexSearchParams;
 import edu.scripps.yates.dbindex.io.DBIndexSearchParamsImpl;
 import edu.scripps.yates.dbindex.util.IndexUtil;
-import edu.scripps.yates.pcq.IonCountRatio;
+import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
+import edu.scripps.yates.pcq.model.IonCountRatio;
 import edu.scripps.yates.pcq.model.PCQPeptideNode;
 import edu.scripps.yates.pcq.model.PCQProteinNode;
 import edu.scripps.yates.pcq.model.ProteinCluster;
@@ -53,13 +54,13 @@ import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.remote.RemoteSSHFileReference;
 
-public class Utils {
+public class PCQUtils {
 
 	public static final String PROTEIN_DESCRIPTION_SEPARATOR = "####";
 	public static DecimalFormat df = new DecimalFormat("#.#");
 	private static Map<String, DBIndexInterface> indexByFastaIndexKey = new HashMap<String, DBIndexInterface>();
 	private static final Map<String, UniprotProteinLocalRetriever> uplrMap = new HashMap<String, UniprotProteinLocalRetriever>();
-	private final static Logger log = Logger.getLogger(Utils.class);
+	private final static Logger log = Logger.getLogger(PCQUtils.class);
 	public static final String PROTEIN_ACC_SEPARATOR = " ";
 	public static final double factor = 1.2;
 
@@ -492,12 +493,12 @@ public class Utils {
 	 * @return
 	 */
 	public static QuantifiedProteinInterface mergeProteins(Set<QuantifiedProteinInterface> proteins) {
-		String consensusACC = Utils.getAccessionString(proteins);
+		String consensusACC = PCQUtils.getAccessionString(proteins);
 		QuantifiedProteinInterface mergedProtein = new QuantifiedProteinFromCensusOut(consensusACC);
 		// this is necessary because when passed in the constructor, it is being
 		// parsed to only one:
 		mergedProtein.setAccession(consensusACC);
-		mergedProtein.setDescription(Utils.getDescriptionString(proteins, true));
+		mergedProtein.setDescription(PCQUtils.getDescriptionString(proteins, true));
 		List<String> taxonomies = new ArrayList<String>();
 		for (QuantifiedProteinInterface quantifiedProtein : proteins) {
 			final String taxonomy = quantifiedProtein.getTaxonomy();
@@ -672,7 +673,7 @@ public class Utils {
 	/**
 	 * Get the set of shared {@link QuantifiedPeptideInterface} of the
 	 * {@link QuantifiedProteinInterface} and get the consensus ratio, calling
-	 * to {@link Utils}.
+	 * to {@link PCQUtils}.
 	 * {@link #getConsensusRatio(peptides, condition1, condition2)}
 	 *
 	 * @param protein1
@@ -918,7 +919,7 @@ public class Utils {
 				if (include) {
 					// peptide shared by protein1 and protein2
 
-					String proteinAccKey = Utils.getProteinNodeAccessionString(quantifiedProteins);
+					String proteinAccKey = PCQUtils.getProteinNodeAccessionString(quantifiedProteins);
 					if (map.containsKey(proteinAccKey)) {
 						map.get(proteinAccKey).add(peptide);
 					} else {
@@ -1010,7 +1011,7 @@ public class Utils {
 				if (include) {
 					// peptide shared by protein1 and protein2
 
-					String proteinAccKey = Utils.getAccessionString(quantifiedProteins);
+					String proteinAccKey = PCQUtils.getAccessionString(quantifiedProteins);
 					if (map.containsKey(proteinAccKey)) {
 						map.get(proteinAccKey).add(peptide);
 					} else {
@@ -1050,7 +1051,7 @@ public class Utils {
 				}
 				if (include) {
 					// peptide shared by protein1 and protein2
-					String proteinAccKey = Utils.getProteinNodeAccessionString(quantifiedProteins);
+					String proteinAccKey = PCQUtils.getProteinNodeAccessionString(quantifiedProteins);
 					if (map.containsKey(proteinAccKey)) {
 						map.get(proteinAccKey).add(peptide);
 					} else {
@@ -1092,7 +1093,7 @@ public class Utils {
 			}
 			return getConsensusIonCountRatio(containingIsoRatio, cond1, cond2);
 		} else {
-			return Utils.getConsensusRatio(uniquePeptides, cond1, cond2, null);
+			return PCQUtils.getConsensusRatio(uniquePeptides, cond1, cond2, null);
 		}
 
 	}
@@ -1537,7 +1538,7 @@ public class Utils {
 	public static String getProteinNodeAccessionString(Collection<PCQProteinNode> proteins) {
 
 		StringBuilder sb = new StringBuilder();
-		for (QuantifiedProteinInterface protein : Utils.getSortedProteinNodesByAcc(proteins)) {
+		for (QuantifiedProteinInterface protein : PCQUtils.getSortedProteinNodesByAcc(proteins)) {
 			if (!"".equals(sb.toString()))
 				sb.append(PROTEIN_ACC_SEPARATOR);
 			sb.append(protein.getAccession());
@@ -1555,7 +1556,7 @@ public class Utils {
 	public static String getPeptidesSequenceString(Collection<QuantifiedPeptideInterface> peptides) {
 
 		StringBuilder sb = new StringBuilder();
-		for (QuantifiedPeptideInterface peptide : Utils.getSortedPeptidesBySequence(peptides)) {
+		for (QuantifiedPeptideInterface peptide : PCQUtils.getSortedPeptidesBySequence(peptides)) {
 			if (!"".equals(sb.toString()))
 				sb.append("_");
 			sb.append(peptide.getSequence());
@@ -1573,7 +1574,7 @@ public class Utils {
 	public static String getPeptidesFullSequenceString(Collection<QuantifiedPeptideInterface> peptides) {
 
 		StringBuilder sb = new StringBuilder();
-		for (QuantifiedPeptideInterface peptide : Utils.getSortedPeptidesByFullSequence(peptides)) {
+		for (QuantifiedPeptideInterface peptide : PCQUtils.getSortedPeptidesByFullSequence(peptides)) {
 			if (!"".equals(sb.toString()))
 				sb.append("_");
 			sb.append(peptide.getFullSequence());
@@ -1593,7 +1594,7 @@ public class Utils {
 			boolean avoidRedundancy) {
 		StringBuilder sb = new StringBuilder();
 		Set<String> descriptions = new HashSet<String>();
-		for (QuantifiedProteinInterface protein : Utils.getSortedQuantifiedProteinsByAcc(proteins)) {
+		for (QuantifiedProteinInterface protein : PCQUtils.getSortedQuantifiedProteinsByAcc(proteins)) {
 
 			final String description = protein.getDescription();
 			if (avoidRedundancy && !descriptions.contains(description)) {
@@ -1800,7 +1801,7 @@ public class Utils {
 		if (peptides != null) {
 			for (QuantifiedPeptideInterface quantifiedPeptide : peptides) {
 				if (quantifiedPeptide instanceof IsobaricQuantifiedPeptide) {
-					ionCount += Utils.getIonCount(quantifiedPeptide, label);
+					ionCount += PCQUtils.getIonCount(quantifiedPeptide, label);
 				}
 			}
 		}
@@ -1812,11 +1813,11 @@ public class Utils {
 		if (peptides != null) {
 			for (QuantifiedPeptideInterface quantifiedPeptide : peptides) {
 				if (quantifiedPeptide instanceof IsobaricQuantifiedPeptide) {
-					ionCount += Utils.getIonCountFromPeptide(quantifiedPeptide, condition);
+					ionCount += PCQUtils.getIonCountFromPeptide(quantifiedPeptide, condition);
 				} else if (quantifiedPeptide instanceof PCQPeptideNode) {
 					final Set<QuantifiedPeptideInterface> individualPeptides = ((PCQPeptideNode) quantifiedPeptide)
 							.getIndividualPeptides();
-					ionCount += Utils.getIonCount(individualPeptides, condition);
+					ionCount += PCQUtils.getIonCount(individualPeptides, condition);
 				}
 			}
 		}
@@ -1829,7 +1830,7 @@ public class Utils {
 			final Set<QuantifiedPSMInterface> quantifiedPSMs = peptideNode.getQuantifiedPSMs();
 			for (QuantifiedPSMInterface psm : quantifiedPSMs) {
 				for (QuantificationLabel label : QuantificationLabel.values()) {
-					ionCount += Utils.getIonCount(psm, label);
+					ionCount += PCQUtils.getIonCount(psm, label);
 				}
 			}
 		}
@@ -1853,12 +1854,12 @@ public class Utils {
 			for (QuantifiedPeptideInterface quantifiedPeptide : peptides) {
 				if (quantifiedPeptide instanceof IsobaricQuantifiedPeptide) {
 					for (QuantificationLabel label : QuantificationLabel.values()) {
-						ionCount += Utils.getIonCount(quantifiedPeptide, label);
+						ionCount += PCQUtils.getIonCount(quantifiedPeptide, label);
 					}
 				} else if (quantifiedPeptide instanceof PCQPeptideNode) {
 					final Set<QuantifiedPeptideInterface> individualPeptides = ((PCQPeptideNode) quantifiedPeptide)
 							.getIndividualPeptides();
-					ionCount += Utils.getIonCount(individualPeptides);
+					ionCount += PCQUtils.getIonCount(individualPeptides);
 				}
 			}
 		}
@@ -1930,9 +1931,9 @@ public class Utils {
 		final Set<QuantifiedProteinInterface> proteins1 = psm1.getQuantifiedProteins();
 		final Set<QuantifiedProteinInterface> proteins2 = psm2.getQuantifiedProteins();
 
-		Set<String> proteinAccs1 = Utils.getAccessions(proteins1);
+		Set<String> proteinAccs1 = PCQUtils.getAccessions(proteins1);
 
-		Set<String> proteinAccs2 = Utils.getAccessions(proteins2);
+		Set<String> proteinAccs2 = PCQUtils.getAccessions(proteins2);
 		if (proteinAccs1.size() == proteinAccs2.size()) {
 			for (String acc1 : proteinAccs1) {
 				if (!proteinAccs2.contains(acc1)) {
@@ -1949,8 +1950,8 @@ public class Utils {
 		final Set<QuantifiedProteinInterface> proteins1 = peptide1.getQuantifiedProteins();
 		final Set<QuantifiedProteinInterface> proteins2 = peptide2.getQuantifiedProteins();
 
-		Set<String> proteinAccs1 = Utils.getAccessions(proteins1);
-		Set<String> proteinAccs2 = Utils.getAccessions(proteins2);
+		Set<String> proteinAccs1 = PCQUtils.getAccessions(proteins1);
+		Set<String> proteinAccs2 = PCQUtils.getAccessions(proteins2);
 		if (proteinAccs1.size() == proteinAccs2.size()) {
 			for (String acc1 : proteinAccs1) {
 				if (!proteinAccs2.contains(acc1)) {
@@ -2034,19 +2035,19 @@ public class Utils {
 		log.debug("Creating input file parser");
 		if (params.getInputType() == AnalysisInputType.CENSUS_CHRO) {
 			if (params.getMongoDBURI() != null) {
-				return Utils.getCensusChroParserUsingMongoDBIndex(params.getMongoDBURI(), params.getMongoMassDBName(),
+				return PCQUtils.getCensusChroParserUsingMongoDBIndex(params.getMongoDBURI(), params.getMongoMassDBName(),
 						params.getMongoSeqDBName(), params.getMongoProtDBName(), params.getInputFileFolder(),
 						inputFileNamesArray, labelsByConditionsList, params.getUniprotReleasesFolder(),
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB());
 			} else {
-				return Utils.getCensusChroParser(params.getFastaFile(), params.getInputFileFolder(),
+				return PCQUtils.getCensusChroParser(params.getFastaFile(), params.getInputFileFolder(),
 						inputFileNamesArray, labelsByConditionsList, params.getEnzymeArray(),
 						params.getMissedCleavages(), params.getUniprotReleasesFolder(), params.getUniprotVersion(),
 						params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB());
 			}
 		} else if (params.getInputType() == AnalysisInputType.CENSUS_OUT) {
 			if (params.getMongoDBURI() != null) {
-				final CensusOutParser parser = Utils.getCensusOutParserUsingMongoDBIndex(params.getMongoDBURI(),
+				final CensusOutParser parser = PCQUtils.getCensusOutParserUsingMongoDBIndex(params.getMongoDBURI(),
 						params.getMongoMassDBName(), params.getMongoSeqDBName(), params.getMongoProtDBName(),
 						params.getInputFileFolder(), inputFileNamesArray, labelsByConditionsList,
 						params.getUniprotReleasesFolder(), params.getUniprotVersion(), params.getDecoyRegexp(),
@@ -2055,7 +2056,7 @@ public class Utils {
 
 				return parser;
 			} else {
-				final CensusOutParser parser = Utils.getCensusOutParser(params.getFastaFile(),
+				final CensusOutParser parser = PCQUtils.getCensusOutParser(params.getFastaFile(),
 						params.getInputFileFolder(), inputFileNamesArray, labelsByConditionsList,
 						params.getEnzymeArray(), params.getMissedCleavages(), params.getUniprotReleasesFolder(),
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
@@ -2065,7 +2066,7 @@ public class Utils {
 			}
 		} else if (params.getInputType() == AnalysisInputType.SEPARATED_VALUES) {
 			if (params.getMongoDBURI() != null) {
-				final SeparatedValuesParser parser = Utils.getSeparatedValuesParserUsingMongoDBIndex(
+				final SeparatedValuesParser parser = PCQUtils.getSeparatedValuesParserUsingMongoDBIndex(
 						params.getMongoDBURI(), params.getMongoMassDBName(), params.getMongoSeqDBName(),
 						params.getMongoProtDBName(), params.getInputFileFolder(), inputFileNamesArray,
 						params.getSeparator(), labelsByConditionsList, params.getUniprotReleasesFolder(),
@@ -2073,7 +2074,7 @@ public class Utils {
 
 				return parser;
 			} else {
-				final SeparatedValuesParser parser = Utils.getSeparatedValuesParser(params.getFastaFile(),
+				final SeparatedValuesParser parser = PCQUtils.getSeparatedValuesParser(params.getFastaFile(),
 						params.getInputFileFolder(), inputFileNamesArray, params.getSeparator(), labelsByConditionsList,
 						params.getEnzymeArray(), params.getMissedCleavages(), params.getUniprotReleasesFolder(),
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB());

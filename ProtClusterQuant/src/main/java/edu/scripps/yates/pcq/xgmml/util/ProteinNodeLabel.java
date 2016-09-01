@@ -1,4 +1,4 @@
-package edu.scripps.yates.pcq.util;
+package edu.scripps.yates.pcq.xgmml.util;
 
 public enum ProteinNodeLabel {
 	ACC, ID, GENE;

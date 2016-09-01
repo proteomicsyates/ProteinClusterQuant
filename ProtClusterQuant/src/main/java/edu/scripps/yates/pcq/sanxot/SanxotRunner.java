@@ -24,9 +24,9 @@ import edu.scripps.yates.census.analysis.wrappers.SanXotAnalysisResult;
 import edu.scripps.yates.census.read.model.interfaces.QuantParser;
 import edu.scripps.yates.census.read.util.QuantificationLabel;
 import edu.scripps.yates.pcq.ProteinClusterQuant;
+import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
-import edu.scripps.yates.pcq.util.ProteinClusterQuantParameters;
-import edu.scripps.yates.pcq.util.Utils;
+import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.utilities.exec.ProcessExecutor;
 import edu.scripps.yates.utilities.exec.ProcessExecutorHandler;
 
@@ -74,7 +74,7 @@ public class SanxotRunner {
 
 	private QuantParser getQuantParser(String replicateFileName,
 			Map<QuantCondition, QuantificationLabel> labelsByConditions) throws FileNotFoundException {
-		QuantParser parser = Utils.getQuantParser(ProteinClusterQuantParameters.getInstance(), labelsByConditions,
+		QuantParser parser = PCQUtils.getQuantParser(ProteinClusterQuantParameters.getInstance(), labelsByConditions,
 				replicateFileName);
 		return parser;
 	}
