@@ -1590,7 +1590,7 @@ public class ProteinClusterQuant {
 			if (params.getSignificantFDRThreshold() != null && params.isPerformRatioIntegration()) {
 				fdrText = " or FDR<" + params.getSignificantFDRThreshold();
 			}
-			stats.append("Number of significantly changing peptide nodes (infinities " + fdrText + "):\t"
+			stats.append("Number of significantly changing peptide nodes (infinities" + fdrText + "):\t"
 					+ numSignificantPeptideNodes + "\n");
 			stats.append(
 					"Number of significantly changing protein clusters (containing at least one significant peptide node):\t"

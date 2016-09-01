@@ -1508,7 +1508,7 @@ public class XgmmlExporter {
 			log.info("Creating XGMML for the entire network...");
 			// export the total network
 			File xgmmlOutPutFile = new File(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix
-					+ "_cytoscape_" + outputSuffix + ".xgmml");
+					+ "_cytoscape_ALL_" + outputSuffix + ".xgmml");
 			exportToGmmlFromProteinClustersUsingNodes(xgmmlOutPutFile, outputPrefix + "_" + outputSuffix,
 					clusterCollection, condition1, condition2, colorManager);
 
