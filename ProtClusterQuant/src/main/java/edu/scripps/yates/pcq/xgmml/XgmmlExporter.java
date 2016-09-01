@@ -1513,12 +1513,18 @@ public class XgmmlExporter {
 					clusterCollection, condition1, condition2, colorManager);
 
 			// fdr
-			double fdrThreshold = 0.05;
+			Double fdrThreshold = params.getSignificantFDRThreshold();
 			log.info("Creating XGMML for the cluster containing a peptide node that is significantly changing...");
 			Set<ProteinCluster> significantlyRegulatedProteinClusters = getSignificantlyRegulatedProteinClusters(
 					clusterCollection, fdrThreshold);
-			File xgmmlOutPutFileFDR = new File(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix
-					+ "_cytoscape_FDR_" + fdrThreshold + "_" + outputSuffix + ".xgmml");
+			String fdrText = "";
+			if (params.isPerformRatioIntegration() && params.getSignificantFDRThreshold() != null) {
+				fdrText = params.getSignificantFDRThreshold() + "_";
+			}
+			final String fileName = outputFileFolder.getAbsolutePath() + File.separator + outputPrefix
+					+ "_cytoscape_Significants_" + fdrText + outputSuffix + ".xgmml";
+
+			File xgmmlOutPutFileFDR = new File(fileName);
 			exportToGmmlFromProteinClustersUsingNodes(xgmmlOutPutFileFDR,
 					outputPrefix + "_FDR" + fdrThreshold + "_" + outputSuffix, significantlyRegulatedProteinClusters,
 					condition1, condition2, colorManager);
@@ -1560,8 +1566,17 @@ public class XgmmlExporter {
 
 	}
 
+	/**
+	 * Get significantly regulated protein clusters, that is, the ones having at
+	 * least one peptide node with FDR less or equals to the input parameter
+	 * FDRThredhold, or having an INFINITY value
+	 *
+	 * @param clusters
+	 * @param fdrThreshold
+	 * @return
+	 */
 	private Set<ProteinCluster> getSignificantlyRegulatedProteinClusters(Collection<ProteinCluster> clusters,
-			double fdrThreshold) {
+			Double fdrThreshold) {
 		Set<ProteinCluster> ret = new HashSet<ProteinCluster>();
 		for (ProteinCluster proteinCluster : clusters) {
 			final Set<PCQPeptideNode> peptideNodes = proteinCluster.getPeptideNodes();
@@ -1573,7 +1588,7 @@ public class XgmmlExporter {
 						try {
 							if (score.getValue() != null) {
 								double fdr = Double.valueOf(score.getValue());
-								if (fdr <= fdrThreshold) {
+								if (fdrThreshold != null && fdr <= fdrThreshold) {
 									ret.add(proteinCluster);
 									break;
 								}

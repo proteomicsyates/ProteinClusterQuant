@@ -20,8 +20,8 @@ import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface
 import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.cases.Classification1Case;
 import edu.scripps.yates.pcq.cases.Classification2Case;
-import edu.scripps.yates.pcq.util.ProteinPairPValue;
 import edu.scripps.yates.pcq.util.PCQUtils;
+import edu.scripps.yates.pcq.util.ProteinPairPValue;
 import edu.scripps.yates.utilities.maths.Maths;
 
 public class ProteinPair {
@@ -459,7 +459,7 @@ public class ProteinPair {
 				}
 			}
 
-			log.debug(logString.toString());
+			// log.debug(logString.toString());
 
 		}
 
@@ -572,8 +572,8 @@ public class ProteinPair {
 	}
 
 	private boolean isSharedPeptideSharedByOtherProteinOutOfThePair(QuantCondition cond1, QuantCondition cond2) {
-		final Map<String, Set<QuantifiedPeptideInterface>> sharedPeptides = PCQUtils.getSharedPeptidesByProtein(protein1,
-				protein2, false);
+		final Map<String, Set<QuantifiedPeptideInterface>> sharedPeptides = PCQUtils
+				.getSharedPeptidesByProtein(protein1, protein2, false);
 		if (sharedPeptides.size() > 2) {
 			return true;
 		}
@@ -792,7 +792,8 @@ public class ProteinPair {
 			final Classification1Case classification1Case = classification1Cases.get(proteinKey);
 			StringBuilder sb = new StringBuilder();
 			// UniquePep1
-			final Set<QuantifiedPeptideInterface> uniquePeptides1 = PCQUtils.getUniquePeptides(protein1, protein2, true);
+			final Set<QuantifiedPeptideInterface> uniquePeptides1 = PCQUtils.getUniquePeptides(protein1, protein2,
+					true);
 			sb.append(PCQUtils.getPeptidesSequenceString(uniquePeptides1) + "\t");
 			// RatioU1
 			Double value1 = Double.NaN;
@@ -821,7 +822,8 @@ public class ProteinPair {
 			// Protein2
 			sb.append(protein2.getAccession() + "\t");
 			// UniquePep2
-			final Set<QuantifiedPeptideInterface> uniquePeptides2 = PCQUtils.getUniquePeptides(protein2, protein1, true);
+			final Set<QuantifiedPeptideInterface> uniquePeptides2 = PCQUtils.getUniquePeptides(protein2, protein1,
+					true);
 			sb.append(PCQUtils.getPeptidesSequenceString(uniquePeptides2) + "\t");
 			// RatioU2
 			Double value2 = Double.NaN;

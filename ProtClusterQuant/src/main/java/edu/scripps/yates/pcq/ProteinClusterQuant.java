@@ -1355,7 +1355,7 @@ public class ProteinClusterQuant {
 		int numSignificantPeptideNodes = 0;
 		int numSignificantClusters = 0;
 
-		List<ProteinPairPValue> ranking = new ArrayList<ProteinPairPValue>();
+		// List<ProteinPairPValue> ranking = new ArrayList<ProteinPairPValue>();
 		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 		try {
 			final String outputPrefix = params.getOutputPrefix();
@@ -1488,13 +1488,13 @@ public class ProteinClusterQuant {
 							outputPairs.write(summaryLine + "\n");
 						}
 					}
-					ProteinPairPValue first = proteinPair.getFirstCase();
-					ProteinPairPValue second = proteinPair.getSecondCase();
 
-					if (first != null && second != null) {
-						ranking.add(first);
-						ranking.add(second);
-					}
+					// ProteinPairPValue first = proteinPair.getFirstCase();
+					// ProteinPairPValue second = proteinPair.getSecondCase();
+					// if (first != null && second != null) {
+					// ranking.add(first);
+					// ranking.add(second);
+					// }
 
 					Collection<Classification1Case> pairCases1 = proteinPair.getClassification1Case().values();
 					for (Classification1Case pairCase1 : pairCases1) {
@@ -1515,13 +1515,14 @@ public class ProteinClusterQuant {
 
 			}
 
-			Collections.sort(ranking, getComparatorForProteinPairPValues());
-			log.info("Printing statistics:");
-			for (ProteinPairPValue proteinPairPValue : ranking) {
-				log.info(proteinPairPValue.getpValue() + "\t");
-				log.info(proteinPairPValue.getProteinpair().getAccProt1() + "\t");
-				log.info(proteinPairPValue.getProteinpair().getAccProt2());
-			}
+			// Collections.sort(ranking, getComparatorForProteinPairPValues());
+			// log.info("Printing statistics:");
+			// for (ProteinPairPValue proteinPairPValue : ranking) {
+			// log.info(proteinPairPValue.getpValue() + "\t");
+			// log.info(proteinPairPValue.getProteinpair().getAccProt1() +
+			// "\t");
+			// log.info(proteinPairPValue.getProteinpair().getAccProt2());
+			// }
 
 			// log.info("Number Inconsistent with Cluster: " +
 			// numInconsistenceClusters);
@@ -1585,12 +1586,15 @@ public class ProteinClusterQuant {
 			stats.append("Number of Proteins Nodes:\t " + numProtNodes + "\n");
 			stats.append("Number of Peptides:\t " + numPep + "\n");
 			stats.append("Number of Peptides Nodes:\t " + numPepNodes + "\n");
-			// if (params.getSignificantFDRThreshold() != null) {
-			stats.append("Number of significantly changing peptide nodes (FDR<" + params.getSignificantFDRThreshold()
-					+ "):\t" + numSignificantPeptideNodes + "\n");
-			stats.append("Number of significantly changing protein clusters (FDR<" + params.getSignificantFDRThreshold()
-					+ "):\t" + numSignificantClusters + "\n");
-			// }
+			String fdrText = "";
+			if (params.getSignificantFDRThreshold() != null && params.isPerformRatioIntegration()) {
+				fdrText = " or FDR<" + params.getSignificantFDRThreshold();
+			}
+			stats.append("Number of significantly changing peptide nodes (infinities " + fdrText + "):\t"
+					+ numSignificantPeptideNodes + "\n");
+			stats.append(
+					"Number of significantly changing protein clusters (containing at least one significant peptide node):\t"
+							+ numSignificantClusters + "\n");
 
 			stats.append(
 					"Number of Peptides NOT found in DB: " + AbstractQuantParser.peptidesMissingInDB.size() + "\n");

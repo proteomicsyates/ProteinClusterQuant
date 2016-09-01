@@ -940,6 +940,11 @@ public class ProteinClusterQuantParameters {
 		this.applyClassificationsByProteinPair = applyClassificationsByProteinPair;
 	}
 
+	/**
+	 * Whether PCQ performs an analysis or just compares networks
+	 * 
+	 * @return
+	 */
 	public boolean isAnalysisRun() {
 		return analysisRun;
 	}
