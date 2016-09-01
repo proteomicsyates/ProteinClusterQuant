@@ -2,6 +2,7 @@ package edu.scripps.yates.pcq.model;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -469,7 +470,17 @@ public class ProteinCluster {
 	 * @param peptide
 	 * @return
 	 */
-	public Set<QuantifiedPeptideInterface> getAlignedPeptides(QuantifiedPeptideInterface peptide) {
+	public Set<QuantifiedPeptideInterface> getAlignedPeptides(QuantifiedPeptideInterface peptideOrPeptideNode) {
+		QuantifiedPeptideInterface peptide = peptideOrPeptideNode;
+		if (peptide instanceof PCQPeptideNode) {
+			if (((PCQPeptideNode) peptideOrPeptideNode).getIndividualPeptides().size() > 1) {
+				// If peptide nodes contain more than one different peptide,
+				// then the aligments cannot be done, so there is something
+				// wrong
+				return Collections.EMPTY_SET;
+			}
+			peptide = ((PCQPeptideNode) peptideOrPeptideNode).getIndividualPeptides().iterator().next();
+		}
 		Map<String, QuantifiedPeptideInterface> peptideMap = getPeptideMap();
 		Set<QuantifiedPeptideInterface> ret = new HashSet<QuantifiedPeptideInterface>();
 		if (alignmentsByPeptide.containsKey(peptide.getSequence())) {
