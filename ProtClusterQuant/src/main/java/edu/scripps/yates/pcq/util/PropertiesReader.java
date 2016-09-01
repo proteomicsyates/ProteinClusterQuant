@@ -293,7 +293,7 @@ public class PropertiesReader {
 		Color colorRatioMax = ColorManager.hex2Rgb(properties.getProperty("colorRatioMax", "#ff0000"));
 		params.setColorRatioMax(colorRatioMax);
 
-		final String colorNonRegulatedString = properties.getProperty("color_non_regulated", false);
+		final String colorNonRegulatedString = properties.getProperty("colorNonRegulatedPeptides", false);
 		if (colorNonRegulatedString != null) {
 			Color colorNonRegulated = ColorManager.hex2Rgb(colorNonRegulatedString);
 			params.setColorNonRegulated(colorNonRegulated);

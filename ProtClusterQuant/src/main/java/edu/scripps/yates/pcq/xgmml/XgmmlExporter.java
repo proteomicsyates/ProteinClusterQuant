@@ -49,10 +49,10 @@ import edu.scripps.yates.pcq.xgmml.jaxb.Graph.Att;
 import edu.scripps.yates.pcq.xgmml.jaxb.Graph.Edge;
 import edu.scripps.yates.pcq.xgmml.jaxb.Graph.Graphics;
 import edu.scripps.yates.pcq.xgmml.jaxb.Graph.Node;
+import edu.scripps.yates.pcq.xgmml.jaxb.ObjectFactory;
 import edu.scripps.yates.pcq.xgmml.util.ColorManager;
 import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
 import edu.scripps.yates.pcq.xgmml.util.Shape;
-import edu.scripps.yates.pcq.xgmml.jaxb.ObjectFactory;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.colors.ColorGenerator;
 import edu.scripps.yates.utilities.proteomicsmodel.Score;
@@ -139,13 +139,20 @@ public class XgmmlExporter {
 		return file;
 	}
 
+	/**
+	 * Scale all colors of the peptide nodes according to input parameters
+	 * settings. See parameters: minimumRatioForColor, maximumRatioForColor,
+	 * 
+	 * @param graph
+	 */
 	private void scaleColors(Graph graph) {
 
 		List<Node> nodes = graph.getNode();
 		Double max = -Double.MAX_VALUE;
 		Double min = Double.MAX_VALUE;
-		double minimumRatioForColor = ProteinClusterQuantParameters.getInstance().getMinimumRatioForColor();
-		double maximumRatioForColor = ProteinClusterQuantParameters.getInstance().getMaximumRatioForColor();
+		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+		double minimumRatioForColor = params.getMinimumRatioForColor();
+		double maximumRatioForColor = params.getMaximumRatioForColor();
 
 		for (Node node2 : nodes) {
 			try {
@@ -214,11 +221,9 @@ public class XgmmlExporter {
 					}
 				}
 				if (valid) {
-					if (!significantlyRegulated) {
-						if (ProteinClusterQuantParameters.getInstance().getColorNonRegulated() != null) {
-							Color color = ProteinClusterQuantParameters.getInstance().getColorNonRegulated();
-							node2.getGraphics().setFill(ColorManager.getHexString(color));
-						}
+					if (!significantlyRegulated && params.getColorNonRegulated() != null) {
+						Color color = params.getColorNonRegulated();
+						node2.getGraphics().setFill(ColorManager.getHexString(color));
 					} else {
 						if (Double.compare(Double.POSITIVE_INFINITY, ratio) == 0) {
 							ratio = max;
@@ -233,9 +238,8 @@ public class XgmmlExporter {
 							continue;
 						}
 						// this is a peptide
-						Color color = ColorGenerator.getColor(ratio, min, max,
-								ProteinClusterQuantParameters.getInstance().getColorRatioMin(),
-								ProteinClusterQuantParameters.getInstance().getColorRatioMax());
+						Color color = ColorGenerator.getColor(ratio, min, max, params.getColorRatioMin(),
+								params.getColorRatioMax());
 
 						node2.getGraphics().setFill(ColorManager.getHexString(color));
 					}
@@ -941,7 +945,7 @@ public class XgmmlExporter {
 	/**
 	 * Get the label for a protein node, depending on the 'getProteinLabel()'
 	 * from the input parameters
-	 * 
+	 *
 	 * @param protein
 	 * @return
 	 */

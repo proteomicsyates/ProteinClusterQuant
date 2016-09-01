@@ -43,7 +43,6 @@ import edu.scripps.yates.census.read.model.CensusRatio;
 import edu.scripps.yates.census.read.model.RatioScore;
 import edu.scripps.yates.census.read.model.interfaces.QuantParser;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
-import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 import edu.scripps.yates.census.read.util.QuantificationLabel;
@@ -59,9 +58,9 @@ import edu.scripps.yates.pcq.model.ProteinPair;
 import edu.scripps.yates.pcq.sanxot.SanxotRunner;
 import edu.scripps.yates.pcq.util.AnalysisInputType;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
+import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.pcq.util.PropertiesReader;
 import edu.scripps.yates.pcq.util.ProteinPairPValue;
-import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.pcq.xgmml.XgmmlExporter;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.dates.DatesUtil;
@@ -246,28 +245,6 @@ public class ProteinClusterQuant {
 				numProteinPairs += cluster.getProteinPairs().size();
 			}
 			log.info(numProteinPairs + " protein pairs identified.");
-
-			// TESTING
-			int numPeptideNodes = 0;
-			int numProteinNodes = 0;
-			for (ProteinCluster cluster : clusterSet) {
-				numPeptideNodes += cluster.getPeptideNodes().size();
-				numProteinNodes += cluster.getProteinNodes().size();
-				final Set<String> peptideNodeKeys = cluster.getPeptideNodeKeys();
-				if (peptideNodeKeys.contains("GLGLKPEKLEK")) {
-					for (PCQPeptideNode pepnode : cluster.getPeptideNodes()) {
-						final Set<QuantifiedPSMInterface> quantifiedPSMs = pepnode.getQuantifiedPSMs();
-						for (QuantifiedPSMInterface quantifiedPSMInterface : quantifiedPSMs) {
-							log.info(quantifiedPSMInterface.getKey());
-						}
-
-					}
-				}
-			}
-			log.info(numPeptideNodes + " peptide nodes");
-			log.info(numProteinNodes + " protein nodes");
-
-			// END TESTING
 
 			Map<String, SanxotQuantResult> ratioStatsByPeptideNodeKey = null;
 			if (params.isPerformRatioIntegration()) {
@@ -1199,8 +1176,8 @@ public class ProteinClusterQuant {
 				validTaxonomies.add("cerevisiae");
 				for (ProteinCluster cluster : clusterSet) {
 
-					final String geneNameString = PCQUtils.getGeneNameString(annotatedProteins, cluster, validTaxonomies,
-							params.isPrintOnlyFirstGene());
+					final String geneNameString = PCQUtils.getGeneNameString(annotatedProteins, cluster,
+							validTaxonomies, params.isPrintOnlyFirstGene());
 					if (geneNameString.contains("Dsim")) {
 						log.info(PCQUtils.getGeneNameString(annotatedProteins, cluster, validTaxonomies,
 								params.isPrintOnlyFirstGene()));
@@ -1245,8 +1222,8 @@ public class ProteinClusterQuant {
 										}
 									}
 									for (Set<QuantifiedPeptideInterface> sharedPeptides_S12 : pep12DoubleList) {
-										final QuantRatio pepRatio = PCQUtils.getConsensusRatio(sharedPeptides_S12, cond1,
-												cond2, replicateName);
+										final QuantRatio pepRatio = PCQUtils.getConsensusRatio(sharedPeptides_S12,
+												cond1, cond2, replicateName);
 										if (pepRatio != null) {
 											final Double countRatio = pepRatio.getNonLogRatio(cond1, cond2);
 											if (countRatio != null && !Double.isNaN(countRatio)
@@ -1422,7 +1399,8 @@ public class ProteinClusterQuant {
 
 				for (PCQPeptideNode peptideNode : peptideNodeSet) {
 
-					Double ratioValue = PCQUtils.getRatioValue(peptideNode.getConsensusRatio(cond1, cond2), cond1, cond2);
+					Double ratioValue = PCQUtils.getRatioValue(peptideNode.getConsensusRatio(cond1, cond2), cond1,
+							cond2);
 
 					if (Double.isNaN(ratioValue)) {
 						continue;
