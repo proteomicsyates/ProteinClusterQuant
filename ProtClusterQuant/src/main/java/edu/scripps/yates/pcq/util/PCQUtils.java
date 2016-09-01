@@ -63,6 +63,7 @@ public class PCQUtils {
 	private final static Logger log = Logger.getLogger(PCQUtils.class);
 	public static final String PROTEIN_ACC_SEPARATOR = " ";
 	public static final double factor = 1.2;
+	private static Map<String, QuantParser> quantParsersByFileNamesKey = new HashMap<String, QuantParser>();
 
 	public static Map<String, Set<NWResult>> alignPeptides(List<QuantifiedPeptideInterface> peptideList,
 			QuantCondition cond1, QuantCondition cond2, FileWriter Output2) throws IOException {
@@ -215,7 +216,6 @@ public class PCQUtils {
 			throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
-
 		for (String fileName : fileNames) {
 			final File inputXmlFile = new File(inputFilefolder.getAbsolutePath() + File.separator + fileName);
 			if (!inputXmlFile.exists()) {
@@ -223,18 +223,35 @@ public class PCQUtils {
 			}
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
+		String fileNamesKey = getFileNamesKey(xmlFiles);
+		if (quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+			return (CensusChroParser) quantParsersByFileNamesKey.get(fileNamesKey);
+		}
 
 		CensusChroParser parser = new CensusChroParser(xmlFiles, labelsByConditions, QuantificationLabel.LIGHT,
 				QuantificationLabel.HEAVY);
-		parser.addIonExclusion(IonSerieType.B, 1);
-		parser.addIonExclusion(IonSerieType.Y, 1);
-		parser.setDecoyPattern(decoyRegexp);
-		parser.setDistinguishModifiedPeptides(false);
-		parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
-		final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages);
-		parser.setDbIndex(fastaDBIndex);
-		changeProteinAccessionsByUniprotInParser(parser, uniprotReleasesFolder, uniprotVersion);
-		return parser;
+		try {
+			parser.addIonExclusion(IonSerieType.B, 1);
+			parser.addIonExclusion(IonSerieType.Y, 1);
+			parser.setDecoyPattern(decoyRegexp);
+			parser.setDistinguishModifiedPeptides(false);
+			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
+			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages);
+			parser.setDbIndex(fastaDBIndex);
+			changeProteinAccessionsByUniprotInParser(parser, uniprotReleasesFolder, uniprotVersion);
+
+			return parser;
+		} finally {
+			addQuantParserToStaticMap(fileNamesKey, parser);
+		}
+	}
+
+	private static String getFileNamesKey(List<RemoteSSHFileReference> xmlFiles) {
+		StringBuilder sb = new StringBuilder();
+		for (RemoteSSHFileReference remoteSSHFileReference : xmlFiles) {
+			sb.append(remoteSSHFileReference.getOutputFile().getAbsolutePath());
+		}
+		return sb.toString();
 	}
 
 	private static CensusOutParser getCensusOutParser(File fastaFile, File inputFilefolder, String[] fileNames,
@@ -252,20 +269,27 @@ public class PCQUtils {
 			}
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
-
+		String fileNamesKey = getFileNamesKey(xmlFiles);
+		if (quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+			return (CensusOutParser) quantParsersByFileNamesKey.get(fileNamesKey);
+		}
 		CensusOutParser parser = new CensusOutParser(xmlFiles, labelsByConditions, QuantificationLabel.LIGHT,
 				QuantificationLabel.HEAVY);
+		try {
+			parser.setDecoyPattern(decoyRegexp);
+			parser.setDistinguishModifiedPeptides(false);
+			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
+			parser.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
+					onlyOneSpectrumPerChromatographicPeakAndPerSaltStep);
+			parser.setSkipSingletons(skipSingletons);
+			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages);
+			parser.setDbIndex(fastaDBIndex);
+			changeProteinAccessionsByUniprotInParser(parser, uniprotReleasesFolder, uniprotVersion);
+			return parser;
+		} finally {
+			addQuantParserToStaticMap(fileNamesKey, parser);
 
-		parser.setDecoyPattern(decoyRegexp);
-		parser.setDistinguishModifiedPeptides(false);
-		parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
-		parser.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
-				onlyOneSpectrumPerChromatographicPeakAndPerSaltStep);
-		parser.setSkipSingletons(skipSingletons);
-		final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages);
-		parser.setDbIndex(fastaDBIndex);
-		changeProteinAccessionsByUniprotInParser(parser, uniprotReleasesFolder, uniprotVersion);
-		return parser;
+		}
 	}
 
 	private static SeparatedValuesParser getSeparatedValuesParser(File fastaFile, File inputFilefolder,
@@ -282,17 +306,28 @@ public class PCQUtils {
 			}
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
-
+		String fileNamesKey = getFileNamesKey(xmlFiles);
+		if (quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+			return (SeparatedValuesParser) quantParsersByFileNamesKey.get(fileNamesKey);
+		}
 		SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, labelsByConditions,
 				QuantificationLabel.LIGHT, QuantificationLabel.HEAVY);
+		try {
+			parser.setDecoyPattern(decoyRegexp);
+			parser.setDistinguishModifiedPeptides(false);
+			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
+			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages);
+			parser.setDbIndex(fastaDBIndex);
+			changeProteinAccessionsByUniprotInParser(parser, uniprotReleasesFolder, uniprotVersion);
+			return parser;
+		} finally {
+			addQuantParserToStaticMap(fileNamesKey, parser);
+		}
+	}
 
-		parser.setDecoyPattern(decoyRegexp);
-		parser.setDistinguishModifiedPeptides(false);
-		parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
-		final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages);
-		parser.setDbIndex(fastaDBIndex);
-		changeProteinAccessionsByUniprotInParser(parser, uniprotReleasesFolder, uniprotVersion);
-		return parser;
+	private static void addQuantParserToStaticMap(String fileNamesKey, QuantParser parser) {
+		quantParsersByFileNamesKey.put(fileNamesKey, parser);
+		log.info(quantParsersByFileNamesKey.size() + " parsers stored.");
 	}
 
 	private static DBIndexInterface getFastaDBIndex(File fastaFile, char[] enzymeArray, int missedCleavages) {
@@ -329,19 +364,27 @@ public class PCQUtils {
 			}
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
-
+		String fileNamesKey = getFileNamesKey(xmlFiles);
+		if (quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+			return (CensusChroParser) quantParsersByFileNamesKey.get(fileNamesKey);
+		}
 		CensusChroParser parser = new CensusChroParser(xmlFiles, labelsByConditions, QuantificationLabel.LIGHT,
 				QuantificationLabel.HEAVY);
-		parser.addIonExclusion(IonSerieType.B, 1);
-		parser.addIonExclusion(IonSerieType.Y, 1);
-		parser.setDecoyPattern(decoyRegexp);
-		parser.setDistinguishModifiedPeptides(false);
-		parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
-		final DBIndexInterface mongoDBIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
-				mongoProtDBName);
-		parser.setDbIndex(mongoDBIndex);
-		changeProteinAccessionsByUniprotInParser(parser, uniprotReleasesFolder, uniprotVersion);
-		return parser;
+		try {
+			parser.addIonExclusion(IonSerieType.B, 1);
+			parser.addIonExclusion(IonSerieType.Y, 1);
+			parser.setDecoyPattern(decoyRegexp);
+			parser.setDistinguishModifiedPeptides(false);
+			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
+			final DBIndexInterface mongoDBIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
+					mongoProtDBName);
+			parser.setDbIndex(mongoDBIndex);
+			changeProteinAccessionsByUniprotInParser(parser, uniprotReleasesFolder, uniprotVersion);
+			return parser;
+		} finally {
+			addQuantParserToStaticMap(fileNamesKey, parser);
+
+		}
 	}
 
 	private static void changeProteinAccessionsByUniprotInParser(QuantParser parser, File uniprotReleasesFolder,
@@ -410,19 +453,27 @@ public class PCQUtils {
 			}
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
-
+		String fileNamesKey = getFileNamesKey(xmlFiles);
+		if (quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+			return (CensusOutParser) quantParsersByFileNamesKey.get(fileNamesKey);
+		}
 		CensusOutParser parser = new CensusOutParser(xmlFiles, labelsByConditions, QuantificationLabel.LIGHT,
 				QuantificationLabel.HEAVY);
-		parser.setDecoyPattern(decoyRegexp);
-		parser.setDistinguishModifiedPeptides(false);
-		parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
-		parser.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
-				onlyOneSpectrumPerChromatographicPeakAndPerSaltStep);
-		parser.setSkipSingletons(skipSingletons);
-		DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName, mongoProtDBName);
-		parser.setDbIndex(dbIndex);
-		changeProteinAccessionsByUniprotInParser(parser, uniprotReleasesFolder, uniprotVersion);
-		return parser;
+		try {
+			parser.setDecoyPattern(decoyRegexp);
+			parser.setDistinguishModifiedPeptides(false);
+			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
+			parser.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
+					onlyOneSpectrumPerChromatographicPeakAndPerSaltStep);
+			parser.setSkipSingletons(skipSingletons);
+			DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName, mongoProtDBName);
+			parser.setDbIndex(dbIndex);
+			changeProteinAccessionsByUniprotInParser(parser, uniprotReleasesFolder, uniprotVersion);
+			return parser;
+		} finally {
+			addQuantParserToStaticMap(fileNamesKey, parser);
+
+		}
 	}
 
 	private static SeparatedValuesParser getSeparatedValuesParserUsingMongoDBIndex(String mongoDBURI,
@@ -440,16 +491,23 @@ public class PCQUtils {
 			}
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
-
+		String fileNamesKey = getFileNamesKey(xmlFiles);
+		if (quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+			return (SeparatedValuesParser) quantParsersByFileNamesKey.get(fileNamesKey);
+		}
 		SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, labelsByConditions,
 				QuantificationLabel.LIGHT, QuantificationLabel.HEAVY);
-		parser.setDecoyPattern(decoyRegexp);
-		parser.setDistinguishModifiedPeptides(false);
-		parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
-		DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName, mongoProtDBName);
-		parser.setDbIndex(dbIndex);
-		changeProteinAccessionsByUniprotInParser(parser, uniprotReleasesFolder, uniprotVersion);
-		return parser;
+		try {
+			parser.setDecoyPattern(decoyRegexp);
+			parser.setDistinguishModifiedPeptides(false);
+			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
+			DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName, mongoProtDBName);
+			parser.setDbIndex(dbIndex);
+			changeProteinAccessionsByUniprotInParser(parser, uniprotReleasesFolder, uniprotVersion);
+			return parser;
+		} finally {
+			addQuantParserToStaticMap(fileNamesKey, parser);
+		}
 	}
 
 	private static DBIndexInterface getMongoDBIndex(String mongoDBURI, String mongoMassDBName, String mongoSeqDBName,
@@ -1112,9 +1170,6 @@ public class PCQUtils {
 	public static IonCountRatio getConsensusIonCountRatio(Set<IsobaricQuantifiedPeptide> isobaricQuantifiedPeptides,
 			QuantCondition cond1, QuantCondition cond2) {
 
-		if (isobaricQuantifiedPeptides.isEmpty()) {
-			log.info(isobaricQuantifiedPeptides);
-		}
 		IonCountRatio ratio = new IonCountRatio(AggregationLevel.PEPTIDE);
 		for (IsobaricQuantifiedPeptide isoPeptide : isobaricQuantifiedPeptides) {
 			final int numPSMs = isoPeptide.getQuantifiedPSMs().size();
@@ -1163,7 +1218,7 @@ public class PCQUtils {
 	/**
 	 * Gets the peptides that are unique from protein1 respectivelly to
 	 * protein2.
-	 * 
+	 *
 	 * @param protein1
 	 * @param protein2
 	 * @param uniquePepOnly
@@ -2032,13 +2087,14 @@ public class PCQUtils {
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
 			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList, final String[] inputFileNamesArray)
 			throws FileNotFoundException {
-		log.debug("Creating input file parser");
+		log.debug("Getting input file parser");
 		if (params.getInputType() == AnalysisInputType.CENSUS_CHRO) {
 			if (params.getMongoDBURI() != null) {
-				return PCQUtils.getCensusChroParserUsingMongoDBIndex(params.getMongoDBURI(), params.getMongoMassDBName(),
-						params.getMongoSeqDBName(), params.getMongoProtDBName(), params.getInputFileFolder(),
-						inputFileNamesArray, labelsByConditionsList, params.getUniprotReleasesFolder(),
-						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB());
+				return PCQUtils.getCensusChroParserUsingMongoDBIndex(params.getMongoDBURI(),
+						params.getMongoMassDBName(), params.getMongoSeqDBName(), params.getMongoProtDBName(),
+						params.getInputFileFolder(), inputFileNamesArray, labelsByConditionsList,
+						params.getUniprotReleasesFolder(), params.getUniprotVersion(), params.getDecoyRegexp(),
+						params.isIgnoreNotFoundPeptidesInDB());
 			} else {
 				return PCQUtils.getCensusChroParser(params.getFastaFile(), params.getInputFileFolder(),
 						inputFileNamesArray, labelsByConditionsList, params.getEnzymeArray(),
@@ -2088,7 +2144,7 @@ public class PCQUtils {
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
 			Map<QuantCondition, QuantificationLabel> labelsByConditions, String inputFileName)
 			throws FileNotFoundException {
-		log.debug("Creating input file parser");
+		log.debug("Getting input file parser");
 		List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
 		labelsByConditionsList.add(labelsByConditions);
 		final String[] inputFileNamesArray = new String[1];
