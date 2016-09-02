@@ -1568,8 +1568,6 @@ public class ProteinClusterQuant {
 							numHeavyNonInfinity++;
 							numWrongPeptides++;
 						}
-					} else {
-						log.info(peptideNode.getTaxonomies().size());
 					}
 				}
 				if (containsSignificantPeptideNodes) {
