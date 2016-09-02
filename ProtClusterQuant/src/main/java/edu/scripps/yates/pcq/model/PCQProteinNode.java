@@ -36,21 +36,25 @@ public class PCQProteinNode implements QuantifiedProteinInterface {
 	private String descriptionString;
 	private String taxonomiesString;
 	private HashSet<String> taxonomies;
+	private final ProteinCluster proteinCluster;
 
-	public PCQProteinNode(Collection<QuantifiedProteinInterface> proteinCollection) {
+	public PCQProteinNode(ProteinCluster proteinCluster, Collection<QuantifiedProteinInterface> proteinCollection) {
 		proteinSet.addAll(proteinCollection);
+		this.proteinCluster = proteinCluster;
 	}
 
-	public PCQProteinNode(Collection<QuantifiedProteinInterface> proteinCollection1,
+	public PCQProteinNode(ProteinCluster proteinCluster, Collection<QuantifiedProteinInterface> proteinCollection1,
 			Collection<QuantifiedProteinInterface> proteinCollection2) {
 		proteinSet.addAll(proteinCollection1);
 		proteinSet.addAll(proteinCollection2);
+		this.proteinCluster = proteinCluster;
 	}
 
-	public PCQProteinNode(QuantifiedProteinInterface... proteinCollection) {
+	public PCQProteinNode(ProteinCluster proteinCluster, QuantifiedProteinInterface... proteinCollection) {
 		for (QuantifiedProteinInterface protein : proteinCollection) {
 			proteinSet.add(protein);
 		}
+		this.proteinCluster = proteinCluster;
 	}
 
 	public Set<PCQPeptideNode> getPeptideNodes() {
@@ -329,5 +333,12 @@ public class PCQProteinNode implements QuantifiedProteinInterface {
 	@Override
 	public boolean isDiscarded() {
 		return discarded;
+	}
+
+	/**
+	 * @return the proteinCluster
+	 */
+	public ProteinCluster getProteinCluster() {
+		return proteinCluster;
 	}
 }

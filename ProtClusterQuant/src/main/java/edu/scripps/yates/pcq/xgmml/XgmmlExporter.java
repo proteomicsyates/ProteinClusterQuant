@@ -768,7 +768,8 @@ public class XgmmlExporter {
 		sb.append(peptideNode.getSequence() + "\n" + peptideNode.getQuantifiedPSMs().size() + " PSMs\n" + "Shared by "
 				+ peptideNode.getPCQProteinNodes().size() + " protein Nodes\n" + "Shared by "
 				+ PCQUtils.getIndividualProteinsMap(peptideNode).size() + " proteins\n" + "Detected in "
-				+ peptideNode.getRawFileNames().size() + " different MS runs\n");
+				+ peptideNode.getRawFileNames().size() + " different MS runs\n" + "Detected in "
+				+ peptideNode.getFileNames().size() + " different Replicates\n");
 		final Double confidenceValue = peptideNode.getConfidenceValue();
 		if (confidenceValue != null) {
 			sb.append(WEIGHT + ":\t" + formatNumberMoreDecimals(confidenceValue) + "\n");
@@ -989,6 +990,7 @@ public class XgmmlExporter {
 		attributes.put("numProteins", new AttributeValueType(numIndividualProteins));
 		attributes.put("numPsms", new AttributeValueType(peptideNode.getQuantifiedPSMs().size()));
 		attributes.put("numMSRuns", new AttributeValueType(peptideNode.getRawFileNames().size()));
+		attributes.put("numReplicates", new AttributeValueType(peptideNode.getFileNames().size()));
 		attributes.put("numPeptideSequences", new AttributeValueType(peptideNode.getIndividualPeptides().size()));
 		attributes.put("numConnectedProteinNodes", new AttributeValueType(peptideNode.getPCQProteinNodes().size()));
 		attributes.put("ionCount", new AttributeValueType(PCQUtils.getIonCount(peptideNode)));

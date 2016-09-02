@@ -40,23 +40,19 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 
 	private boolean discarded;
 
-	public PCQPeptideNode(Collection<QuantifiedPeptideInterface> peptideCollection) {
-		peptideSet.addAll(peptideCollection);
-		for (QuantifiedPeptideInterface quantifiedPeptideInterface : peptideCollection) {
+	private final ProteinCluster proteinCluster;
 
-			if (quantifiedPeptideInterface.getSequence().equals("AALCAVHVIR")) {
-				log.info(quantifiedPeptideInterface);
-			}
-		}
+	public PCQPeptideNode(ProteinCluster proteinCluster, Collection<QuantifiedPeptideInterface> peptideCollection) {
+		peptideSet.addAll(peptideCollection);
+		this.proteinCluster = proteinCluster;
+
 	}
 
-	public PCQPeptideNode(QuantifiedPeptideInterface... peptides) {
+	public PCQPeptideNode(ProteinCluster proteinCluster, QuantifiedPeptideInterface... peptides) {
 		for (QuantifiedPeptideInterface peptide : peptides) {
-			if (peptide.getSequence().equals("AALCAVHVIR")) {
-				log.info(peptide);
-			}
 			peptideSet.add(peptide);
 		}
+		this.proteinCluster = proteinCluster;
 	}
 
 	public Set<PCQProteinNode> getPCQProteinNodes() {
@@ -326,6 +322,10 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 	@Override
 	public boolean isDiscarded() {
 		return discarded;
+	}
+
+	public ProteinCluster getCluster() {
+		return proteinCluster;
 	}
 
 }

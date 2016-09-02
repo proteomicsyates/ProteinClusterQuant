@@ -53,6 +53,7 @@ import edu.scripps.yates.pcq.compare.PCQCompare;
 import edu.scripps.yates.pcq.filter.PCQFilter;
 import edu.scripps.yates.pcq.filter.PCQFilterByIonCount;
 import edu.scripps.yates.pcq.filter.PCQFilterByPSMCount;
+import edu.scripps.yates.pcq.model.IonCountRatio;
 import edu.scripps.yates.pcq.model.PCQPeptideNode;
 import edu.scripps.yates.pcq.model.PCQProteinNode;
 import edu.scripps.yates.pcq.model.ProteinCluster;
@@ -272,9 +273,10 @@ public class ProteinClusterQuant {
 			classiffyAndPrintStatistics(clusterSet);
 
 			// print integration file
-			if (ratioStatsByPeptideNodeKey != null) {
-				printIntegrationFinalFile(clusterSet, ratioStatsByPeptideNodeKey);
-			}
+			// also print it when there is no ratioStats
+			// if (ratioStatsByPeptideNodeKey != null) {
+			printIntegrationFinalFile(clusterSet, ratioStatsByPeptideNodeKey);
+			// }
 
 			// print PSEA QUANT files
 			printPSEAQuantFiles(clusterSet);
@@ -304,15 +306,18 @@ public class ProteinClusterQuant {
 	 *
 	 * @param clusterSet
 	 * @param ratioStatsByPeptideNodeKey
+	 *            a map containing {@link SanxotQuantResult} by each
+	 *            peptideNodeKey. Note that it can be null, and therefore the
+	 *            output table will not have the FDR column
 	 */
 	private void printIntegrationFinalFile(Set<ProteinCluster> clusterSet,
 			Map<String, SanxotQuantResult> ratioStatsByPeptideNodeKey) {
 
-		Map<String, ProteinCluster> proteinClustersByNodeID = new HashMap<String, ProteinCluster>();
+		Map<String, PCQPeptideNode> peptideNodesByNodeID = new HashMap<String, PCQPeptideNode>();
 		for (ProteinCluster cluster : clusterSet) {
 			final Set<String> peptideNodeKeys = cluster.getPeptideNodeKeys();
 			for (String peptideNodeID : peptideNodeKeys) {
-				proteinClustersByNodeID.put(peptideNodeID, cluster);
+				peptideNodesByNodeID.put(peptideNodeID, cluster.getPeptideNodeByKey(peptideNodeID));
 			}
 		}
 
@@ -330,15 +335,21 @@ public class ProteinClusterQuant {
 
 			outputIntegrationFinalFile.write(getPeptideNodeHeaderLine() + "\n");
 			// sort peptide Nodes by FDR
-			List<String> peptideNodeIDsSortedByFDR = getPeptideNodeIDsSortedByFDR(ratioStatsByPeptideNodeKey,
-					proteinClustersByNodeID.keySet());
-			for (String peptideNodeID : peptideNodeIDsSortedByFDR) {
-				ProteinCluster cluster = proteinClustersByNodeID.get(peptideNodeID);
-				final String geneNameString = PCQUtils.getGeneNameString(annotatedProteins, cluster, null,
-						params.isPrintOnlyFirstGene());
+			List<PCQPeptideNode> peptideNodeIDsSortedByFDR = getPeptideNodesSortedByFDROrConsensusRatio(
+					peptideNodesByNodeID, ratioStatsByPeptideNodeKey, peptideNodesByNodeID.keySet());
+			for (PCQPeptideNode peptideNode : peptideNodeIDsSortedByFDR) {
+				final String geneNameString = PCQUtils.getGeneNameString(annotatedProteins, peptideNode.getCluster(),
+						null, params.isPrintOnlyFirstGene());
 
-				String peptideNodeLine = getPeptideNodeLine(peptideNodeID, cluster, geneNameString,
-						ratioStatsByPeptideNodeKey.get(peptideNodeID));
+				final String speciesString = PCQUtils.getSpeciesString(annotatedProteins,
+						peptideNode.getPCQProteinNodes(), null);
+				SanxotQuantResult sanxotQuantResult = null;
+				if (ratioStatsByPeptideNodeKey != null) {
+					sanxotQuantResult = ratioStatsByPeptideNodeKey.get(peptideNode.getKey());
+				}
+
+				String peptideNodeLine = getPeptideNodeLine(peptideNode, geneNameString, speciesString,
+						sanxotQuantResult);
 
 				outputIntegrationFinalFile.write(peptideNodeLine + "\n");
 				outputIntegrationFinalFile.flush();
@@ -346,7 +357,9 @@ public class ProteinClusterQuant {
 
 			log.info("FDR file writen");
 
-		} catch (IOException e) {
+		} catch (
+
+		IOException e) {
 			log.error(e.getMessage());
 		} finally {
 			try {
@@ -370,6 +383,9 @@ public class ProteinClusterQuant {
 		// geneNameString
 		sb.append("genes");
 		sb.append(sep);
+		// species
+		sb.append("species");
+		sb.append(sep);
 		// unique node
 		sb.append("uniquePeptideNode");
 		sb.append(sep);
@@ -379,8 +395,17 @@ public class ProteinClusterQuant {
 		// num psms
 		sb.append("numPSMs");
 		sb.append(sep);
+		// num ms runs
+		sb.append("numRUNs");
+		sb.append(sep);
+		// num replicates
+		sb.append("numReplicates");
+		sb.append(sep);
 		// log2 ratio
 		sb.append("log2Ratio");
+		sb.append(sep);
+		// ratio
+		sb.append("ratio");
 		sb.append(sep);
 		// zRatio
 		sb.append("normZRatio");
@@ -394,29 +419,27 @@ public class ProteinClusterQuant {
 		// variance
 		sb.append("variance");
 		sb.append(sep);
-
+		// isIonCountRatio
+		sb.append("isIonCountRatio");
+		sb.append(sep);
 		return sb.toString();
 	}
 
-	private String getPeptideNodeLine(String peptideNodeID, ProteinCluster cluster, String geneNameString,
+	private String getPeptideNodeLine(PCQPeptideNode peptideNode, String geneNameString, String speciesString,
 			SanxotQuantResult sanxotQuantResult) {
 		StringBuilder sb = new StringBuilder();
 
-		PCQPeptideNode peptideNode = null;
-		final Set<PCQPeptideNode> peptideNodes = cluster.getPeptideNodes();
-		for (PCQPeptideNode pcqPeptideNode : peptideNodes) {
-			if (pcqPeptideNode.getKey().equals(peptideNodeID)) {
-				peptideNode = pcqPeptideNode;
-			}
-		}
 		// peptide Node ID
-		sb.append(peptideNodeID);
+		sb.append(peptideNode.getKey());
 		sb.append(sep);
 		// protein cluster ID
-		sb.append(cluster.getClusterID());
+		sb.append(peptideNode.getCluster().getClusterID());
 		sb.append(sep);
 		// geneNameString
 		sb.append(geneNameString);
+		sb.append(sep);
+		// species
+		sb.append(speciesString);
 		sb.append(sep);
 		// unique node
 		sb.append(peptideNode.getPCQProteinNodes().size() == 1);
@@ -427,9 +450,24 @@ public class ProteinClusterQuant {
 		// num psms
 		sb.append(peptideNode.getQuantifiedPSMs().size());
 		sb.append(sep);
+		// num MSRuns
+		sb.append(peptideNode.getRawFileNames().size());
+		sb.append(sep);
+		// num Replicates
+		sb.append(peptideNode.getFileNames().size());
+		sb.append(sep);
 		// log2 ratio
 		if (sanxotQuantResult != null) {
-			sb.append(sanxotQuantResult.getLog2ratio());
+			sb.append(scapeRatio(sanxotQuantResult.getLog2ratio()));
+		} else {
+			sb.append(scapeRatio(peptideNode.getConsensusRatio(cond1, cond2).getLog2Ratio(cond1, cond2)));
+		}
+		sb.append(sep);
+		// ratio
+		if (sanxotQuantResult != null) {
+			sb.append(scapeRatio(sanxotQuantResult.getNonLog2ratio()));
+		} else {
+			sb.append(scapeRatio(peptideNode.getConsensusRatio(cond1, cond2).getNonLogRatio(cond1, cond2)));
 		}
 		sb.append(sep);
 		// zRatio
@@ -452,29 +490,72 @@ public class ProteinClusterQuant {
 			sb.append(1 / sanxotQuantResult.getWeight());
 		}
 		sb.append(sep);
+		// ions count ratio
+		if (sanxotQuantResult != null) {
+			sb.append(false);
+		} else {
+			sb.append(peptideNode.getConsensusRatio(cond1, cond2) instanceof IonCountRatio);
+		}
+
+		sb.append(sep);
 		return sb.toString();
 	}
 
-	private List<String> getPeptideNodeIDsSortedByFDR(final Map<String, SanxotQuantResult> ratioStatsByPeptideNodeKey,
-			Set<String> peptideNodeIDs) {
-		List<String> ret = new ArrayList<String>();
-		ret.addAll(peptideNodeIDs);
-		Collections.sort(ret, new Comparator<String>() {
+	private String scapeRatio(double log2ratio) {
+		if (Double.isInfinite(log2ratio)) {
+			return "'" + String.valueOf(log2ratio);
+		} else {
+			return String.valueOf(log2ratio);
+		}
+	}
+
+	/**
+	 * Returns the list of peptide node ids sorted by FDR values. If the Map is
+	 * null, it will not be sorted
+	 *
+	 * @param peptideNodesByNodeID
+	 *
+	 * @param ratioStatsByPeptideNodeKey
+	 * @param peptideNodeIDs
+	 * @return
+	 */
+	private List<PCQPeptideNode> getPeptideNodesSortedByFDROrConsensusRatio(
+			Map<String, PCQPeptideNode> peptideNodesByNodeID,
+			final Map<String, SanxotQuantResult> ratioStatsByPeptideNodeKey, Set<String> peptideNodeIDs) {
+		List<PCQPeptideNode> ret = new ArrayList<PCQPeptideNode>();
+		ret.addAll(peptideNodesByNodeID.values());
+
+		Collections.sort(ret, new Comparator<PCQPeptideNode>() {
 
 			@Override
-			public int compare(String peptideNodeID1, String peptideNodeID2) {
-				double fdr1 = 1;
-				double fdr2 = 1;
-				if (ratioStatsByPeptideNodeKey.containsKey(peptideNodeID1)) {
-					fdr1 = ratioStatsByPeptideNodeKey.get(peptideNodeID1).getFdr();
+			public int compare(PCQPeptideNode peptideNode1, PCQPeptideNode peptideNode2) {
+				if (ratioStatsByPeptideNodeKey != null) {
+					double fdr1 = 1;
+					double fdr2 = 1;
+					if (ratioStatsByPeptideNodeKey.containsKey(peptideNode1.getKey())) {
+						fdr1 = ratioStatsByPeptideNodeKey.get(peptideNode1.getKey()).getFdr();
+					}
+					if (ratioStatsByPeptideNodeKey.containsKey(peptideNode2.getKey())) {
+						fdr2 = ratioStatsByPeptideNodeKey.get(peptideNode2.getKey()).getFdr();
+					}
+					return Double.compare(fdr1, fdr2);
+				} else {
+					double ratio1 = 1;
+					double ratio2 = 1;
+					final Double ratio1Value = peptideNode1.getConsensusRatio(cond1, cond2).getLog2Ratio(cond1, cond2);
+					if (ratio1Value != null) {
+						ratio1 = ratio1Value;
+					}
+					final Double ratio2Value = peptideNode2.getConsensusRatio(cond1, cond2).getLog2Ratio(cond1, cond2);
+					if (ratio2Value != null) {
+						ratio2 = ratio2Value;
+					}
+					return Double.compare(ratio1, ratio2);
 				}
-				if (ratioStatsByPeptideNodeKey.containsKey(peptideNodeID2)) {
-					fdr2 = ratioStatsByPeptideNodeKey.get(peptideNodeID2).getFdr();
-				}
-				return Double.compare(fdr1, fdr2);
 			}
 
 		});
+
 		return ret;
 	}
 

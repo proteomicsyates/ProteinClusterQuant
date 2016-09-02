@@ -114,7 +114,7 @@ public class ProteinCluster {
 							peptideNode2 = peptideNodesByPeptideSequence.get(peptide2.getSequence());
 						}
 						if (peptideNode == null && peptideNode2 == null) {
-							peptideNode = new PCQPeptideNode(peptide1, peptide2);
+							peptideNode = new PCQPeptideNode(this, peptide1, peptide2);
 						} else {
 							if (peptideNode != null && peptideNode2 != null) {
 								// remove both nodes from set
@@ -142,7 +142,7 @@ public class ProteinCluster {
 						if (peptideNodesByPeptideSequence.containsKey(peptide1.getSequence())) {
 							peptideNode = peptideNodesByPeptideSequence.get(peptide1.getSequence());
 						} else {
-							peptideNode = new PCQPeptideNode(peptide1);
+							peptideNode = new PCQPeptideNode(this, peptide1);
 						}
 						peptideNodes.add(peptideNode);
 						peptideNodesByPeptideSequence.put(peptide1.getSequence(), peptideNode);
@@ -152,7 +152,7 @@ public class ProteinCluster {
 						if (peptideNodesByPeptideSequence.containsKey(peptide2.getSequence())) {
 							peptideNode2 = peptideNodesByPeptideSequence.get(peptide2.getSequence());
 						} else {
-							peptideNode2 = new PCQPeptideNode(peptide2);
+							peptideNode2 = new PCQPeptideNode(this, peptide2);
 						}
 						peptideNodes.add(peptideNode2);
 						peptideNodesByPeptideSequence.put(peptide2.getSequence(), peptideNode2);
@@ -163,7 +163,7 @@ public class ProteinCluster {
 			// only one peptide
 			// create a peptide node for the peptide
 			QuantifiedPeptideInterface peptide = peptides.iterator().next();
-			PCQPeptideNode peptideNode = new PCQPeptideNode(peptide);
+			PCQPeptideNode peptideNode = new PCQPeptideNode(this, peptide);
 			peptideNodes.add(peptideNode);
 			peptideNodesByPeptideSequence.put(peptide.getSequence(), peptideNode);
 		}
@@ -207,7 +207,7 @@ public class ProteinCluster {
 						if (proteinNode == null && proteinNode2 == null) {
 							// if non of the proteins are in any protein node
 							// yet, create a new one
-							proteinNode = new PCQProteinNode(proteins1, proteins2);
+							proteinNode = new PCQProteinNode(this, proteins1, proteins2);
 						} else {
 							// some of the proteins is assigned to some protein
 							// node already
@@ -241,6 +241,7 @@ public class ProteinCluster {
 						// add the two proteins to the protein node
 						proteinNode.addProteins(proteins1);
 						proteinNode.addProteins(proteins2);
+
 						// add to the set of nodes
 						proteinNodes.add(proteinNode);
 						// add to the map
@@ -254,7 +255,7 @@ public class ProteinCluster {
 						if (proteinNodesByProteinAcc.containsKey(acc1)) {
 							proteinNode = proteinNodesByProteinAcc.get(acc1);
 						} else {
-							proteinNode = new PCQProteinNode(proteins1);
+							proteinNode = new PCQProteinNode(this, proteins1);
 						}
 						proteinNodes.add(proteinNode);
 						proteinNodesByProteinAcc.put(acc1, proteinNode);
@@ -264,10 +265,11 @@ public class ProteinCluster {
 						if (proteinNodesByProteinAcc.containsKey(acc2)) {
 							proteinNode2 = proteinNodesByProteinAcc.get(acc2);
 						} else {
-							proteinNode2 = new PCQProteinNode(proteins2);
+							proteinNode2 = new PCQProteinNode(this, proteins2);
 						}
 						proteinNodes.add(proteinNode2);
 						proteinNodesByProteinAcc.put(acc2, proteinNode2);
+
 					}
 				}
 			}
@@ -276,9 +278,10 @@ public class ProteinCluster {
 			// create a protein node for the protein
 			// protein node for protein1
 			final Collection<QuantifiedProteinInterface> proteins = proteinMap.values().iterator().next();
-			PCQProteinNode proteinNode = new PCQProteinNode(proteins);
+			PCQProteinNode proteinNode = new PCQProteinNode(this, proteins);
 			proteinNodes.add(proteinNode);
 			proteinNodesByProteinAcc.put(proteinMap.keySet().iterator().next(), proteinNode);
+
 		}
 		// log.debug(proteinNodes.size() + " protein nodes created in cluster");
 		// for (PCQProteinNode proteinNode : proteinNodes) {
@@ -711,5 +714,16 @@ public class ProteinCluster {
 	 */
 	public int getClusterID() {
 		return clusterID;
+	}
+
+	public PCQPeptideNode getPeptideNodeByKey(String peptideNodeID) {
+
+		for (PCQPeptideNode peptideNode : peptideNodes) {
+			if (peptideNode.getKey().equals(peptideNodeID)) {
+				return peptideNode;
+			}
+		}
+
+		return null;
 	}
 }

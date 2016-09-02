@@ -1759,6 +1759,63 @@ public class PCQUtils {
 		return map;
 	}
 
+	public static String getSpeciesString(Map<String, Entry> annotatedProteins, Set<PCQProteinNode> proteinNodeSet,
+			Set<String> validTaxonomies) {
+
+		Set<String> set = new HashSet<String>();
+		for (PCQProteinNode proteinNode : proteinNodeSet) {
+			String rawAcc = proteinNode.getAccession();
+			List<String> accs = new ArrayList<String>();
+			if (rawAcc.contains(" ")) {
+				final String[] split = rawAcc.split(" ");
+				for (String string : split) {
+					accs.add(string);
+				}
+			} else {
+				accs.add(rawAcc);
+			}
+
+			// int index = 0;
+			for (String acc : accs) {
+				if (annotatedProteins != null && annotatedProteins.containsKey(acc)) {
+					String taxon = getTaxonomy(acc, annotatedProteins.get(acc).getOrganism());
+					if (taxon != null) {
+						boolean valid = false;
+						if (validTaxonomies != null && !validTaxonomies.isEmpty()) {
+							for (String skipTaxonomy : validTaxonomies) {
+								if (taxon.contains(skipTaxonomy)) {
+									valid = true;
+								}
+							}
+						} else {
+							valid = true;
+						}
+						if (!valid) {
+							continue;
+						}
+						set.add(taxon);
+					}
+
+				} else {
+					// log.warn(acc + " not annotated");
+				}
+			}
+		}
+		List<String> list = new ArrayList<String>();
+		list.addAll(set);
+		Collections.sort(list);
+
+		StringBuilder sb = new StringBuilder();
+
+		for (String string : list) {
+			if (!"".equals(sb.toString()))
+				sb.append(",");
+			sb.append(string);
+		}
+
+		return sb.toString();
+	}
+
 	public static String getGeneNameString(Map<String, Entry> annotatedProteins,
 			Map<String, QuantifiedProteinInterface> proteinSet, Set<String> validTaxonomies, boolean onlyFirst) {
 
@@ -2062,7 +2119,7 @@ public class PCQUtils {
 		Set<QuantifiedPeptideInterface> peptideCollection = new HashSet<QuantifiedPeptideInterface>();
 		peptideCollection.addAll(peptideNode.getQuantifiedPeptides());
 		peptideCollection.addAll(peptideNode2.getQuantifiedPeptides());
-		PCQPeptideNode ret = new PCQPeptideNode(peptideCollection);
+		PCQPeptideNode ret = new PCQPeptideNode(peptideNode.getCluster(), peptideCollection);
 		return ret;
 	}
 
