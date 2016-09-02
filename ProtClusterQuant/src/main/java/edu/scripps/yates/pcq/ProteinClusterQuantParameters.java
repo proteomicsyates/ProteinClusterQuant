@@ -25,7 +25,7 @@ public class ProteinClusterQuantParameters {
 	private boolean printOnlyFirstGene;
 	private boolean ionsPerPeptideNodeThresholdOn;
 	private int ionsPerPeptideNodeThreshold;
-	private boolean psmsPerPeptideThresholdOn;
+	private boolean psmsPerPeptideNodeThresholdOn;
 	private int psmsPerPeptideThreshold;
 	private double iglewiczHoaglinTestThreshold;
 	private boolean collapseIndistinguishableProteins;
@@ -720,7 +720,7 @@ public class ProteinClusterQuantParameters {
 				+ ", labelSwap=" + labelSwap + ", thresholdForSignificance=" + thresholdForSignificance
 				+ ", printOnlyFirstGene=" + printOnlyFirstGene + ", ionsPerPeptideNodeThresholdOn="
 				+ ionsPerPeptideNodeThresholdOn + ", ionsPerPeptideThreshold=" + ionsPerPeptideNodeThreshold
-				+ ", psmsPerPeptideThresholdOn=" + psmsPerPeptideThresholdOn + ", psmsPerPeptideThreshold="
+				+ ", psmsPerPeptideThresholdOn=" + psmsPerPeptideNodeThresholdOn + ", psmsPerPeptideThreshold="
 				+ psmsPerPeptideThreshold + ", iglewiczHoaglinTestThreshold=" + iglewiczHoaglinTestThreshold
 				+ ", collapseIndistinguishableProteins=" + collapseIndistinguishableProteins
 				+ ", collapseIndistinguishablePeptides=" + collapseIndistinguishablePeptides + ", makeAlignments="
@@ -779,7 +779,7 @@ public class ProteinClusterQuantParameters {
 			if (isIonsPerPeptideNodeThresholdOn()) {
 				filters.add(new PCQFilterByIonCount(getIonsPerPeptideNodeThreshold()));
 			}
-			if (isPsmsPerPeptideThresholdOn()) {
+			if (isPsmsPerPeptideNodeThresholdOn()) {
 				filters.add(new PCQFilterByPSMCount(getPsmsPerPeptideThreshold()));
 			}
 			// TODO add more filters when available
@@ -798,16 +798,16 @@ public class ProteinClusterQuantParameters {
 	/**
 	 * @return the psmsPerPeptideThresholdOn
 	 */
-	public boolean isPsmsPerPeptideThresholdOn() {
-		return psmsPerPeptideThresholdOn;
+	public boolean isPsmsPerPeptideNodeThresholdOn() {
+		return psmsPerPeptideNodeThresholdOn;
 	}
 
 	/**
-	 * @param psmsPerPeptideThresholdOn
+	 * @param psmsPerPeptideNodeThresholdOn
 	 *            the psmsPerPeptideThresholdOn to set
 	 */
-	public void setPsmsPerPeptideThresholdOn(boolean psmsPerPeptideThresholdOn) {
-		this.psmsPerPeptideThresholdOn = psmsPerPeptideThresholdOn;
+	public void setPsmsPerPeptideNodeThresholdOn(boolean psmsPerPeptideNodeThresholdOn) {
+		this.psmsPerPeptideNodeThresholdOn = psmsPerPeptideNodeThresholdOn;
 	}
 
 	/**

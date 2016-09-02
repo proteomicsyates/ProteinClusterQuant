@@ -14,6 +14,8 @@ import edu.scripps.yates.pcq.model.ProteinCluster;
 
 public abstract class PCQFilter {
 	protected final static Logger log = Logger.getLogger(PCQFilter.class);
+	private static Set<PCQPeptideNode> staticDiscardedPeptideNodes = new HashSet<PCQPeptideNode>();
+	private static Set<PCQProteinNode> staticDiscardedProteinNodes = new HashSet<PCQProteinNode>();
 
 	public void filter(ProteinCluster cluster) {
 		final Iterator<PCQProteinNode> proteinNodesIterator = cluster.getProteinNodes().iterator();
@@ -26,6 +28,7 @@ public abstract class PCQFilter {
 			if (!valid) {
 				proteinNodesIterator.remove();
 				discardedProteinNodes.add(pcqProteinNode);
+				staticDiscardedProteinNodes.add(pcqProteinNode);
 			}
 		}
 		for (PCQProteinNode pcqProteinNode : discardedProteinNodes) {
@@ -53,6 +56,7 @@ public abstract class PCQFilter {
 			if (!valid) {
 				peptideNodesIterator.remove();
 				discardedPeptideNodes.add(pcqPeptideNode);
+				staticDiscardedPeptideNodes.add(pcqPeptideNode);
 			}
 		}
 		// if (cluster.getPeptideNodes().size() != originalSize2) {
@@ -89,4 +93,11 @@ public abstract class PCQFilter {
 	 */
 	protected abstract boolean filter(PCQPeptideNode peptideNode);
 
+	public static Set<PCQPeptideNode> getDiscardedPeptideNodes() {
+		return staticDiscardedPeptideNodes;
+	}
+
+	public static Set<PCQProteinNode> getDiscardedProteinNodes() {
+		return staticDiscardedProteinNodes;
+	}
 }

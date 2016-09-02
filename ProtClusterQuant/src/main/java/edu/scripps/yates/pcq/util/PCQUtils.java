@@ -559,9 +559,11 @@ public class PCQUtils {
 		mergedProtein.setDescription(PCQUtils.getDescriptionString(proteins, true));
 		List<String> taxonomies = new ArrayList<String>();
 		for (QuantifiedProteinInterface quantifiedProtein : proteins) {
-			final String taxonomy = quantifiedProtein.getTaxonomy();
-			if (taxonomy != null && !taxonomies.contains(taxonomy)) {
-				taxonomies.add(taxonomy);
+			final Set<String> set = quantifiedProtein.getTaxonomies();
+			for (String taxonomy : set) {
+				if (taxonomy != null && !taxonomies.contains(taxonomy)) {
+					taxonomies.add(taxonomy);
+				}
 			}
 			// add peptides to new protein and
 			// remove old protein from peptides
@@ -1958,28 +1960,18 @@ public class PCQUtils {
 		return ret;
 	}
 
-	public static String getTaxonomiesString(Set<QuantifiedProteinInterface> proteinSet) {
-		List<String> taxonomies = getSortedTaxonomies(proteinSet);
-		StringBuilder sb = new StringBuilder();
-		for (String taxonomy : taxonomies) {
-			if (!"".equals(sb.toString())) {
-				sb.append(",");
-			}
-			sb.append(taxonomy);
-		}
-		return sb.toString();
-	}
-
-	private static List<String> getSortedTaxonomies(Set<QuantifiedProteinInterface> proteinSet) {
-		List<String> taxonomies = new ArrayList<String>();
+	public static List<String> getSortedTaxonomies(Set<QuantifiedProteinInterface> proteinSet) {
+		List<String> ret = new ArrayList<String>();
 		for (QuantifiedProteinInterface protein : proteinSet) {
-			final String taxonomy = protein.getTaxonomy();
-			if (!taxonomies.contains(taxonomy)) {
-				taxonomies.add(taxonomy);
+			final Set<String> taxonomies = protein.getTaxonomies();
+			for (String taxonomy : taxonomies) {
+				if (!ret.contains(taxonomy)) {
+					ret.add(taxonomy);
+				}
 			}
 		}
-		Collections.sort(taxonomies);
-		return taxonomies;
+		Collections.sort(ret);
+		return ret;
 	}
 
 	public static boolean psmsShareAllProteins(QuantifiedPSMInterface psm1, QuantifiedPSMInterface psm2) {

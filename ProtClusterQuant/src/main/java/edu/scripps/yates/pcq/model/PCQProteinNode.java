@@ -35,6 +35,7 @@ public class PCQProteinNode implements QuantifiedProteinInterface {
 	private String accessionString;
 	private String descriptionString;
 	private String taxonomiesString;
+	private HashSet<String> taxonomies;
 
 	public PCQProteinNode(Collection<QuantifiedProteinInterface> proteinCollection) {
 		proteinSet.addAll(proteinCollection);
@@ -161,11 +162,13 @@ public class PCQProteinNode implements QuantifiedProteinInterface {
 	}
 
 	@Override
-	public String getTaxonomy() {
-		if (taxonomiesString == null) {
-			taxonomiesString = PCQUtils.getTaxonomiesString(proteinSet);
+	public Set<String> getTaxonomies() {
+		if (taxonomies == null) {
+			taxonomies = new HashSet<String>();
+			taxonomies.addAll(PCQUtils.getSortedTaxonomies(proteinSet));
+
 		}
-		return taxonomiesString;
+		return taxonomies;
 	}
 
 	@Override

@@ -36,7 +36,6 @@ public class ProteinCluster {
 	private final HashMap<String, PCQProteinNode> proteinNodesByProteinAcc = new HashMap<String, PCQProteinNode>();
 	private final HashMap<String, PCQPeptideNode> peptideNodesByPeptideSequence = new HashMap<String, PCQPeptideNode>();
 
-	public static int discardedPeptides = 0;
 	private final int clusterID;
 
 	public ProteinCluster() {

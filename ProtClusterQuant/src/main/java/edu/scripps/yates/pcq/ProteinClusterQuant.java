@@ -51,6 +51,8 @@ import edu.scripps.yates.pcq.cases.Classification2Case;
 import edu.scripps.yates.pcq.compare.ComparisonInput;
 import edu.scripps.yates.pcq.compare.PCQCompare;
 import edu.scripps.yates.pcq.filter.PCQFilter;
+import edu.scripps.yates.pcq.filter.PCQFilterByIonCount;
+import edu.scripps.yates.pcq.filter.PCQFilterByPSMCount;
 import edu.scripps.yates.pcq.model.PCQPeptideNode;
 import edu.scripps.yates.pcq.model.PCQProteinNode;
 import edu.scripps.yates.pcq.model.ProteinCluster;
@@ -1338,12 +1340,15 @@ public class ProteinClusterQuant {
 		}
 
 		int numWrongPeptides = 0;
-		int lightPosInfinity = 0;
-		int lightNegativeInfinity = 0;
-		int heavyPositiveInfinity = 0;
-		int heavyNegativeInfinity = 0;
-		int peptidesSharedbyBothSpecies = 0;
-		int peptidesSharedbyBothSpeciesAndInfinityRatio = 0;
+		int numLightPosInfinity = 0;
+		int numLightNegativeInfinity = 0;
+		int numLightNonInfinity = 0;
+		int numHeavyPositiveInfinity = 0;
+		int numHeavyNegativeInfinity = 0;
+		int numHeavyNonInfinity = 0;
+
+		int numPeptidesSharedbyBothSpeciesNonInfinity = 0;
+		int numPeptidesSharedbyBothSpeciesAndInfinityRatio = 0;
 
 		int numProteinPairs = 0;
 		int numProt = 0;
@@ -1354,7 +1359,12 @@ public class ProteinClusterQuant {
 		int numClustWithMoreThanOneProteinNode = 0;
 		int numSignificantPeptideNodes = 0;
 		int numSignificantClusters = 0;
+		int numNanPepNodes = 0;
 
+		int numPeptideNodesWithNoTax = 0;
+		int numPeptideNodesWithOneTax = 0;
+		int numPeptideNodesWithTwoTax = 0;
+		int numPeptideNodesWithMoreTax = 0;
 		// List<ProteinPairPValue> ranking = new ArrayList<ProteinPairPValue>();
 		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 		try {
@@ -1395,13 +1405,13 @@ public class ProteinClusterQuant {
 				numProt += cluster.getNumIndividualProteins();
 				numPep += cluster.getPeptideSet().size();
 				numPepNodes += cluster.getPeptideNodeKeys().size();
-
 				for (PCQPeptideNode peptideNode : peptideNodeSet) {
 
 					final QuantRatio peptideNodeConsensusRatio = peptideNode.getConsensusRatio(cond1, cond2);
 					Double ratioValue = PCQUtils.getRatioValue(peptideNodeConsensusRatio, cond1, cond2);
 
 					if (Double.isNaN(ratioValue)) {
+						numNanPepNodes++;
 						continue;
 					}
 
@@ -1434,35 +1444,51 @@ public class ProteinClusterQuant {
 							}
 						}
 					}
-
+					if (peptideNode.getTaxonomies().size() == 0) {
+						numPeptideNodesWithNoTax++;
+					} else if (peptideNode.getTaxonomies().size() == 1) {
+						numPeptideNodesWithOneTax++;
+					} else if (peptideNode.getTaxonomies().size() == 2) {
+						numPeptideNodesWithTwoTax++;
+					} else if (peptideNode.getTaxonomies().size() > 2) {
+						numPeptideNodesWithMoreTax++;
+					} else {
+						throw new IllegalArgumentException("WRONG");
+					}
 					// see if Dm has neg or pos infinity associated
 					if (peptideNode.getTaxonomies().contains(params.getLightSpecies())
 							&& peptideNode.getTaxonomies().contains(params.getHeavySpecies())) {
-						peptidesSharedbyBothSpecies++;
+						// LIGHT AND HEAVY
 						if (Double.isInfinite(ratioValue)) {
-							peptidesSharedbyBothSpeciesAndInfinityRatio++;
+							numPeptidesSharedbyBothSpeciesAndInfinityRatio++;
+						} else {
+							numPeptidesSharedbyBothSpeciesNonInfinity++;
 						}
+
 					} else if (peptideNode.getTaxonomies().contains(params.getLightSpecies())) {
-
+						// ONLY LIGHT
 						if (Double.compare(Double.POSITIVE_INFINITY, ratioValue) == 0) {
-							lightPosInfinity++;
-						}
-						if (Double.compare(Double.NEGATIVE_INFINITY, ratioValue) == 0) {
-							lightNegativeInfinity++;
+							numLightPosInfinity++;
+						} else if (Double.compare(Double.NEGATIVE_INFINITY, ratioValue) == 0) {
+							numLightNegativeInfinity++;
+							numWrongPeptides++;
+						} else {
+							numLightNonInfinity++;
 							numWrongPeptides++;
 						}
-
-					}
-
-					// see if Dv has neg or pos infinity assocaited
-					if (peptideNode.getTaxonomies().contains(params.getHeavySpecies())) {
+					} else if (peptideNode.getTaxonomies().contains(params.getHeavySpecies())) {
+						// ONLY HEAVY
 						if (Double.compare(Double.POSITIVE_INFINITY, ratioValue) == 0) {
-							heavyPositiveInfinity++;
+							numHeavyPositiveInfinity++;
+							numWrongPeptides++;
+						} else if (Double.compare(Double.NEGATIVE_INFINITY, ratioValue) == 0) {
+							numHeavyNegativeInfinity++;
+						} else {
+							numHeavyNonInfinity++;
 							numWrongPeptides++;
 						}
-						if (Double.compare(Double.NEGATIVE_INFINITY, ratioValue) == 0) {
-							heavyNegativeInfinity++;
-						}
+					} else {
+						log.info(peptideNode.getTaxonomies().size());
 					}
 				}
 				if (containsSignificantPeptideNodes) {
@@ -1550,28 +1576,42 @@ public class ProteinClusterQuant {
 			stats.append("\n");
 
 			if (params.isIonsPerPeptideNodeThresholdOn()) {
-				stats.append("Peptides discarded due to minimum number of ions ("
-						+ params.getIonsPerPeptideNodeThreshold() + "):\t" + ProteinCluster.discardedPeptides + "\n\n");
+				stats.append("Peptide nodes discarded due to minimum number of ions ("
+						+ params.getIonsPerPeptideNodeThreshold() + "):\t"
+						+ PCQFilterByIonCount.getDiscardedPeptideNodes().size() + "\n");
 			} else {
-				stats.append("No peptides discarded due to minimum number of ions. Filter was disabled\n\n");
+				stats.append("No peptide nodes discarded due to minimum number of ions. Filter was disabled.\n");
+			}
+			if (params.isPsmsPerPeptideNodeThresholdOn()) {
+				stats.append(
+						"Peptide nodes discarded due to minimum number of PSMs )" + params.getPsmsPerPeptideThreshold()
+								+ "):\t" + PCQFilterByPSMCount.getDiscardedPeptideNodes().size() + "\n\n");
+			} else {
+				stats.append("No peptide nodes discarded due to minimum number of PSMs. Filter was disabled.\n\n");
 			}
 
-			stats.append("Peptides shared by '" + params.getLightSpecies() + "' and '" + params.getHeavySpecies()
-					+ "' species:\t" + peptidesSharedbyBothSpecies + "\n");
-			stats.append("Peptides shared by '" + params.getLightSpecies() + "' and '" + params.getHeavySpecies()
-					+ "' species having +/-INF ratio  (wrong):\t" + peptidesSharedbyBothSpeciesAndInfinityRatio + "\n");
+			stats.append("Peptide nodes shared by '" + params.getLightSpecies() + "' and '" + params.getHeavySpecies()
+					+ "' species (not +/- INF):\t" + numPeptidesSharedbyBothSpeciesNonInfinity + "\n");
+			stats.append("Peptide nodes shared by '" + params.getLightSpecies() + "' and '" + params.getHeavySpecies()
+					+ "' species having +/-INF ratio:\t" + numPeptidesSharedbyBothSpeciesAndInfinityRatio + "\n");
 
-			stats.append(
-					"'" + params.getLightSpecies() + "' specific peptides with POS_INF:\t " + lightPosInfinity + "\n");
-			stats.append("'" + params.getLightSpecies() + "' specific peptides with NEG_INF (wrong):\t "
-					+ lightNegativeInfinity + "\n");
-			stats.append("'" + params.getHeavySpecies() + "' specific peptides with POS_INF (wrong):\t "
-					+ heavyPositiveInfinity + "\n");
-			stats.append("'" + params.getHeavySpecies() + "' specific peptides with NEG_INF:\t " + heavyNegativeInfinity
-					+ "\n");
-			stats.append("Total number of peptides with WRONG ratio assignment:\t" + numWrongPeptides + "\n");
+			stats.append("'" + params.getLightSpecies() + "' specific peptide nodes with POS_INF:\t "
+					+ numLightPosInfinity + "\n");
+			stats.append("'" + params.getLightSpecies() + "' specific peptide nodes with NEG_INF (wrong):\t "
+					+ numLightNegativeInfinity + "\n");
+			stats.append("'" + params.getLightSpecies() + "' specific peptide nodes with ratio value (wrong):\t "
+					+ numLightNonInfinity + "\n");
+			stats.append("'" + params.getHeavySpecies() + "' specific peptide nodes with POS_INF (wrong):\t "
+					+ numHeavyPositiveInfinity + "\n");
+			stats.append("'" + params.getHeavySpecies() + "' specific peptide nodes with NEG_INF:\t "
+					+ numHeavyNegativeInfinity + "\n");
+			stats.append("'" + params.getHeavySpecies() + "' specific peptide nodes with ratio value (wrong):\t "
+					+ numHeavyNonInfinity + "\n");
+
+			stats.append("Number of peptide nodes with NaN ratio value:\t" + numNanPepNodes + "\n");
 			stats.append("\n");
-
+			stats.append("Total number of peptide nodes with WRONG ratio assignment:\t" + numWrongPeptides + "\n");
+			stats.append("\n");
 			stats.append("Number of Clusters:\t " + clusterSet.size() + "\n");
 			stats.append("Number of Clusters with only one Protein:\t "
 					+ (clusterSet.size() - numClustWithMoreThanOneIndividualProtein) + "\n");
@@ -1586,6 +1626,12 @@ public class ProteinClusterQuant {
 			stats.append("Number of Proteins Nodes:\t " + numProtNodes + "\n");
 			stats.append("Number of Peptides:\t " + numPep + "\n");
 			stats.append("Number of Peptides Nodes:\t " + numPepNodes + "\n");
+
+			// stats.append("\n\n" + numPeptideNodesWithNoTax + "\t" +
+			// numPeptideNodesWithOneTax + "\t"
+			// + numPeptideNodesWithTwoTax + "\t" + numPeptideNodesWithMoreTax +
+			// "\n\n");
+
 			String fdrText = "";
 			if (params.getSignificantFDRThreshold() != null && params.isPerformRatioIntegration()) {
 				fdrText = " or FDR<" + params.getSignificantFDRThreshold();

@@ -103,7 +103,7 @@ public class PropertiesReader {
 		// threshold for minimum PSMs per Peptide
 		boolean psmsPerPeptideNodeThresholdOn = Boolean
 				.valueOf(properties.getProperty("psmsPerPeptideNodeThresholdOn", "false"));
-		params.setPsmsPerPeptideThresholdOn(psmsPerPeptideNodeThresholdOn);
+		params.setPsmsPerPeptideNodeThresholdOn(psmsPerPeptideNodeThresholdOn);
 		// threshold for minimum PSMs per peptide node
 		int psmsPerPeptideNodeThreshold = Integer.valueOf(properties.getProperty("psmsPerPeptideNodeThreshold", "0"));
 		params.setPsmsPerPeptideThreshold(psmsPerPeptideNodeThreshold);

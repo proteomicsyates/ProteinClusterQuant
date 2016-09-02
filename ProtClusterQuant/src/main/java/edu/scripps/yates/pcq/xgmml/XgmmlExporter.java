@@ -1107,8 +1107,8 @@ public class XgmmlExporter {
 		attributes.put("ProteinDescription",
 				new AttributeValueType(protein.getDescription().replace(PCQUtils.PROTEIN_DESCRIPTION_SEPARATOR,
 						" " + PCQUtils.PROTEIN_DESCRIPTION_SEPARATOR + " "), AttType.string));
-		if (protein.getTaxonomy() != null) {
-			attributes.put("Species", new AttributeValueType(protein.getTaxonomy(), AttType.string));
+		if (protein.getTaxonomies() != null) {
+			attributes.put("Species", new AttributeValueType(protein.getTaxonomies(), AttType.string));
 		}
 		final String geneString = getGeneString(protein);
 		if (geneString != null && !"".equals(geneString)) {
@@ -1141,7 +1141,7 @@ public class XgmmlExporter {
 				ProteinClusterQuantParameters.getInstance().getProteinNodeShape(),
 				ProteinClusterQuantParameters.getInstance().getProteinNodeHeight(),
 				ProteinClusterQuantParameters.getInstance().getProteinNodeWidth(), outlineColor,
-				getFillColorByTaxonomy(protein.getTaxonomy()), labelColor, borderType));
+				getFillColorByTaxonomy(protein.getTaxonomies()), labelColor, borderType));
 		return node;
 	}
 
@@ -1158,7 +1158,7 @@ public class XgmmlExporter {
 			tooltipText += "\n<b>Classification2 case:</b> " + classification2String.toString();
 		}
 
-		tooltipText += "\n<b>TAX:</b> " + protein.getTaxonomy() + "\n<b>Gene name:</b> " + geneString;
+		tooltipText += "\n<b>TAX:</b> " + protein.getTaxonomies() + "\n<b>Gene name:</b> " + geneString;
 		return tooltipText;
 	}
 
@@ -1229,14 +1229,19 @@ public class XgmmlExporter {
 		return ret;
 	}
 
-	private Color getFillColorByTaxonomy(String taxonomy) {
-		if (taxonomy != null && taxonomy.contains("-")) {
-			Color ret = colorManager.getMultiTaxonomyColor();
-			if (ret != null) {
-				return ret;
+	private Color getFillColorByTaxonomy(Set<String> taxonomies) {
+		if (taxonomies != null) {
+			if (taxonomies.size() > 1) {
+				Color ret = colorManager.getMultiTaxonomyColor();
+				if (ret != null) {
+					return ret;
+				}
+			} else {
+				return colorManager.getColorForProteinTaxonomy(taxonomies.iterator().next());
 			}
 		}
-		return colorManager.getColorForProteinTaxonomy(taxonomy);
+		return Color.WHITE;
+
 	}
 
 	// private Color getOutlineColorByCase1(Classification1Case

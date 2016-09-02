@@ -98,7 +98,8 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 		Set<String> set = new HashSet<String>();
 		final Set<QuantifiedProteinInterface> quantifiedProteins = getQuantifiedProteins();
 		for (QuantifiedProteinInterface protein : quantifiedProteins) {
-			set.add(protein.getTaxonomy());
+			final Set<String> taxonomies = protein.getTaxonomies();
+			set.addAll(taxonomies);
 		}
 		return set;
 	}
