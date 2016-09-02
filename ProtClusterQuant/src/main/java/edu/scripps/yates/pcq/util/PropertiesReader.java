@@ -287,10 +287,10 @@ public class PropertiesReader {
 		Shape peptideShape = Shape.valueOf(properties.getProperty("peptideNodeShape", "ROUNDRECT"));
 		params.setPeptideNodeShape(peptideShape);
 
-		Color colorRatioMin = ColorManager.hex2Rgb(properties.getProperty("colorRatioMin", "#0000ff"));
+		Color colorRatioMin = ColorManager.hex2Rgb(properties.getProperty("colorRatioMin", "#00ffff"));
 		params.setColorRatioMin(colorRatioMin);
 
-		Color colorRatioMax = ColorManager.hex2Rgb(properties.getProperty("colorRatioMax", "#ff0000"));
+		Color colorRatioMax = ColorManager.hex2Rgb(properties.getProperty("colorRatioMax", "#00ffff"));
 		params.setColorRatioMax(colorRatioMax);
 
 		final String colorNonRegulatedString = properties.getProperty("colorNonRegulatedPeptides", false);
