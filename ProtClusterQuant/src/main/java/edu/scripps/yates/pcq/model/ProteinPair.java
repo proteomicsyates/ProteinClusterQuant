@@ -263,26 +263,19 @@ public class ProteinPair {
 
 	}
 
-	// public Double getConsensusRatio(List<Ratio> ratios, QuantCondition cond1,
-	// QuantCondition cond2) {
-	//
-	// List<Ratio> INFRatios = Utils.getINFRatios(ratios, cond1, cond2);
-	// List<Ratio> nonINFRatios = Utils.getNonINFRatios(ratios, cond1, cond2);
-	// if (INFRatios.size() > nonINFRatios.size()) {
-	// Double infinities = Utils.areAllINFSame(INFRatios, cond1, cond2);
-	// return infinities;
-	// } else if (nonINFRatios.size() > 0 && (nonINFRatios.size() >=
-	// INFRatios.size())
-	// || (INFRatios.isEmpty() && !nonINFRatios.isEmpty())) {
-	// double mean = Maths.mean(nonINFRatios.toArray(new Double[0]));
-	// return mean;
-	// } else {
-	// return null;
-	// }
-	//
-	// }
-	// CASIMIR
-
+	/**
+	 * Classifies all three ratios into the three different cases based on
+	 * infinities and using a user defined foldchange threshold when possible.
+	 *
+	 * @param thresholdForSignificance
+	 * @param uniques1
+	 * @param uniques2
+	 * @param shared
+	 * @param sharedPeptidesProteinKey
+	 * @param cond1
+	 * @param cond2
+	 * @throws IOException
+	 */
 	private void classifyPairByClassification2(double thresholdForSignificance,
 			Collection<QuantifiedPeptideInterface> uniques1, Collection<QuantifiedPeptideInterface> uniques2,
 			Collection<QuantifiedPeptideInterface> shared, String sharedPeptidesProteinKey, QuantCondition cond1,
@@ -474,7 +467,8 @@ public class ProteinPair {
 	}
 
 	/**
-	 * Classifies all three ratios into the three different cases
+	 * Classifies all three ratios into the three different cases based on
+	 * infinities and using an statistical test when possible
 	 *
 	 * @param threeCombined
 	 * @param pepRatProt2
