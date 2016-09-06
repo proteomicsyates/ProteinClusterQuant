@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1585,7 +1586,7 @@ public class ProteinClusterQuant {
 					numProteinPairs++;
 
 					if (ProteinClusterQuantParameters.getInstance().isApplyClassificationsByProteinPair()) {
-						proteinPair.compareAverages(cond1, cond2);
+						proteinPair.proteinPairAnalysis(cond1, cond2);
 					}
 					if (params.isGenerateMiscellaneousFiles()) {
 						// print proteinPair summary
@@ -1640,7 +1641,13 @@ public class ProteinClusterQuant {
 				stats.append("Number of Case " + case1.getCaseID() + " " + case1.getExplanation() + ":\t"
 						+ classification1Counters.get(case1) + "\n");
 			}
-
+			// FDR associated with the classification 1:
+			// FDR = Ns/(Ns+Nu/2)
+			int ns = classification1Counters.get(Classification1Case.CASE7);
+			int nu = classification1Counters.get(Classification1Case.CASE3);
+			double fdr = 100 * ns * 1.0 / (ns + (nu / 2.0));
+			DecimalFormat df = new DecimalFormat("#.#");
+			stats.append("Significantly regulated unique peptide nodes FDR = " + df.format(fdr) + "%\n");
 			stats.append("-----------------\n");
 			stats.append("\n");
 
