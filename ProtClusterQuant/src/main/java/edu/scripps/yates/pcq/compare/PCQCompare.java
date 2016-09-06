@@ -149,24 +149,24 @@ public class PCQCompare {
 				.println("The following lists correspond to the different overlappings between the lists, printing the "
 						+ comparisonType + " name and the FDR value: ");
 		System.out.println();
-		System.out.println("\nIntersection (" + venn.getIntersection123().size() + "):");
+		System.out.println("\nIntersection (" + venn.getIntersection123().size() + "): ");
 		for (ContainsMultipleKeys containsMultipleKeys : venn.getIntersection123()) {
 			System.out.println(i++ + "\t" + containsMultipleKeys);
 		}
 		i = 1;
-		System.out.println("\nUnique to :" + name1 + " (" + venn.getUniqueTo1().size() + ")");
+		System.out.println("\nUnique to: " + name1 + " (" + venn.getUniqueTo1().size() + ")");
 		for (ContainsMultipleKeys containsMultipleKeys : venn.getUniqueTo1()) {
 			System.out.println(i++ + "\t" + containsMultipleKeys);
 		}
 		i = 1;
-		System.out.println("\nUnique to :" + name2 + " (" + venn.getUniqueTo2().size() + ")");
+		System.out.println("\nUnique to: " + name2 + " (" + venn.getUniqueTo2().size() + ")");
 		for (ContainsMultipleKeys containsMultipleKeys : venn.getUniqueTo2()) {
 			System.out.println(i++ + "\t" + containsMultipleKeys);
 		}
 
 		if (name3 != null) {
 			i = 1;
-			System.out.println("\nUnique to :" + name3 + " (" + venn.getUniqueTo3().size() + ")");
+			System.out.println("\nUnique to: " + name3 + " (" + venn.getUniqueTo3().size() + ")");
 			for (ContainsMultipleKeys containsMultipleKeys : venn.getUniqueTo3()) {
 				System.out.println(i++ + "\t" + containsMultipleKeys);
 			}
