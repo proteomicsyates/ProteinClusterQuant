@@ -135,7 +135,7 @@ public class ProteinClusterQuant {
 				ComparisonInput comparisonInput = new ComparisonInput(inputFile);
 				final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 				params.setComparisonInput(comparisonInput);
-				params.setAnalysisRun(true);
+				params.setAnalysisRun(false);
 				ProteinClusterQuant pcq = new ProteinClusterQuant(params, null);
 				pcq.run();
 
