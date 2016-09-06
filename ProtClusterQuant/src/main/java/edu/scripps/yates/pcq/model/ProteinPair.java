@@ -218,7 +218,7 @@ public class ProteinPair {
 		return minString;
 	}
 
-	public void compareAverages(QuantCondition cond1, QuantCondition cond2) throws IOException {
+	public void proteinPairAnalysis(QuantCondition cond1, QuantCondition cond2) throws IOException {
 
 		List<Double> threeCombined = new ArrayList<Double>();
 
