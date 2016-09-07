@@ -644,10 +644,12 @@ public class XgmmlExporter {
 						}
 					}
 				}
-				if (classification1Cases != null)
+				if (classification1Cases != null) {
 					cases1.addAll(classification1Cases);
-				if (classification2Cases != null)
+				}
+				if (classification2Cases != null) {
 					cases2.addAll(classification2Cases);
+				}
 				tooltip = "Classification 1: " + getClassificationCase1String(cases1, true) + "\nClassification 2: "
 						+ getClassificationCase2String(cases2, true);
 				String case1String = " ";
