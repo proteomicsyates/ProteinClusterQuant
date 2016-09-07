@@ -1645,7 +1645,11 @@ public class ProteinClusterQuant {
 			// FDR = Ns/(Ns+Nu/2)
 			int ns = classification1Counters.get(Classification1Case.CASE7);
 			int nu = classification1Counters.get(Classification1Case.CASE3);
-			double fdr = 100 * ns * 1.0 / (ns + (nu / 2.0));
+
+			double fdr = 0.0;
+			if (ns + nu > 0) {
+				fdr = 100 * ns * 1.0 / (ns + (nu / 2.0));
+			}
 			DecimalFormat df = new DecimalFormat("#.#");
 			stats.append("Significantly regulated unique peptide nodes FDR = " + df.format(fdr) + "%\n");
 			stats.append("-----------------\n");
