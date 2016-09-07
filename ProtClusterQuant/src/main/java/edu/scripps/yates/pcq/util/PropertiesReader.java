@@ -106,8 +106,15 @@ public class PropertiesReader {
 		params.setPsmsPerPeptideNodeThresholdOn(psmsPerPeptideNodeThresholdOn);
 		// threshold for minimum PSMs per peptide node
 		int psmsPerPeptideNodeThreshold = Integer.valueOf(properties.getProperty("psmsPerPeptideNodeThreshold", "0"));
-		params.setPsmsPerPeptideThreshold(psmsPerPeptideNodeThreshold);
-
+		params.setPsmsPerPeptideNodeThreshold(psmsPerPeptideNodeThreshold);
+		// threshold for minimum replicates per Peptide Node
+		boolean replicatesPerPeptideNodeThresholdOn = Boolean
+				.valueOf(properties.getProperty("replicatesPerPeptideNodeThresholdOn", "false"));
+		params.setReplicatesPerPeptideNodeThresholdOn(replicatesPerPeptideNodeThresholdOn);
+		// threshold for minimum replicates per peptide node
+		int replicatesPerPeptideNodeThreshold = Integer
+				.valueOf(properties.getProperty("replicatesPerPeptideNodeThreshold", "0"));
+		params.setReplicatesPerPeptideNodeThreshold(replicatesPerPeptideNodeThreshold);
 		// threshold for the iglewiczHoaglin Test. A result wquals or greater
 		// than that, would be considered as an outlier
 		double iglewiczHoaglinTestThreshold = Double.valueOf(properties.getProperty("iglewiczHoaglinTest", "3.5"));

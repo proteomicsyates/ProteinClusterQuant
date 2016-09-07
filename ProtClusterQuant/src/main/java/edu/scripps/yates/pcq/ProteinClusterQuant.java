@@ -1674,7 +1674,7 @@ public class ProteinClusterQuant {
 			}
 			if (params.isPsmsPerPeptideNodeThresholdOn()) {
 				stats.append(
-						"Peptide nodes discarded due to minimum number of PSMs )" + params.getPsmsPerPeptideThreshold()
+						"Peptide nodes discarded due to minimum number of PSMs )" + params.getPsmsPerPeptideNodeThreshold()
 								+ "):\t" + PCQFilterByPSMCount.getDiscardedPeptideNodes().size() + "\n\n");
 			} else {
 				stats.append("No peptide nodes discarded due to minimum number of PSMs. Filter was disabled.\n\n");

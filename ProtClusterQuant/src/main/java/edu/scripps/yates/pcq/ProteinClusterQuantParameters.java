@@ -12,6 +12,7 @@ import edu.scripps.yates.pcq.compare.ComparisonInput;
 import edu.scripps.yates.pcq.filter.PCQFilter;
 import edu.scripps.yates.pcq.filter.PCQFilterByIonCount;
 import edu.scripps.yates.pcq.filter.PCQFilterByPSMCount;
+import edu.scripps.yates.pcq.filter.PCQFilterByReplicateCount;
 import edu.scripps.yates.pcq.util.AnalysisInputType;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
 import edu.scripps.yates.pcq.xgmml.util.ColorManager;
@@ -26,7 +27,7 @@ public class ProteinClusterQuantParameters {
 	private boolean ionsPerPeptideNodeThresholdOn;
 	private int ionsPerPeptideNodeThreshold;
 	private boolean psmsPerPeptideNodeThresholdOn;
-	private int psmsPerPeptideThreshold;
+	private int psmsPerPeptideNodeThreshold;
 	private double iglewiczHoaglinTestThreshold;
 	private boolean collapseIndistinguishableProteins;
 	private boolean collapseIndistinguishablePeptides;
@@ -84,6 +85,8 @@ public class ProteinClusterQuantParameters {
 	private boolean analysisRun;
 	private boolean comparisonRun;
 	private ComparisonInput comparisonInput;
+	private int replicatesPerPeptideNodeThreshold;
+	private boolean replicatesPerPeptideNodeThresholdOn;
 
 	private ProteinClusterQuantParameters() {
 
@@ -721,7 +724,7 @@ public class ProteinClusterQuantParameters {
 				+ ", printOnlyFirstGene=" + printOnlyFirstGene + ", ionsPerPeptideNodeThresholdOn="
 				+ ionsPerPeptideNodeThresholdOn + ", ionsPerPeptideThreshold=" + ionsPerPeptideNodeThreshold
 				+ ", psmsPerPeptideThresholdOn=" + psmsPerPeptideNodeThresholdOn + ", psmsPerPeptideThreshold="
-				+ psmsPerPeptideThreshold + ", iglewiczHoaglinTestThreshold=" + iglewiczHoaglinTestThreshold
+				+ psmsPerPeptideNodeThreshold + ", iglewiczHoaglinTestThreshold=" + iglewiczHoaglinTestThreshold
 				+ ", collapseIndistinguishableProteins=" + collapseIndistinguishableProteins
 				+ ", collapseIndistinguishablePeptides=" + collapseIndistinguishablePeptides + ", makeAlignments="
 				+ makeAlignments + ", printKMeans=" + printKMeans + ", enzymeArray=" + Arrays.toString(enzymeArray)
@@ -780,7 +783,10 @@ public class ProteinClusterQuantParameters {
 				filters.add(new PCQFilterByIonCount(getIonsPerPeptideNodeThreshold()));
 			}
 			if (isPsmsPerPeptideNodeThresholdOn()) {
-				filters.add(new PCQFilterByPSMCount(getPsmsPerPeptideThreshold()));
+				filters.add(new PCQFilterByPSMCount(getPsmsPerPeptideNodeThreshold()));
+			}
+			if (isReplicatesPerPeptideNodeThresholdOn()) {
+				filters.add(new PCQFilterByReplicateCount(getReplicatesPerPeptideNodeThreshold()));
 			}
 			// TODO add more filters when available
 		}
@@ -796,7 +802,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @return the psmsPerPeptideThresholdOn
+	 * @return the psmsPerPeptideNodeThresholdOn
 	 */
 	public boolean isPsmsPerPeptideNodeThresholdOn() {
 		return psmsPerPeptideNodeThresholdOn;
@@ -811,18 +817,48 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @return the psmsPerPeptideThreshold
+	 * @return the replicatesPerPeptideNodeThresholdOn
 	 */
-	public int getPsmsPerPeptideThreshold() {
-		return psmsPerPeptideThreshold;
+	public boolean isReplicatesPerPeptideNodeThresholdOn() {
+		return replicatesPerPeptideNodeThresholdOn;
 	}
 
 	/**
-	 * @param psmsPerPeptideThreshold
+	 * @param psmsPerPeptideNodeThresholdOn
+	 *            the psmsPerPeptideThresholdOn to set
+	 */
+	public void setReplicatesPerPeptideNodeThresholdOn(boolean replicatesPerPeptideNodeThresholdOn) {
+		this.replicatesPerPeptideNodeThresholdOn = replicatesPerPeptideNodeThresholdOn;
+	}
+
+	/**
+	 * @return the psmsPerPeptideNodeThreshold
+	 */
+	public int getPsmsPerPeptideNodeThreshold() {
+		return psmsPerPeptideNodeThreshold;
+	}
+
+	/**
+	 * @param psmsPerPeptideNodeThreshold
 	 *            the psmsPerPeptideThreshold to set
 	 */
-	public void setPsmsPerPeptideThreshold(int psmsPerPeptideThreshold) {
-		this.psmsPerPeptideThreshold = psmsPerPeptideThreshold;
+	public void setPsmsPerPeptideNodeThreshold(int psmsPerPeptideNodeThreshold) {
+		this.psmsPerPeptideNodeThreshold = psmsPerPeptideNodeThreshold;
+	}
+
+	/**
+	 * @return the replicatesPerPeptideNodeThreshold
+	 */
+	public int getReplicatesPerPeptideNodeThreshold() {
+		return replicatesPerPeptideNodeThreshold;
+	}
+
+	/**
+	 * @param replicatesPerPeptideNodeThreshold
+	 *            the replicatesPerPeptideNodeThreshold to set
+	 */
+	public void setReplicatesPerPeptideNodeThreshold(int replicatesPerPeptideNodeThreshold) {
+		this.replicatesPerPeptideNodeThreshold = replicatesPerPeptideNodeThreshold;
 	}
 
 	public boolean isPerformRatioIntegration() {
@@ -942,7 +978,7 @@ public class ProteinClusterQuantParameters {
 
 	/**
 	 * Whether PCQ performs an analysis or just compares networks
-	 * 
+	 *
 	 * @return
 	 */
 	public boolean isAnalysisRun() {
