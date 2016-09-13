@@ -22,9 +22,6 @@ public class PCQFilterByPSMCount extends PCQFilter {
 	@Override
 	protected boolean filter(PCQPeptideNode peptideNode) {
 		final int psmCount = peptideNode.getQuantifiedPSMs().size();
-		if (peptideNode.getSequence().contains("AALCAVHVIR")) {
-			log.info(peptideNode);
-		}
 		if (psmCount >= minPSMCountPerNode) {
 			return true;
 		}

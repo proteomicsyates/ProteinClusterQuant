@@ -1124,9 +1124,6 @@ public class ProteinClusterQuant {
 				// Map<String, protCluster> <- cluster (key = sequence)
 				clustersByPeptideSequence.put(sequence1, cluster);
 			}
-			if (sequence1.equals("AALCAVHVIR")) {
-				log.info(cluster.getPeptideSet());
-			}
 			// put peptide in cluster
 			cluster.addIndividualQuantifiedPeptide(peptide1);
 			// in case of having peptide alignments done
