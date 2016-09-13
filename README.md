@@ -26,11 +26,10 @@ Add the repositories:
   <url>http://sealion.scripps.edu/archiva/repository/internal/</url>  
 </repository>  
 <snapshotRepository>  
-	<id>snapshots</id>  
-	<url>http://sealion.scripps.edu/archiva/repository/snapshots/</url>  
+  <id>snapshots</id>  
+  <url>http://sealion.scripps.edu/archiva/repository/snapshots/</url>  
 </snapshotRepository>
 ``` 
-asdf
 
 
 
