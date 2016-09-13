@@ -336,13 +336,19 @@ public class PropertiesReader {
 		// SANXOT
 		boolean performRatioIntegration = Boolean.valueOf(properties.getProperty("performRatioIntegration", "false"));
 		params.setPerformRatioIntegration(performRatioIntegration);
-		try {
-			if (properties.containsKey("outliersRemovalFDR")) {
-				double outlierRemovalFDR = Double.valueOf(properties.getProperty("outliersRemovalFDR", false));
-				params.setOutliersRemovalFDR(outlierRemovalFDR);
+		if (performRatioIntegration) {
+			// sanxot scripts paths
+
+			File scriptsPath = new File(System.getProperty("user.dir") + File.separator + "SanXot");
+			params.setSanXotPath(scriptsPath);
+			try {
+				if (properties.containsKey("outliersRemovalFDR")) {
+					double outlierRemovalFDR = Double.valueOf(properties.getProperty("outliersRemovalFDR", false));
+					params.setOutliersRemovalFDR(outlierRemovalFDR);
+				}
+			} catch (NumberFormatException e) {
+				// do nothing
 			}
-		} catch (NumberFormatException e) {
-			// do nothing
 		}
 		try {
 			if (properties.containsKey("significantFDRThreshold")) {
@@ -397,7 +403,10 @@ public class PropertiesReader {
 			throw new IllegalArgumentException(
 					"ERROR in input parameters: It is not possible to collapse the peptides and make the alignments in the same network analysis");
 		}
-
+		if (params.isPerformRatioIntegration() && !params.getQuantParameters().getSanxotScriptsFolder().exists()) {
+			throw new IllegalArgumentException(
+					params.getQuantParameters().getSanxotScriptsFolder().getAbsolutePath() + " does not exist");
+		}
 	}
 
 }

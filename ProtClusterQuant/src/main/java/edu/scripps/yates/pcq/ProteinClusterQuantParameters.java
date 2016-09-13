@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import edu.scripps.yates.census.analysis.QuantParameters;
 import edu.scripps.yates.pcq.compare.ComparisonInput;
 import edu.scripps.yates.pcq.filter.PCQFilter;
 import edu.scripps.yates.pcq.filter.PCQFilterByIonCount;
@@ -71,7 +72,6 @@ public class ProteinClusterQuantParameters {
 	private String mongoMassDBName;
 	private boolean ignoreNotFoundPeptidesInDB;
 	private AnalysisInputType inputType;
-	private Double outliersRemovalFDR;
 	private Double significantFDRThreshold;
 	private boolean performRatioIntegration;
 	private List<PCQFilter> filters;
@@ -87,9 +87,10 @@ public class ProteinClusterQuantParameters {
 	private ComparisonInput comparisonInput;
 	private int replicatesPerPeptideNodeThreshold;
 	private boolean replicatesPerPeptideNodeThresholdOn;
+	private final QuantParameters quantParameters;
 
 	private ProteinClusterQuantParameters() {
-
+		quantParameters = new QuantParameters();
 	}
 
 	public static ProteinClusterQuantParameters getInstance() {
@@ -744,8 +745,9 @@ public class ProteinClusterQuantParameters {
 				+ ", colorRatioMax=" + colorRatioMax + ", remarkSignificantPeptides=" + remarkSignificantPeptides
 				+ ", mongoDBURI=" + mongoDBURI + ", mongoProtDBName=" + mongoProtDBName + ", mongoSeqDBName="
 				+ mongoSeqDBName + ", mongoMassDBName=" + mongoMassDBName + ", ignoreNotFoundPeptidesInDB="
-				+ ignoreNotFoundPeptidesInDB + ", inputType=" + inputType + ", outliersRemovalFDR=" + outliersRemovalFDR
-				+ ", significantFDRThreshold=" + significantFDRThreshold + " ]";
+				+ ignoreNotFoundPeptidesInDB + ", inputType=" + inputType + ", outliersRemovalFDR="
+				+ quantParameters.getOutlierRemovalFDR() + ", significantFDRThreshold=" + significantFDRThreshold
+				+ " ]";
 	}
 
 	public String[] getInputFileNamesArray() {
@@ -793,12 +795,8 @@ public class ProteinClusterQuantParameters {
 		return filters;
 	}
 
-	public Double getOutliersRemovalFDR() {
-		return outliersRemovalFDR;
-	}
-
 	public void setOutliersRemovalFDR(Double fdr) {
-		outliersRemovalFDR = fdr;
+		quantParameters.setOutlierRemovalFDR(fdr);
 	}
 
 	/**
@@ -1019,4 +1017,16 @@ public class ProteinClusterQuantParameters {
 			setComparisonRun(true);
 		}
 	}
+
+	/**
+	 * @return the quantParameters
+	 */
+	public QuantParameters getQuantParameters() {
+		return quantParameters;
+	}
+
+	public void setSanXotPath(File scriptPaths) {
+		quantParameters.setSanxotScriptsFolder(scriptPaths);
+	}
+
 }

@@ -20,7 +20,13 @@
             </includes>
             <outputDirectory>${assembly.output.folder}</outputDirectory>
         </fileSet>
-
+		<fileSet>
+            <directory>SanXot</directory>
+            <includes>
+                <include>*.py</include>
+            </includes>
+            <outputDirectory>${assembly.output.folder}/SanXot</outputDirectory>
+        </fileSet>
 		<fileSet>
 			<directory>example_dataset</directory>
 			<includes>

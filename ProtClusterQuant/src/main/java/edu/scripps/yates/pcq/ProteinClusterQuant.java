@@ -642,28 +642,29 @@ public class ProteinClusterQuant {
 					workingFolder.getAbsolutePath() + File.separator + "PeptideNodeExp2PeptideNode.xls");
 			edu.scripps.yates.utilities.files.FileUtils.mergeFiles(files, mergedFile, true);
 			integrationResult = SanxotRunner.integrate(relationshipFile, mergedFile, null, "PeptideNodeExp2PeptideNode",
-					null, workingFolder, true);
+					null, workingFolder, true, getParams().getQuantParameters());
 
 			if (isRemoveOutliers()) {
 				File infoFile = integrationResult.getInfoFile();
 				String prefix = "outliers_removed";
 				final OutlierRemovalResultWrapper removeOutliers = SanxotRunner.removeOutliers(relationshipFile,
-						mergedFile, infoFile, prefix, getParams().getOutliersRemovalFDR(), workingFolder);
+						mergedFile, infoFile, prefix, workingFolder, getParams().getQuantParameters());
 				relationshipFile = removeOutliers.getRelatFile();
 				integrationResult = SanxotRunner.integrate(relationshipFile, mergedFile, null,
-						"PeptideNodeExp2PeptideNode", null, workingFolder, false);
+						"PeptideNodeExp2PeptideNode", null, workingFolder, false, getParams().getQuantParameters());
 			}
 			ret.addIntegrationResult(integrationResult);
 		}
 		// make the last integration in order to get the FDR
 		IntegrationResultWrapper finalIntegrationResult = SanxotRunner.integrate(null,
-				integrationResult.getHigherLevelDataFile(), null, "PeptideNode2All", null, workingFolder, true);
+				integrationResult.getHigherLevelDataFile(), null, "PeptideNode2All", null, workingFolder, true,
+				getParams().getQuantParameters());
 		ret.addIntegrationResult(finalIntegrationResult);
 		return ret;
 	}
 
 	private boolean isRemoveOutliers() {
-		return getParams().getOutliersRemovalFDR() != null;
+		return getParams().getQuantParameters().getOutlierRemovalFDR() != null;
 	}
 
 	private File writeRelationshipFileFromPeptideExpNodeToPeptideNode(Set<ProteinCluster> clusterSet)
@@ -767,18 +768,18 @@ public class ProteinClusterQuant {
 					boolean checkRelationshipValidity = params.getFilters().isEmpty();
 					replicateIntegrationResult = SanxotRunner.integrate(relationshipFile,
 							integrationResultForReplicate.getHigherLevelDataFile(), infoFile, prefix, null,
-							workingFolder, checkRelationshipValidity);
+							workingFolder, checkRelationshipValidity, getParams().getQuantParameters());
 
 					if (isRemoveOutliers()) {
 						infoFile = replicateIntegrationResult.getInfoFile();
 						String outliersPrefix = "outliers_removed_" + prefix;
 						final OutlierRemovalResultWrapper removeOutliers = SanxotRunner.removeOutliers(relationshipFile,
 								integrationResultForReplicate.getHigherLevelDataFile(), infoFile, outliersPrefix,
-								getParams().getOutliersRemovalFDR(), workingFolder);
+								workingFolder, getParams().getQuantParameters());
 						relationshipFile = removeOutliers.getRelatFile();
 						replicateIntegrationResult = SanxotRunner.integrate(relationshipFile,
 								integrationResultForReplicate.getHigherLevelDataFile(), null, prefix, null,
-								workingFolder, false);
+								workingFolder, false, getParams().getQuantParameters());
 					}
 				} else {
 					replicateIntegrationResult = integrationResultForReplicate;
@@ -794,15 +795,16 @@ public class ProteinClusterQuant {
 				edu.scripps.yates.utilities.files.FileUtils.mergeFiles(dataFiles, mergedFile, true);
 				String prefixExperiment = "PeptideNodeExpRep2PeptideNodeExp_" + experimentKey;
 				IntegrationResultWrapper experimentIntegrationResult = SanxotRunner.integrate(relationshipFile2,
-						mergedFile, null, prefixExperiment, null, workingFolder, true);
+						mergedFile, null, prefixExperiment, null, workingFolder, true,
+						getParams().getQuantParameters());
 				if (isRemoveOutliers()) {
 					File infoFile = experimentIntegrationResult.getInfoFile();
 					String outliersPrefix = "outliers_removed_" + prefixExperiment;
 					final OutlierRemovalResultWrapper removeOutliers = SanxotRunner.removeOutliers(relationshipFile2,
-							mergedFile, infoFile, outliersPrefix, getParams().getOutliersRemovalFDR(), workingFolder);
+							mergedFile, infoFile, outliersPrefix, workingFolder, getParams().getQuantParameters());
 					relationshipFile2 = removeOutliers.getRelatFile();
 					experimentIntegrationResult = SanxotRunner.integrate(relationshipFile2, mergedFile, null,
-							prefixExperiment, null, workingFolder, false);
+							prefixExperiment, null, workingFolder, false, getParams().getQuantParameters());
 				}
 				ret.addExperimentIntegrationResult(experimentIntegrationResult, experimentName);
 			} else {
@@ -989,7 +991,7 @@ public class ProteinClusterQuant {
 		log.info("Running SanXot algorithm for integrating quantitative ratios");
 		long t1 = System.currentTimeMillis();
 		SanxotRunner sanxotRunner = new SanxotRunner(this, getQuantType(), getParams().getTemporalOutputFolder(), cond1,
-				cond2, getParams().getFastaFile(), getParams().getOutliersRemovalFDR());
+				cond2, getParams().getFastaFile(), getParams().getQuantParameters());
 		SanXotAnalysisResult result = sanxotRunner.run();
 		final String time = DatesUtil.getDescriptiveTimeFromMillisecs(System.currentTimeMillis() - t1);
 		log.info("Sanxot run finished in " + time);
@@ -1673,9 +1675,9 @@ public class ProteinClusterQuant {
 				stats.append("No peptide nodes discarded due to minimum number of ions. Filter was disabled.\n");
 			}
 			if (params.isPsmsPerPeptideNodeThresholdOn()) {
-				stats.append(
-						"Peptide nodes discarded due to minimum number of PSMs )" + params.getPsmsPerPeptideNodeThreshold()
-								+ "):\t" + PCQFilterByPSMCount.getDiscardedPeptideNodes().size() + "\n\n");
+				stats.append("Peptide nodes discarded due to minimum number of PSMs )"
+						+ params.getPsmsPerPeptideNodeThreshold() + "):\t"
+						+ PCQFilterByPSMCount.getDiscardedPeptideNodes().size() + "\n\n");
 			} else {
 				stats.append("No peptide nodes discarded due to minimum number of PSMs. Filter was disabled.\n\n");
 			}

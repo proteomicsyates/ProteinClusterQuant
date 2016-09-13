@@ -15,6 +15,7 @@ import edu.scripps.yates.census.analysis.QuantAnalysis;
 import edu.scripps.yates.census.analysis.QuantAnalysis.ANALYSIS_LEVEL_OUTCOME;
 import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.analysis.QuantExperiment;
+import edu.scripps.yates.census.analysis.QuantParameters;
 import edu.scripps.yates.census.analysis.QuantReplicate;
 import edu.scripps.yates.census.analysis.QuantificationType;
 import edu.scripps.yates.census.analysis.SanXotInterfaze;
@@ -36,10 +37,11 @@ public class SanxotRunner {
 	public static final long DEFAULT_TIMEOUT = 1000 * 60 * 1;// 1 min
 
 	public SanxotRunner(ProteinClusterQuant pcq, QuantificationType quantType, File workingFolder,
-			QuantCondition condition1, QuantCondition condition2, File fastaFile, Double fdr)
+			QuantCondition condition1, QuantCondition condition2, File fastaFile, QuantParameters quantParameters)
 			throws FileNotFoundException {
 		quantAnalysis = new QuantAnalysis(quantType, workingFolder, condition1, condition2,
 				ANALYSIS_LEVEL_OUTCOME.PEPTIDE);
+		quantAnalysis.setQuantParameters(quantParameters);
 		for (ExperimentFiles experimentFiles : ProteinClusterQuantParameters.getInstance().getInputFileNames()) {
 			QuantExperiment quantExperiment = new QuantExperiment(experimentFiles.getExperimentName());
 			for (String replicateFileName : experimentFiles.getRelicateFileNames()) {
@@ -52,10 +54,7 @@ public class SanxotRunner {
 			quantAnalysis.addQuantExperiment(quantExperiment);
 		}
 		quantAnalysis.setKeepExperimentsSeparated(true);
-		if (fdr != null) {
-			quantAnalysis.setFDR(fdr);
-			quantAnalysis.setOutlierRemoval(true);
-		}
+
 		// QuantAnalysis analysis = new QuantAnalysis(quantType, workingFolder,
 		// condition1, condition2,
 		// ANALYSIS_LEVEL_OUTCOME.PEPTIDE);
@@ -124,8 +123,8 @@ public class SanxotRunner {
 	}
 
 	public static IntegrationResultWrapper integrate(File relatFile, File dataFile, File infoFile, String prefix,
-			Double forzedVariance, File workingFolder, boolean checkRelationshipValidity)
-			throws IOException, InterruptedException, ExecutionException {
+			Double forzedVariance, File workingFolder, boolean checkRelationshipValidity,
+			QuantParameters quantParameters) throws IOException, InterruptedException, ExecutionException {
 
 		if (checkRelationshipValidity && !SanXotInterfaze.checkDataValidity(relatFile, dataFile)) {
 			throw new IllegalArgumentException("Combination of data file and relat file is not valid: "
@@ -142,7 +141,7 @@ public class SanxotRunner {
 		}
 		log.info("Using data file  " + FilenameUtils.getName(dataFile.getAbsolutePath()));
 		CommandLine integratingCommandLine = SanXotInterfaze.getIntegrationCommandLine(relatFile, dataFile, infoFile,
-				prefix, forzedVariance, workingFolder);
+				prefix, forzedVariance, workingFolder, quantParameters);
 
 		final Long exitCode = runCommand(integratingCommandLine, DEFAULT_TIMEOUT);
 		if (exitCode.longValue() != 0) {
@@ -151,7 +150,7 @@ public class SanxotRunner {
 				log.warn(message);
 				log.info("Trying to fix the problem by forzing variance to 0 (Using -f v0)");
 				integratingCommandLine = SanXotInterfaze.getIntegrationCommandLine(relatFile, dataFile, infoFile,
-						prefix, 0.0, workingFolder);
+						prefix, 0.0, workingFolder, quantParameters);
 				Long newExitCode = runCommand(integratingCommandLine, DEFAULT_TIMEOUT);
 				if (newExitCode.longValue() != 0) {
 					if (newExitCode.longValue() == ProcessExecutor.TIMEOUT_ERROR_CODE) {
@@ -173,12 +172,12 @@ public class SanxotRunner {
 	}
 
 	public static OutlierRemovalResultWrapper removeOutliers(File relatFile, File dataFile, File infoFile,
-			String prefix, Double fdr, File workingFolder)
+			String prefix, File workingFolder, QuantParameters quantParameters)
 			throws IOException, InterruptedException, ExecutionException {
 		final String msg = "Removing outliers...";
 		log.info(msg);
 		CommandLine removeOutlierCommandLine = SanXotInterfaze.getRemoveOutliersCommandLine(relatFile, prefix, dataFile,
-				infoFile, fdr, workingFolder);
+				infoFile, workingFolder, quantParameters);
 
 		Long exitCode = runCommand(removeOutlierCommandLine, DEFAULT_TIMEOUT);
 		if (exitCode.longValue() != 0)
