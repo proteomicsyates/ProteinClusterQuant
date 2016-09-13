@@ -6,7 +6,7 @@ For a detailed description of the software, input files, intput parameters and o
 
 ### How to get ProteinClusterQuant:
 
-**Download latest build:**  
+**Download latest build from [here](https://github.com/proteomicsyates/ProteinClusterQuant/releases/latest)**  
 
 
 **Using maven:**   
