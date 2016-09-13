@@ -5,6 +5,7 @@
 /lib/
 /.settings/
 /.classpath
+/.project
 /example_dataset/
 /target/
 /matplotlib/
