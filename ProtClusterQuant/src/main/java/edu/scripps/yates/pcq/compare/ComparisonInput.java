@@ -30,7 +30,7 @@ public class ComparisonInput {
 					continue;
 				}
 
-				final String[] split = line.split("\\t");
+				final String[] split = line.split("=");
 				String name = split[0];
 				if (name.equals("threshold")) {
 					threshold = Double.valueOf(split[1]);

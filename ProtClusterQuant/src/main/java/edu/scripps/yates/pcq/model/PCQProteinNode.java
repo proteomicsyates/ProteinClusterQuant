@@ -8,16 +8,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import edu.scripps.yates.census.analysis.QuantCondition;
-import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
+import edu.scripps.yates.census.read.util.QuantUtils;
 import edu.scripps.yates.pcq.util.PCQUtils;
-import edu.scripps.yates.utilities.grouping.GroupablePSM;
-import edu.scripps.yates.utilities.grouping.ProteinEvidence;
-import edu.scripps.yates.utilities.grouping.ProteinGroup;
-import edu.scripps.yates.utilities.proteomicsmodel.Amount;
 
 /**
  * Wrapper class for a protein node, that could contain several proteins sharing
@@ -26,17 +21,15 @@ import edu.scripps.yates.utilities.proteomicsmodel.Amount;
  * @author Salva
  *
  */
-public class PCQProteinNode implements QuantifiedProteinInterface {
+public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 	// private final static Logger log = Logger.getLogger(PCQProteinNode.class);
 	private final Set<QuantifiedProteinInterface> proteinSet = new HashSet<QuantifiedProteinInterface>();
 	private final Set<PCQPeptideNode> peptideNodes = new HashSet<PCQPeptideNode>();
-	private final Set<String> fileNames = new HashSet<String>();
-	private boolean discarded;
 	private String accessionString;
 	private String descriptionString;
-	private String taxonomiesString;
 	private HashSet<String> taxonomies;
 	private final ProteinCluster proteinCluster;
+	private ProteinPair proteinPair;
 
 	public PCQProteinNode(ProteinCluster proteinCluster, Collection<QuantifiedProteinInterface> proteinCollection) {
 		proteinSet.addAll(proteinCollection);
@@ -61,111 +54,33 @@ public class PCQProteinNode implements QuantifiedProteinInterface {
 		return peptideNodes;
 	}
 
-	/**
-	 * Gets the set of {@link PCQPeptideNode} connected to the
-	 * {@link PCQProteinNode}
-	 */
 	@Override
 	public Set<QuantifiedPeptideInterface> getQuantifiedPeptides() {
 		Set<QuantifiedPeptideInterface> ret = new HashSet<QuantifiedPeptideInterface>();
-		for (PCQPeptideNode peptideNode : peptideNodes) {
-			ret.add(peptideNode);
+		for (PCQPeptideNode peptideNode : getPeptideNodes()) {
+			ret.addAll(peptideNode.getQuantifiedPeptides());
 		}
 		return ret;
 	}
 
-	@Override
-	public List<GroupablePSM> getGroupablePSMs() {
-		List<GroupablePSM> ret = new ArrayList<GroupablePSM>();
-		final Set<QuantifiedPSMInterface> quantifiedPSMs = getQuantifiedPSMs();
-		for (QuantifiedPSMInterface quantifiedPSMInterface : quantifiedPSMs) {
-			ret.add(quantifiedPSMInterface);
-		}
-		return ret;
-	}
-
-	@Override
-	public ProteinGroup getProteinGroup() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public int getDBId() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
 	public String getAccession() {
 		if (accessionString == null) {
-			accessionString = PCQUtils.getAccessionString(proteinSet);
+			accessionString = PCQUtils.getAccessionString(getQuantifiedProteins());
 		}
 		return accessionString;
 	}
 
-	@Override
-	public void setEvidence(ProteinEvidence evidence) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public ProteinEvidence getEvidence() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void setProteinGroup(ProteinGroup proteinGroup) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public Set<QuantRatio> getRatios() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public Set<QuantRatio> getNonInfinityRatios() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void addRatio(QuantRatio ratio) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public double getMeanRatios(QuantCondition quantConditionNumerator, QuantCondition quantConditionDenominator) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public double getSTDRatios(QuantCondition quantConditionNumerator, QuantCondition quantConditionDenominator) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public Set<Amount> getAmounts() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void addAmount(Amount amount) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
 	public String getKey() {
 		return getAccession();
 	}
 
-	@Override
 	public String getDescription() {
 		if (descriptionString == null) {
-			descriptionString = PCQUtils.getDescriptionString(proteinSet, true);
+			descriptionString = PCQUtils.getDescriptionStringFromIndividualProteins(proteinSet, true);
 		}
 		return descriptionString;
 	}
 
-	@Override
 	public Set<String> getTaxonomies() {
 		if (taxonomies == null) {
 			taxonomies = new HashSet<String>();
@@ -184,65 +99,6 @@ public class PCQProteinNode implements QuantifiedProteinInterface {
 		return set;
 	}
 
-	@Override
-	public void addPeptide(QuantifiedPeptideInterface peptide) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public String getAccessionType() {
-		List<String> list = new ArrayList<String>();
-		for (QuantifiedProteinInterface protein : proteinSet) {
-			if (!list.contains(protein.getAccessionType())) {
-				list.add(protein.getAccessionType());
-			}
-		}
-		Collections.sort(list);
-		StringBuilder sb = new StringBuilder();
-		for (String accType : list) {
-			if (!"".equals(sb.toString())) {
-				sb.append(",");
-			}
-			sb.append(accType);
-		}
-		return sb.toString();
-	}
-
-	@Override
-	public void addPSM(QuantifiedPSMInterface quantifiedPSM) {
-		throw new UnsupportedOperationException();
-
-	}
-
-	@Override
-	public void setTaxonomy(String taxonomy) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public Set<String> getRawFileNames() {
-		Set<String> fileNames = new HashSet<String>();
-		for (QuantifiedProteinInterface protein : proteinSet) {
-			fileNames.addAll(protein.getRawFileNames());
-		}
-		return fileNames;
-	}
-
-	@Override
-	public Integer getLength() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void setAccession(String primaryAccession) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void setDescription(String description) {
-		throw new UnsupportedOperationException();
-	}
-
 	public void addProtein(QuantifiedProteinInterface protein) {
 		proteinSet.add(protein);
 		resetStrings();
@@ -251,7 +107,6 @@ public class PCQProteinNode implements QuantifiedProteinInterface {
 
 	private void resetStrings() {
 		accessionString = null;
-		taxonomiesString = null;
 		descriptionString = null;
 	}
 
@@ -287,52 +142,20 @@ public class PCQProteinNode implements QuantifiedProteinInterface {
 		return peptideNodes.add(peptideNode);
 	}
 
+	@Override
 	public Set<QuantifiedProteinInterface> getQuantifiedProteins() {
 		return proteinSet;
 	}
 
 	@Override
-	public void addFileName(String fileName) {
-		fileNames.add(fileName);
-
-	}
-
-	@Override
-	public Set<String> getFileNames() {
-
-		return fileNames;
-	}
-
-	@Override
-	public QuantRatio getConsensusRatio(QuantCondition cond1, QuantCondition cond2) {
-		throw new IllegalArgumentException("Protein nodes have no consensus ratios");
-	}
-
-	@Override
-	public QuantRatio getConsensusRatio(QuantCondition quantConditionNumerator,
-			QuantCondition quantConditionDenominator, String replicateName) {
-		throw new IllegalArgumentException("Protein nodes have no consensus ratios");
-	}
-
-	public Set<QuantifiedProteinInterface> getIndividualProteins() {
+	public Set<QuantifiedProteinInterface> getItemsInNode() {
 		return proteinSet;
 	}
 
-	public void disconnectProteinsInNode() {
+	public void removeProteinsFromPeptidesInNode() {
 		for (QuantifiedProteinInterface protein : proteinSet) {
-			PCQUtils.discardProtein(protein);
+			QuantUtils.discardProtein(protein);
 		}
-	}
-
-	@Override
-	public void setDiscarded(boolean b) {
-		discarded = b;
-
-	}
-
-	@Override
-	public boolean isDiscarded() {
-		return discarded;
 	}
 
 	/**
@@ -340,5 +163,13 @@ public class PCQProteinNode implements QuantifiedProteinInterface {
 	 */
 	public ProteinCluster getProteinCluster() {
 		return proteinCluster;
+	}
+
+	public void setProteinPair(ProteinPair proteinPair) {
+		this.proteinPair = proteinPair;
+	}
+
+	public ProteinPair getProteinPair() {
+		return proteinPair;
 	}
 }

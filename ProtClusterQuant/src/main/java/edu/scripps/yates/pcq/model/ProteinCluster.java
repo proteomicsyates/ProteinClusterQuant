@@ -11,7 +11,6 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
-import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
@@ -69,7 +68,7 @@ public class ProteinCluster {
 
 	private void connectProteinAndPeptideNodes() {
 		for (PCQPeptideNode peptideNode : getPeptideNodes()) {
-			final Set<QuantifiedPeptideInterface> quantifiedPeptides = peptideNode.getIndividualPeptides();
+			final Set<QuantifiedPeptideInterface> quantifiedPeptides = peptideNode.getQuantifiedPeptides();
 			for (QuantifiedPeptideInterface quantifiedPeptideInterface : quantifiedPeptides) {
 				for (QuantifiedProteinInterface protein : quantifiedPeptideInterface.getQuantifiedProteins()) {
 
@@ -381,38 +380,27 @@ public class ProteinCluster {
 
 	private void createProteinPairs(Map<String, Set<NWResult>> gAM) {
 
-		List<PCQProteinNode> proteinList = new ArrayList<PCQProteinNode>();
-		proteinList.addAll(proteinNodes);
+		List<PCQProteinNode> proteinNodeList = new ArrayList<PCQProteinNode>();
+		proteinNodeList.addAll(proteinNodes);
 
-		for (int i = 0; i < proteinList.size(); i++) {
-			for (int j = i + 1; j < proteinList.size(); j++) {
-				PCQProteinNode protein1 = proteinList.get(i);
-				PCQProteinNode protein2 = proteinList.get(j);
-				if (PCQUtils.shareAtLeastOnePeptide(protein1, protein2)
-						|| (gAM != null && PCQUtils.shareAtLeastOnePeptideBySimilarity(protein1, protein2, gAM))) {
-					ProteinPair pair = new ProteinPair(protein1, protein2, this);
+		for (int i = 0; i < proteinNodeList.size(); i++) {
+			for (int j = i + 1; j < proteinNodeList.size(); j++) {
+				PCQProteinNode proteinNode1 = proteinNodeList.get(i);
+
+				PCQProteinNode proteinNode2 = proteinNodeList.get(j);
+
+				// DO NOT CREATE PROTEIN PAIRS WITH DISCARDED PROTEIN NODES
+				if (proteinNode1.isDiscarded() || proteinNode2.isDiscarded()) {
+					continue;
+				}
+				if (PCQUtils.shareAtLeastOnePeptideNode(proteinNode1, proteinNode2) || (gAM != null
+						&& PCQUtils.shareAtLeastOnePeptideBySimilarity(proteinNode1, proteinNode2, gAM))) {
+					ProteinPair pair = new ProteinPair(proteinNode1, proteinNode2);
 					// final String string = pair.toString();
 					proteinPairs.add(pair);
 				}
 			}
 		}
-	}
-
-	/**
-	 * Returns true if at least one of the {@link ProteinPair} is inconsistent
-	 * according to a QTest
-	 *
-	 * @param cond1
-	 * @param cond2
-	 * @return
-	 */
-	public boolean isInconsistenceWithQTest(QuantCondition cond1, QuantCondition cond2) {
-		for (ProteinPair proteinPair : proteinPairs) {
-			if (proteinPair.isInconsistenceWithQTest(cond1, cond2)) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	public Set<ProteinPair> getProteinPairs() {
@@ -432,7 +420,7 @@ public class ProteinCluster {
 		sb.append("]NTORP");
 		StringBuilder sb2 = new StringBuilder();
 		sb2.append("PEPN[");
-		for (QuantifiedPeptideInterface peptide : PCQUtils.getSortedPeptideNodesBySequence(peptideNodes)) {
+		for (PCQPeptideNode peptide : PCQUtils.getSortedPeptideNodesBySequence(peptideNodes)) {
 			if (!"PEPN[".equals(sb2.toString())) {
 				sb2.append(",");
 			}
@@ -472,28 +460,27 @@ public class ProteinCluster {
 	 * @param peptide
 	 * @return
 	 */
-	public Set<QuantifiedPeptideInterface> getAlignedPeptides(QuantifiedPeptideInterface peptideOrPeptideNode) {
-		QuantifiedPeptideInterface peptide = peptideOrPeptideNode;
-		if (peptide instanceof PCQPeptideNode) {
-			if (((PCQPeptideNode) peptideOrPeptideNode).getIndividualPeptides().size() > 1) {
-				// If peptide nodes contain more than one different peptide,
-				// then the aligments cannot be done, so there is something
-				// wrong
-				return Collections.EMPTY_SET;
-			}
-			peptide = ((PCQPeptideNode) peptideOrPeptideNode).getIndividualPeptides().iterator().next();
+	public Set<PCQPeptideNode> getAlignedPeptides(PCQPeptideNode peptideNode) {
+
+		if (peptideNode.getQuantifiedPeptides().size() > 1) {
+			// If peptide nodes contain more than one different peptide,
+			// then the aligments cannot be done, so there is something
+			// wrong
+			return Collections.emptySet();
 		}
+		QuantifiedPeptideInterface peptide = peptideNode.getQuantifiedPeptides().iterator().next();
+
 		Map<String, QuantifiedPeptideInterface> peptideMap = getPeptideMap();
-		Set<QuantifiedPeptideInterface> ret = new HashSet<QuantifiedPeptideInterface>();
+		Set<PCQPeptideNode> ret = new HashSet<PCQPeptideNode>();
 		if (alignmentsByPeptide.containsKey(peptide.getSequence())) {
 			final Set<NWResult> alignments = alignmentsByPeptide.get(peptide.getSequence());
 			for (NWResult nwResult : alignments) {
 				final QuantifiedPeptideInterface pep1 = peptideMap.get(nwResult.getSeq1());
 				final QuantifiedPeptideInterface pep2 = peptideMap.get(nwResult.getSeq2());
 				if (pep1.equals(peptide) && !pep2.equals(peptide)) {
-					ret.add(pep2);
+					ret.add(peptideNodesByPeptideSequence.get(pep2.getSequence()));
 				} else if (!pep1.equals(peptide) && pep2.equals(peptide)) {
-					ret.add(pep1);
+					ret.add(peptideNodesByPeptideSequence.get(pep1.getSequence()));
 				}
 			}
 		}
@@ -513,21 +500,20 @@ public class ProteinCluster {
 	/**
 	 * Get the {@link NWResult} from two specific peptides if available.
 	 *
-	 * @param quantifiedPeptide
-	 * @param quantifiedPeptide2
+	 * @param peptideNode
+	 * @param peptideNode2
 	 * @return
 	 */
-	public NWResult getAlignmentResult(QuantifiedPeptideInterface quantifiedPeptide,
-			QuantifiedPeptideInterface quantifiedPeptide2) {
-		if (alignmentsByPeptide.containsKey(quantifiedPeptide.getSequence())) {
-			final Set<NWResult> alignments = alignmentsByPeptide.get(quantifiedPeptide.getSequence());
+	public NWResult getAlignmentResult(PCQPeptideNode peptideNode, PCQPeptideNode peptideNode2) {
+		if (alignmentsByPeptide.containsKey(peptideNode.getSequence())) {
+			final Set<NWResult> alignments = alignmentsByPeptide.get(peptideNode.getSequence());
 			for (NWResult nwResult : alignments) {
-				if (quantifiedPeptide.getSequence().equals(nwResult.getSeq1())) {
-					if (quantifiedPeptide2.getSequence().equals(nwResult.getSeq2())) {
+				if (peptideNode.getSequence().equals(nwResult.getSeq1())) {
+					if (peptideNode2.getSequence().equals(nwResult.getSeq2())) {
 						return nwResult;
 					}
-				} else if (quantifiedPeptide.getSequence().equals(nwResult.getSeq2())) {
-					if (quantifiedPeptide2.getSequence().equals(nwResult.getSeq1())) {
+				} else if (peptideNode.getSequence().equals(nwResult.getSeq2())) {
+					if (peptideNode2.getSequence().equals(nwResult.getSeq1())) {
 						return nwResult;
 					}
 				}
@@ -672,41 +658,33 @@ public class ProteinCluster {
 	}
 
 	/**
-	 * Get the number of individual proteins in the cluster. In case of
-	 * collapsing the proteins that share all peptides, it detects them and
-	 * count them even if they are represented in a merged
-	 * QuantifiedProteinInterface object
+	 * Get the number of different individual peptides in the cluster
 	 *
 	 * @return
 	 */
-	public int getNumIndividualProteins() {
+	public int getNumDifferentNonDiscardedIndividualPeptides() {
 		Set<String> set = new HashSet<String>();
-		for (QuantifiedProteinInterface protein : individualQuantifiedProteinSet) {
-			set.add(protein.getAccession());
+		for (PCQPeptideNode peptideNode : getNonDiscardedPeptideNodes()) {
+			for (QuantifiedPeptideInterface peptide : peptideNode.getItemsInNode()) {
+				set.add(peptide.getSequence());
+			}
 		}
 		return set.size();
 	}
 
 	/**
-	 * Get the set of {@link QuantifiedPeptideInterface} in the cluster.
+	 * Get the number of different individual proteins in the cluster
 	 *
-	 * @param excludeUniquePeptides
-	 *            if true, the unique peptides (belonging to only one protein)
-	 *            will not be returned.
 	 * @return
 	 */
-	public Collection<QuantifiedPeptideInterface> getPeptideSet(boolean excludeUniquePeptides) {
-		final Set<QuantifiedPeptideInterface> wholePeptideSet = getPeptideSet();
-		if (!excludeUniquePeptides) {
-			return wholePeptideSet;
-		}
-		Set<QuantifiedPeptideInterface> ret = new HashSet<QuantifiedPeptideInterface>();
-		for (QuantifiedPeptideInterface quantifiedPeptide : wholePeptideSet) {
-			if (quantifiedPeptide.getQuantifiedProteins().size() > 1) {
-				ret.add(quantifiedPeptide);
+	public int getNumDifferentNonDiscardedIndividualProteins() {
+		Set<String> set = new HashSet<String>();
+		for (PCQProteinNode proteinNode : getNonDiscardedProteinNodes()) {
+			for (QuantifiedProteinInterface protein : proteinNode.getItemsInNode()) {
+				set.add(protein.getAccession());
 			}
 		}
-		return ret;
+		return set.size();
 	}
 
 	/**
@@ -725,5 +703,36 @@ public class ProteinCluster {
 		}
 
 		return null;
+	}
+
+	public Set<PCQProteinNode> getNonDiscardedProteinNodes() {
+		Set<PCQProteinNode> ret = new HashSet<PCQProteinNode>();
+		for (PCQProteinNode proteinNode : getProteinNodes()) {
+			if (!proteinNode.isDiscarded()) {
+				ret.add(proteinNode);
+			}
+		}
+		return ret;
+	}
+
+	public Set<PCQPeptideNode> getNonDiscardedPeptideNodes() {
+		Set<PCQPeptideNode> ret = new HashSet<PCQPeptideNode>();
+		for (PCQPeptideNode peptideNode : getPeptideNodes()) {
+			if (!peptideNode.isDiscarded()) {
+				ret.add(peptideNode);
+			}
+		}
+		return ret;
+	}
+
+	public Set<QuantifiedProteinInterface> getNonDiscardedProteinSet() {
+		Set<QuantifiedProteinInterface> ret = new HashSet<QuantifiedProteinInterface>();
+		final Set<QuantifiedProteinInterface> proteinSet = getProteinSet();
+		for (QuantifiedProteinInterface protein : proteinSet) {
+			if (!protein.isDiscarded()) {
+				ret.add(protein);
+			}
+		}
+		return ret;
 	}
 }

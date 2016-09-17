@@ -8,14 +8,15 @@ import org.apache.log4j.Logger;
 
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
+import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.model.PCQPeptideNode;
 import edu.scripps.yates.pcq.model.PCQProteinNode;
 import edu.scripps.yates.pcq.model.ProteinCluster;
 
 public abstract class PCQFilter {
 	protected final static Logger log = Logger.getLogger(PCQFilter.class);
-	private static Set<PCQPeptideNode> staticDiscardedPeptideNodes = new HashSet<PCQPeptideNode>();
-	private static Set<PCQProteinNode> staticDiscardedProteinNodes = new HashSet<PCQProteinNode>();
+	private static Set<PCQPeptideNode> staticDiscardedPeptideNodesForStatistics = new HashSet<PCQPeptideNode>();
+	private static Set<PCQProteinNode> staticDiscardedProteinNodesForStatistics = new HashSet<PCQProteinNode>();
 
 	public void filter(ProteinCluster cluster) {
 		final Iterator<PCQProteinNode> proteinNodesIterator = cluster.getProteinNodes().iterator();
@@ -26,20 +27,23 @@ public abstract class PCQFilter {
 			PCQProteinNode pcqProteinNode = proteinNodesIterator.next();
 			final boolean valid = filter(pcqProteinNode);
 			if (!valid) {
-				proteinNodesIterator.remove();
-				discardedProteinNodes.add(pcqProteinNode);
-				staticDiscardedProteinNodes.add(pcqProteinNode);
+				pcqProteinNode.setDiscarded(true);
+				staticDiscardedProteinNodesForStatistics.add(pcqProteinNode);
+				if (ProteinClusterQuantParameters.getInstance().isRemoveFilteredNodes()) {
+					proteinNodesIterator.remove();
+					discardedProteinNodes.add(pcqProteinNode);
+				}
 			}
 		}
+
+		// this is only populated if params.isRemoveFilteredNodes is true
 		for (PCQProteinNode pcqProteinNode : discardedProteinNodes) {
 			// remove individual proteins from cluster
-			final Set<QuantifiedProteinInterface> individualProteins = pcqProteinNode.getIndividualProteins();
+			final Set<QuantifiedProteinInterface> individualProteins = pcqProteinNode.getQuantifiedProteins();
 			for (QuantifiedProteinInterface protein : individualProteins) {
 				cluster.getProteinSet().remove(protein);
-				// set as invalid for not use them in the QuantAnalysis
-				protein.setDiscarded(true);
 			}
-			pcqProteinNode.disconnectProteinsInNode();
+			pcqProteinNode.removeProteinsFromPeptidesInNode();
 		}
 
 		// if (cluster.getProteinNodes().size() != originalSize) {
@@ -54,24 +58,25 @@ public abstract class PCQFilter {
 			PCQPeptideNode pcqPeptideNode = peptideNodesIterator.next();
 			final boolean valid = filter(pcqPeptideNode);
 			if (!valid) {
-				peptideNodesIterator.remove();
-				discardedPeptideNodes.add(pcqPeptideNode);
-				staticDiscardedPeptideNodes.add(pcqPeptideNode);
+				pcqPeptideNode.setDiscarded(true);
+				staticDiscardedPeptideNodesForStatistics.add(pcqPeptideNode);
+				if (ProteinClusterQuantParameters.getInstance().isRemoveFilteredNodes()) {
+					peptideNodesIterator.remove();
+					discardedPeptideNodes.add(pcqPeptideNode);
+				}
 			}
 		}
-		// if (cluster.getPeptideNodes().size() != originalSize2) {
-		// log.info(originalSize2 - cluster.getPeptideNodes().size() + " peptide
-		// nodes where discarded");
-		// }
+
+		// this is only populated if params.isRemoveFilteredNodes() is true
 		for (PCQPeptideNode pcqPeptideNode : discardedPeptideNodes) {
 			// remove individual peptides from cluster
-			final Set<QuantifiedPeptideInterface> individualPeptides = pcqPeptideNode.getIndividualPeptides();
+			final Set<QuantifiedPeptideInterface> individualPeptides = pcqPeptideNode.getQuantifiedPeptides();
 			for (QuantifiedPeptideInterface peptide : individualPeptides) {
 				cluster.getPeptideSet().remove(peptide);
-				// set as invalid for not use them in the QuantAnalysis
-				peptide.setDiscarded(true);
 			}
-			pcqPeptideNode.disconnectPeptidesInNode();
+			if (ProteinClusterQuantParameters.getInstance().isRemoveFilteredNodes()) {
+				pcqPeptideNode.removePeptidesFromProteinsInNode();
+			}
 		}
 	}
 
@@ -93,11 +98,21 @@ public abstract class PCQFilter {
 	 */
 	protected abstract boolean filter(PCQPeptideNode peptideNode);
 
+	/**
+	 * Get discardedPeptideNodes (for statistics)
+	 *
+	 * @return
+	 */
 	public static Set<PCQPeptideNode> getDiscardedPeptideNodes() {
-		return staticDiscardedPeptideNodes;
+		return staticDiscardedPeptideNodesForStatistics;
 	}
 
+	/**
+	 * Get discardedProteinNodes (for statistics)
+	 *
+	 * @return
+	 */
 	public static Set<PCQProteinNode> getDiscardedProteinNodes() {
-		return staticDiscardedProteinNodes;
+		return staticDiscardedProteinNodesForStatistics;
 	}
 }

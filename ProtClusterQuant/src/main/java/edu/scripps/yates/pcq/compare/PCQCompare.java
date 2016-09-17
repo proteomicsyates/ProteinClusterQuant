@@ -61,10 +61,10 @@ public class PCQCompare {
 				line = line.trim();
 
 				String string = line.split("\t")[colIndex].trim();
-				Double fdr = Double.valueOf(line.split("\t")[8]);
-				Double ratio = Double.valueOf(line.split("\t")[6]);
-				Double variance = Double.valueOf(line.split("\t")[10]);
-				int numPSMs = Integer.valueOf(line.split("\t")[5]);
+				Double fdr = Double.valueOf(line.split("\t")[12]);
+				Double ratio = Double.valueOf(line.split("\t")[9]);
+				Double variance = Double.valueOf(line.split("\t")[14]);
+				int numPSMs = Integer.valueOf(line.split("\t")[6]);
 
 				if (!"".equals(string)) {
 					if (fdr <= fdrThreshol) {

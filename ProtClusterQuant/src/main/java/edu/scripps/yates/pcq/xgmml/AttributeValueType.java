@@ -11,14 +11,21 @@ public class AttributeValueType {
 
 	public AttributeValueType(Object value) {
 		this.value = value;
+		type = evaluateType(value);
+
+	}
+
+	private AttType evaluateType(Object value2) {
 		if (isNumeric(value)) {
 			if (isInteger(value)) {
-				type = AttType.integer;
+				return AttType.integer;
 			} else {
-				type = AttType.real;
+				return AttType.real;
 			}
 		} else {
-			type = AttType.string;
+
+			return AttType.string;
+
 		}
 	}
 

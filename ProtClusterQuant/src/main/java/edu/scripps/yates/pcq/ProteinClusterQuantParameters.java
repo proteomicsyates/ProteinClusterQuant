@@ -1029,4 +1029,9 @@ public class ProteinClusterQuantParameters {
 		quantParameters.setSanxotScriptsFolder(scriptPaths);
 	}
 
+	public boolean isRemoveFilteredNodes() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 }

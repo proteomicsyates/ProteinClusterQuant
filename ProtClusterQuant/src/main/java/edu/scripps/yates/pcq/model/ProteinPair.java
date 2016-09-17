@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,8 +13,6 @@ import org.apache.log4j.Logger;
 
 import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
-import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
-import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.cases.Classification1Case;
 import edu.scripps.yates.pcq.cases.Classification2Case;
@@ -26,10 +22,8 @@ import edu.scripps.yates.utilities.maths.Maths;
 
 public class ProteinPair {
 	private static final Logger log = Logger.getLogger(ProteinPair.class);
-	private final QuantifiedProteinInterface protein1;
-	private final QuantifiedProteinInterface protein2;
-	private final ProteinCluster proteinCluster;
-
+	private final PCQProteinNode proteinNode1;
+	private final PCQProteinNode proteinNode2;
 	private boolean uniquePeptidesProt1Inconsistent = false;
 	private boolean uniquePeptidesProt2Inconsistent = false;
 	private boolean sharedPeptidesInconsistent = false;
@@ -41,181 +35,19 @@ public class ProteinPair {
 	ProteinPairPValue secondCase;
 	private final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 
-	public ProteinPair(PCQProteinNode proteinNode1, PCQProteinNode proteinNode2, ProteinCluster proteinCluster) {
-		protein1 = proteinNode1;
-		protein2 = proteinNode2;
-		this.proteinCluster = proteinCluster;
-	}
-
-	public ProteinPair(QuantifiedProteinInterface protein1, QuantifiedProteinInterface protein2,
-			ProteinCluster proteinCluster) {
-		this.protein1 = protein1;
-		this.protein2 = protein2;
-		this.proteinCluster = proteinCluster;
-	}
-
-	/**
-	 * Returns true if the {@link ProteinPair} is inconsistent according to a
-	 * QTest
-	 *
-	 * @param cond1
-	 * @param cond2
-	 * @return
-	 */
-	public boolean isInconsistenceWithQTest(QuantCondition cond1, QuantCondition cond2) {
-		// here we will have the methods for detecting inconsistencies
-
-		List<Double> listRatioPep = getCountRatios(cond1, cond2);
-
-		if (qTest(listRatioPep)) {
-			return true;
-			// or false depending on something
-			// if true, flag the cluster: proteinCluster.setFlag()
-		}
-		return false;
-	}
-
-	/**
-	 * Gets the ratio values from Protein1 in the {@link ProteinPair}
-	 *
-	 * @param cond1
-	 * @param cond2
-	 * @return
-	 */
-	private List<Double> getCountRatiosFromProtein1(QuantCondition cond1, QuantCondition cond2) {
-		return PCQUtils.getConsensusRatioValues(protein1, cond1, cond2);
-	}
-
-	/**
-	 * Gets the ratio values from Protein2 in the {@link ProteinPair}
-	 *
-	 * @param cond1
-	 * @param cond2
-	 * @return
-	 */
-	private List<Double> getCountRatiosFromProtein2(QuantCondition cond1, QuantCondition cond2) {
-		return PCQUtils.getConsensusRatioValues(protein2, cond1, cond2);
-	}
-
-	/**
-	 * Gets the ratio values from Protein1 and Protein2 in the
-	 * {@link ProteinPair}
-	 *
-	 * @param cond1
-	 * @param cond2
-	 * @return
-	 */
-	private List<Double> getCountRatios(QuantCondition cond1, QuantCondition cond2) {
-		List<Double> countList = new ArrayList<Double>();
-		countList.addAll(getCountRatiosFromProtein1(cond1, cond2));
-		countList.addAll(getCountRatiosFromProtein2(cond1, cond2));
-		return countList;
-	}
-
-	/**
-	 * Perform a Dixon's qTest over a {@link Collection} of double numbers
-	 *
-	 * @param numbers
-	 * @return
-	 */
-	public boolean qTest(Collection<Double> numbers) {
-		if (numbers.size() < 2) {
-			return false;
-		}
-		List<Double> numberList = new ArrayList<Double>();
-		numberList.addAll(numbers);
-		Set<Double> numberSet = new HashSet<Double>();
-		numberSet.addAll(numbers);
-		if (numberSet.size() < 3) {
-			return false;
-		}
-
-		// sorts the ratios to get the largest and smallest
-		Collections.sort(numberList);
-
-		Double largest = numberList.get(numberList.size() - 1);
-		Double smallest = numberList.get(0);
-
-		// finds the nearest number to the largest number
-		int substractor = 2;
-		Double nearestNumLarge = numberList.get(numbers.size() - substractor);
-		// takes into account for duplicates
-		while (Double.compare(nearestNumLarge, largest) == 0) {
-			substractor++;
-			if (numbers.size() <= substractor) {
-				return false;
-			}
-			nearestNumLarge = numberList.get(numbers.size() - substractor);
-		}
-
-		// finds the nearest number to the smallest number
-		int summator = 1;
-		Double nearestNumSmall = numberList.get(summator);
-		// takes into account for duplicates
-		while (Double.compare(nearestNumSmall, smallest) == 0) {
-			summator++;
-			if (numbers.size() - 2 == summator) {
-				return false;
-			}
-			nearestNumSmall = numberList.get(summator);
-		}
-
-		// qTest calculation
-		Double qResult1 = Math.abs(smallest - nearestNumSmall) / Math.abs(largest - smallest);
-		Double qResult2 = Math.abs(largest - nearestNumLarge) / Math.abs(largest - smallest);
-
-		// sees if the qtest result falls below or above the threshold
-		boolean flag = PCQUtils.qTestThreshold(qResult1, qResult2, numberList);
-
-		// true or false, is it inconsistent of consistent
-		return flag;
+	public ProteinPair(PCQProteinNode proteinNode1, PCQProteinNode proteinNode2) {
+		this.proteinNode1 = proteinNode1;
+		this.proteinNode2 = proteinNode2;
+		this.proteinNode1.setProteinPair(this);
+		this.proteinNode2.setProteinPair(this);
 	}
 
 	public String getAccProt1() {
-		return protein1.getAccession();
+		return proteinNode1.getAccession();
 	}
 
 	public String getAccProt2() {
-		return protein2.getAccession();
-	}
-
-	// gets the number of peptides associated with the protein pair
-	public String getNumDataPoints(QuantCondition cond1, QuantCondition cond2) {
-		List<Double> ratioList = getCountRatios(cond1, cond2);
-		String countString = String.valueOf(ratioList.size());
-		return countString;
-	}
-
-	// gets the mean of the ratios from the protein pair
-	public String getMean(QuantCondition cond1, QuantCondition cond2) {
-		List<Double> ratioList = getCountRatios(cond1, cond2);
-		double mean = Maths.mean(ratioList.toArray(new Double[0]));
-		String meanString = Double.toString(mean);
-		return meanString;
-	}
-
-	// gets the standard deviation of the ratios from the protein pair
-	public String getStandardDeviation(QuantCondition cond1, QuantCondition cond2) {
-		List<Double> ratioList = getCountRatios(cond1, cond2);
-		double stddev = Maths.stddev(ratioList.toArray(new Double[0]));
-		String stddevString = Double.toString(stddev);
-		return stddevString;
-	}
-
-	// gets the max ratio from the protein pair
-	public String getMaxRatio(QuantCondition cond1, QuantCondition cond2) {
-		List<Double> ratioList = getCountRatios(cond1, cond2);
-		Double max = PCQUtils.findLargestNumber(ratioList);
-		String maxString = Double.toString(max);
-		return maxString;
-	}
-
-	// gets the min ratio from the protein pair
-	public String getMinRatio(QuantCondition cond1, QuantCondition cond2) {
-		List<Double> ratioList = getCountRatios(cond1, cond2);
-		Double min = PCQUtils.findSmallestNumber(ratioList);
-		String minString = Double.toString(min);
-		return minString;
+		return proteinNode2.getAccession();
 	}
 
 	public void proteinPairAnalysis(QuantCondition cond1, QuantCondition cond2) throws IOException {
@@ -224,36 +56,37 @@ public class ProteinPair {
 
 		// Protein 1's unique peptides
 		// has only ratios or inf
-		QuantRatio consensusRatio1 = PCQUtils.getUniqueConsensusPeptideRatio(protein1, protein2, cond1, cond2,
+		QuantRatio consensusRatio1 = PCQUtils.getUniqueConsensusPeptideRatio(proteinNode1, proteinNode2, cond1, cond2,
 				params.isUniquePepOnly());
 
 		Double log2CountRatio1 = PCQUtils.getRatioValue(consensusRatio1, cond1, cond2);
 		threeCombined.add(log2CountRatio1);
-		List<Double> pepRatProt1 = PCQUtils.getUniquePepRatioValues(protein1, protein2, cond1, cond2,
-				params.isUniquePepOnly());
+		List<Double> pepRatProt1 = PCQUtils.getUniqueIndividualPeptideRatioValues(proteinNode1, proteinNode2, cond1,
+				cond2, params.isUniquePepOnly());
 
 		// shared peptides
-		QuantRatio consensusRatio2 = PCQUtils.getSharedConsensusPeptideRatio(protein1, protein2, cond1, cond2);
+		QuantRatio consensusRatio2 = PCQUtils.getSharedConsensusPeptideRatio(proteinNode1, proteinNode2, cond1, cond2);
 		Double log2CountRatioShared = PCQUtils.getRatioValue(consensusRatio2, cond1, cond2);
 		threeCombined.add(log2CountRatioShared);
-		List<Double> pepRatShared = PCQUtils.getSharedPepRatioValues(protein1, protein2, cond1, cond2);
+		List<Double> pepRatShared = PCQUtils.getSharedIndividualPeptideRatioValues(proteinNode1, proteinNode2, cond1,
+				cond2);
 
 		// protein 2's peptides
-		QuantRatio consensusRatio3 = PCQUtils.getUniqueConsensusPeptideRatio(protein2, protein1, cond1, cond2,
+		QuantRatio consensusRatio3 = PCQUtils.getUniqueConsensusPeptideRatio(proteinNode2, proteinNode1, cond1, cond2,
 				params.isUniquePepOnly());
 		Double log2CountRatio3 = PCQUtils.getRatioValue(consensusRatio3, cond1, cond2);
 		threeCombined.add(log2CountRatio3);
-		List<Double> pepRatProt2 = PCQUtils.getUniquePepRatioValues(protein2, protein1, cond1, cond2,
-				params.isUniquePepOnly());
+		List<Double> pepRatProt2 = PCQUtils.getUniqueIndividualPeptideRatioValues(proteinNode2, proteinNode1, cond1,
+				cond2, params.isUniquePepOnly());
 
-		final Map<String, Set<QuantifiedPeptideInterface>> sharedPeptidesMap = PCQUtils.getSharedPeptidesMap(protein1,
-				protein2, false);
+		final Map<String, Set<PCQPeptideNode>> sharedPeptidesMap = PCQUtils.getSharedPeptideNodesMap(proteinNode1,
+				proteinNode2, false, true);
 		for (String sharedPeptidesProteinKey : sharedPeptidesMap.keySet()) {
-			final Set<QuantifiedPeptideInterface> sharedPeptides = sharedPeptidesMap.get(sharedPeptidesProteinKey);
-			final Set<QuantifiedPeptideInterface> uniques1 = PCQUtils.getUniquePeptides(protein1, protein2,
-					params.isUniquePepOnly());
-			final Set<QuantifiedPeptideInterface> uniques2 = PCQUtils.getUniquePeptides(protein2, protein1,
-					params.isUniquePepOnly());
+			final Set<PCQPeptideNode> sharedPeptides = sharedPeptidesMap.get(sharedPeptidesProteinKey);
+			final Set<PCQPeptideNode> uniques1 = PCQUtils.getUniquePeptideNodes(proteinNode1, proteinNode2,
+					params.isUniquePepOnly(), true);
+			final Set<PCQPeptideNode> uniques2 = PCQUtils.getUniquePeptideNodes(proteinNode2, proteinNode1,
+					params.isUniquePepOnly(), true);
 			classifyPairByClassification2(params.getThresholdForSignificance(), uniques1, uniques2, sharedPeptides,
 					sharedPeptidesProteinKey, cond1, cond2);
 
@@ -276,10 +109,9 @@ public class ProteinPair {
 	 * @param cond2
 	 * @throws IOException
 	 */
-	private void classifyPairByClassification2(double thresholdForSignificance,
-			Collection<QuantifiedPeptideInterface> uniques1, Collection<QuantifiedPeptideInterface> uniques2,
-			Collection<QuantifiedPeptideInterface> shared, String sharedPeptidesProteinKey, QuantCondition cond1,
-			QuantCondition cond2) throws IOException {
+	private void classifyPairByClassification2(double thresholdForSignificance, Collection<PCQPeptideNode> uniques1,
+			Collection<PCQPeptideNode> uniques2, Collection<PCQPeptideNode> shared, String sharedPeptidesProteinKey,
+			QuantCondition cond1, QuantCondition cond2) throws IOException {
 		// if (protein1.getAccession().equals("P29845") ||
 		// protein2.getAccession().equals("B4LMH0")) {
 		// System.out.println(this);
@@ -413,7 +245,7 @@ public class ProteinPair {
 					// plus fold change
 					if ((Double.compare(sharedRatio, unique1Ratio - foldChange) < 0)
 							|| Double.compare(sharedRatio, unique2Ratio + foldChange) > 0) {
-						boolean isSharedPeptideSharedByOtherProteinOutOfThePair = isSharedPeptideSharedByOtherProteinOutOfThePair(
+						boolean isSharedPeptideSharedByOtherProteinOutOfThePair = isSharedPeptideNodeSharedByOtherProteinNodeOutOfThePair(
 								cond1, cond2);
 						if (isSharedPeptideSharedByOtherProteinOutOfThePair) {
 							classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.CASE2);
@@ -518,7 +350,7 @@ public class ProteinPair {
 					// because an external protein or not.
 					// whether one of the shared peptides are related to another
 					// protein not being the ones in this {@link ProteinPair}
-					boolean isSharedPeptideSharedByOtherProteinOutOfThePair = isSharedPeptideSharedByOtherProteinOutOfThePair(
+					boolean isSharedPeptideSharedByOtherProteinOutOfThePair = isSharedPeptideNodeSharedByOtherProteinNodeOutOfThePair(
 							cond1, cond2);
 					sharedPeptidesInconsistent = true;
 					if (isSharedPeptideSharedByOtherProteinOutOfThePair) {
@@ -565,9 +397,10 @@ public class ProteinPair {
 		classification1Cases.put(sharedPeptidesProteinKey, classification1Case);
 	}
 
-	private boolean isSharedPeptideSharedByOtherProteinOutOfThePair(QuantCondition cond1, QuantCondition cond2) {
-		final Map<String, Set<QuantifiedPeptideInterface>> sharedPeptides = PCQUtils
-				.getSharedPeptidesByProtein(protein1, protein2, false);
+	private boolean isSharedPeptideNodeSharedByOtherProteinNodeOutOfThePair(QuantCondition cond1,
+			QuantCondition cond2) {
+		final Map<String, Set<PCQPeptideNode>> sharedPeptides = PCQUtils
+				.getSharedPeptideNodesByProteinNode(proteinNode1, proteinNode2, false);
 		if (sharedPeptides.size() > 2) {
 			return true;
 		}
@@ -672,21 +505,6 @@ public class ProteinPair {
 		outputKMeans = output;
 	}
 
-	public ProteinPairPValue getFirstCase() {
-		return firstCase;
-	}
-
-	public ProteinPairPValue getSecondCase() {
-		return secondCase;
-	}
-
-	/**
-	 * @return the proteinCluster
-	 */
-	public ProteinCluster getProteinCluster() {
-		return proteinCluster;
-	}
-
 	/**
 	 * [PROTEIN1: UniqueTo1Peptides] [SharedPeptides] [PROTEIN2:
 	 * UniqueTo2Peptides]
@@ -695,46 +513,47 @@ public class ProteinPair {
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
 		// protein1
-		List<QuantifiedPeptideInterface> uniquePeptides1 = PCQUtils
-				.getSortedPeptidesBySequence(PCQUtils.getUniquePeptides(protein1, protein2, params.isUniquePepOnly()));
+		List<PCQPeptideNode> uniquePeptideNodes1 = PCQUtils.getSortedPeptideNodesBySequence(
+				PCQUtils.getUniquePeptideNodes(proteinNode1, proteinNode2, params.isUniquePepOnly(), true));
 		StringBuilder sb1 = new StringBuilder();
-		for (QuantifiedPeptideInterface quantifiedPeptide : uniquePeptides1) {
+		for (PCQPeptideNode quantifiedPeptideNode : uniquePeptideNodes1) {
 			if (!"".equals(sb1.toString())) {
 				sb1.append(",");
 			}
-			sb1.append(quantifiedPeptide.getSequence());
+			sb1.append(quantifiedPeptideNode.getSequence());
 		}
-		sb.append("[" + protein1.getAccession() + ": " + sb1.toString() + "] ");
+		sb.append("[" + proteinNode1.getAccession() + ": " + sb1.toString() + "] ");
 		// shared
 		// protein1
-		String shared = PCQUtils.getPeptidesSequenceString(PCQUtils.getSharedPeptidesMap(protein1, protein2, false));
+		String shared = PCQUtils
+				.getPeptideNodesSequenceString(PCQUtils.getSharedPeptideNodeSet(proteinNode1, proteinNode2, false));
 		sb.append("[SHARED: " + shared + "] ");
 		// protein2
-		List<QuantifiedPeptideInterface> uniquePeptides2 = PCQUtils
-				.getSortedPeptidesBySequence(PCQUtils.getUniquePeptides(protein2, protein1, params.isUniquePepOnly()));
+		List<PCQPeptideNode> uniquePeptideNodes2 = PCQUtils.getSortedPeptideNodesBySequence(
+				PCQUtils.getUniquePeptideNodes(proteinNode2, proteinNode1, params.isUniquePepOnly(), true));
 		StringBuilder sb2 = new StringBuilder();
-		for (QuantifiedPeptideInterface quantifiedPeptide : uniquePeptides2) {
+		for (PCQPeptideNode peptideNode : uniquePeptideNodes2) {
 			if (!"".equals(sb2.toString())) {
 				sb2.append(",");
 			}
-			sb2.append(quantifiedPeptide.getSequence());
+			sb2.append(peptideNode.getSequence());
 		}
-		sb.append("[" + protein2.getAccession() + ": " + sb2.toString() + "] ");
+		sb.append("[" + proteinNode2.getAccession() + ": " + sb2.toString() + "] ");
 		return sb.toString();
 	}
 
 	/**
 	 * @return the protein1
 	 */
-	public QuantifiedProteinInterface getProtein1() {
-		return protein1;
+	public PCQProteinNode getProteinNode1() {
+		return proteinNode1;
 	}
 
 	/**
 	 * @return the protein2
 	 */
-	public QuantifiedProteinInterface getProtein2() {
-		return protein2;
+	public PCQProteinNode getProteinNode2() {
+		return proteinNode2;
 	}
 
 	/**
@@ -778,20 +597,20 @@ public class ProteinPair {
 	 */
 	public List<String> getSummaryLines(QuantCondition cond1, QuantCondition cond2) {
 		List<String> ret = new ArrayList<String>();
-		final Map<String, Set<QuantifiedPeptideInterface>> sharedPeptidesMap = PCQUtils.getSharedPeptidesMap(protein1,
-				protein2, false);
+		final Map<String, Set<PCQPeptideNode>> sharedPeptidesMap = PCQUtils.getSharedPeptideNodesMap(proteinNode1,
+				proteinNode2, false, true);
 		for (String proteinKey : sharedPeptidesMap.keySet()) {
-			final Set<QuantifiedPeptideInterface> sharedPeptides = sharedPeptidesMap.get(proteinKey);
+			final Set<PCQPeptideNode> sharedPeptideNodes = sharedPeptidesMap.get(proteinKey);
 			final Classification2Case classification2Case = classification2Cases.get(proteinKey);
 			final Classification1Case classification1Case = classification1Cases.get(proteinKey);
 			StringBuilder sb = new StringBuilder();
 			// UniquePep1
-			final Set<QuantifiedPeptideInterface> uniquePeptides1 = PCQUtils.getUniquePeptides(protein1, protein2,
-					true);
-			sb.append(PCQUtils.getPeptidesSequenceString(uniquePeptides1) + "\t");
+			final Set<PCQPeptideNode> uniquePeptideNodes1 = PCQUtils.getUniquePeptideNodes(proteinNode1, proteinNode2,
+					true, true);
+			sb.append(PCQUtils.getPeptideNodesSequenceString(uniquePeptideNodes1) + "\t");
 			// RatioU1
 			Double value1 = Double.NaN;
-			final QuantRatio consensusRatio1 = PCQUtils.getConsensusRatio(uniquePeptides1, cond1, cond2, null);
+			final QuantRatio consensusRatio1 = PCQUtils.getConsensusRatio(uniquePeptideNodes1, cond1, cond2, null);
 			if (consensusRatio1 != null) {
 				Double log2Ratio = consensusRatio1.getLog2Ratio(cond1, cond2);
 				if (log2Ratio != null) {
@@ -800,12 +619,12 @@ public class ProteinPair {
 			}
 			sb.append(value1 + "\t");
 			// Protein1
-			sb.append(protein1.getAccession() + "\t");
+			sb.append(proteinNode1.getAccession() + "\t");
 			// Shared peptide
-			sb.append(PCQUtils.getPeptidesSequenceString(sharedPeptides) + "\t");
+			sb.append(PCQUtils.getPeptideNodesSequenceString(sharedPeptideNodes) + "\t");
 			// shared peptide ratio
 			Double valueShared = Double.NaN;
-			final QuantRatio consensusRatioShared = PCQUtils.getConsensusRatio(sharedPeptides, cond1, cond2, null);
+			final QuantRatio consensusRatioShared = PCQUtils.getConsensusRatio(sharedPeptideNodes, cond1, cond2, null);
 			if (consensusRatioShared != null) {
 				Double log2Ratio = consensusRatioShared.getLog2Ratio(cond1, cond2);
 				if (log2Ratio != null) {
@@ -814,14 +633,14 @@ public class ProteinPair {
 			}
 			sb.append(valueShared + "\t");
 			// Protein2
-			sb.append(protein2.getAccession() + "\t");
+			sb.append(proteinNode2.getAccession() + "\t");
 			// UniquePep2
-			final Set<QuantifiedPeptideInterface> uniquePeptides2 = PCQUtils.getUniquePeptides(protein2, protein1,
-					true);
-			sb.append(PCQUtils.getPeptidesSequenceString(uniquePeptides2) + "\t");
+			final Set<PCQPeptideNode> uniquePeptideNodes2 = PCQUtils.getUniquePeptideNodes(proteinNode2, proteinNode1,
+					true, true);
+			sb.append(PCQUtils.getPeptideNodesSequenceString(uniquePeptideNodes2) + "\t");
 			// RatioU2
 			Double value2 = Double.NaN;
-			final QuantRatio consensusRatio2 = PCQUtils.getConsensusRatio(uniquePeptides2, cond1, cond2, null);
+			final QuantRatio consensusRatio2 = PCQUtils.getConsensusRatio(uniquePeptideNodes2, cond1, cond2, null);
 			if (consensusRatio2 != null) {
 				final Double log2Ratio = consensusRatio2.getLog2Ratio(cond1, cond2);
 				if (log2Ratio != null) {

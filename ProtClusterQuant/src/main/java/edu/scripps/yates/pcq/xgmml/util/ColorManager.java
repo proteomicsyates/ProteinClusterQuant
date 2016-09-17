@@ -177,4 +177,12 @@ public class ColorManager {
 		this.alignedPeptidesEdgeColor = alignedPeptidesEdgeColor;
 	}
 
+	public Color getFillColorForDiscardedNode() {
+		return Color.LIGHT_GRAY;
+	}
+
+	public Color getLabelColorForDiscardedNode() {
+		return Color.gray;
+	}
+
 }

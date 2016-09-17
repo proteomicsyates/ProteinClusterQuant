@@ -15,8 +15,8 @@ import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
+import edu.scripps.yates.census.read.util.QuantUtils;
 import edu.scripps.yates.pcq.util.PCQUtils;
-import edu.scripps.yates.utilities.proteomicsmodel.Amount;
 
 /**
  * Wrapper class for a peptide node, that could contain more than one
@@ -27,7 +27,7 @@ import edu.scripps.yates.utilities.proteomicsmodel.Amount;
  * @author Salva
  *
  */
-public class PCQPeptideNode implements QuantifiedPeptideInterface {
+public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	private final static Logger log = Logger.getLogger(PCQPeptideNode.class);
 
 	private final Set<QuantifiedPeptideInterface> peptideSet = new HashSet<QuantifiedPeptideInterface>();
@@ -37,8 +37,6 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 	private final Set<PCQProteinNode> proteinNodes = new HashSet<PCQProteinNode>();
 
 	private final Map<String, QuantRatio> consensusRatiosByReplicateName = new HashMap<String, QuantRatio>();
-
-	private boolean discarded;
 
 	private final ProteinCluster proteinCluster;
 
@@ -55,7 +53,7 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 		this.proteinCluster = proteinCluster;
 	}
 
-	public Set<PCQProteinNode> getPCQProteinNodes() {
+	public Set<PCQProteinNode> getProteinNodes() {
 		return proteinNodes;
 	}
 
@@ -74,22 +72,14 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 		this.confidenceValue = confidenceValue;
 	}
 
-	@Override
 	public String getSequence() {
 		return PCQUtils.getPeptidesSequenceString(peptideSet);
 	}
 
-	@Override
 	public String getFullSequence() {
-		return PCQUtils.getPeptidesFullSequenceString(peptideSet);
+		return QuantUtils.getPeptidesFullSequenceString(peptideSet);
 	}
 
-	@Override
-	public Float getCalcMHplus() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
 	public Set<String> getTaxonomies() {
 		Set<String> set = new HashSet<String>();
 		final Set<QuantifiedProteinInterface> quantifiedProteins = getQuantifiedProteins();
@@ -100,17 +90,10 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 		return set;
 	}
 
-	@Override
-	public Float getMHplus() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
 	public String getKey() {
 		return getSequence();
 	}
 
-	@Override
 	public Set<QuantRatio> getRatios() {
 		Set<QuantRatio> ratios = new HashSet<QuantRatio>();
 		for (QuantifiedPeptideInterface peptide : peptideSet) {
@@ -122,7 +105,6 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 		return ratios;
 	}
 
-	@Override
 	public QuantRatio getConsensusRatio(QuantCondition cond1, QuantCondition cond2) {
 		for (QuantRatio ratio : consensusRatios) {
 			if (ratio.getCondition1().equals(cond1) && ratio.getCondition2().equals(cond2)) {
@@ -143,7 +125,7 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 
 	private QuantRatio getIonCountRatio(QuantCondition cond1, QuantCondition cond2) {
 		Set<IsobaricQuantifiedPeptide> isobaricPeptides = new HashSet<IsobaricQuantifiedPeptide>();
-		final Set<QuantifiedPeptideInterface> individualPeptides = getIndividualPeptides();
+		final Set<QuantifiedPeptideInterface> individualPeptides = getQuantifiedPeptides();
 		for (QuantifiedPeptideInterface quantifiedPeptideInterface : individualPeptides) {
 			if (quantifiedPeptideInterface instanceof IsobaricQuantifiedPeptide) {
 				isobaricPeptides.add((IsobaricQuantifiedPeptide) quantifiedPeptideInterface);
@@ -167,7 +149,6 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 		}
 	}
 
-	@Override
 	public Set<QuantRatio> getNonInfinityRatios() {
 		Set<QuantRatio> ratios = new HashSet<QuantRatio>();
 		for (QuantifiedPeptideInterface peptide : peptideSet) {
@@ -180,41 +161,11 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 	}
 
 	@Override
-	public void addRatio(QuantRatio ratio) {
-		throw new IllegalArgumentException("Not allowed");
-
-	}
-
-	@Override
-	public double getMeanRatios(QuantCondition quantConditionNumerator, QuantCondition quantConditionDenominator) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public double getSTDRatios(QuantCondition quantConditionNumerator, QuantCondition quantConditionDenominator) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public Set<Amount> getAmounts() {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void addAmount(Amount amount) {
-		throw new UnsupportedOperationException();
-	}
-
-	/**
-	 * Gets all the {@link PCQProteinNode} connected to this
-	 * {@link PCQPeptideNode}
-	 */
-	@Override
 	public Set<QuantifiedProteinInterface> getQuantifiedProteins() {
 		Set<QuantifiedProteinInterface> proteins = new HashSet<QuantifiedProteinInterface>();
 
-		for (PCQProteinNode proteinNode : proteinNodes) {
-			proteins.add(proteinNode);
+		for (PCQProteinNode proteinNode : getProteinNodes()) {
+			proteins.addAll(proteinNode.getQuantifiedProteins());
 		}
 		return proteins;
 	}
@@ -222,37 +173,24 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 	@Override
 	public Set<QuantifiedPSMInterface> getQuantifiedPSMs() {
 		Set<QuantifiedPSMInterface> ret = new HashSet<QuantifiedPSMInterface>();
-		for (QuantifiedPeptideInterface peptide : peptideSet) {
+		for (QuantifiedPeptideInterface peptide : getQuantifiedPeptides()) {
 			ret.addAll(peptide.getQuantifiedPSMs());
 		}
 		return ret;
 	}
 
 	@Override
-	public Set<String> getRawFileNames() {
-		Set<String> rawFileNames = new HashSet<String>();
-		for (QuantifiedPSMInterface psm : getQuantifiedPSMs()) {
-			rawFileNames.add(psm.getRawFileName());
-		}
-		return rawFileNames;
-	}
-
 	public Set<QuantifiedPeptideInterface> getQuantifiedPeptides() {
 		return peptideSet;
-	}
-
-	@Override
-	public boolean addQuantifiedPSM(QuantifiedPSMInterface psm) {
-		throw new IllegalArgumentException("Not allowed");
 	}
 
 	public boolean addQuantifiedPeptide(QuantifiedPeptideInterface peptide) {
 		return peptideSet.add(peptide);
 	}
 
-	public void disconnectPeptidesInNode() {
+	public void removePeptidesFromProteinsInNode() {
 		for (QuantifiedPeptideInterface peptide : peptideSet) {
-			PCQUtils.discardPeptide(peptide);
+			QuantUtils.discardPeptide(peptide);
 		}
 	}
 
@@ -285,21 +223,6 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 		return ret;
 	}
 
-	@Override
-	public void addFileName(String fileName) {
-		log.error("addFileName not supported by Peptide Node");
-	}
-
-	@Override
-	public Set<String> getFileNames() {
-		Set<String> fileNames = new HashSet<String>();
-		for (QuantifiedPSMInterface psm : getQuantifiedPSMs()) {
-			fileNames.addAll(psm.getFileNames());
-		}
-		return fileNames;
-	}
-
-	@Override
 	public QuantRatio getConsensusRatio(QuantCondition quantConditionNumerator,
 			QuantCondition quantConditionDenominator, String replicateName) {
 		if (replicateName != null) {
@@ -309,23 +232,23 @@ public class PCQPeptideNode implements QuantifiedPeptideInterface {
 		}
 	}
 
-	public Set<QuantifiedPeptideInterface> getIndividualPeptides() {
+	@Override
+	public Set<QuantifiedPeptideInterface> getItemsInNode() {
 		return peptideSet;
-	}
-
-	@Override
-	public void setDiscarded(boolean b) {
-		discarded = b;
-
-	}
-
-	@Override
-	public boolean isDiscarded() {
-		return discarded;
 	}
 
 	public ProteinCluster getCluster() {
 		return proteinCluster;
+	}
+
+	public Set<QuantifiedProteinInterface> getNonDiscardedQuantifiedProteins() {
+		Set<QuantifiedProteinInterface> ret = new HashSet<QuantifiedProteinInterface>();
+		for (QuantifiedProteinInterface protein : getQuantifiedProteins()) {
+			if (!protein.isDiscarded()) {
+				ret.add(protein);
+			}
+		}
+		return ret;
 	}
 
 }
