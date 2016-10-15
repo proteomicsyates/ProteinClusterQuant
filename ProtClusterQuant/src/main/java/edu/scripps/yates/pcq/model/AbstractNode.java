@@ -3,12 +3,13 @@ package edu.scripps.yates.pcq.model;
 import java.util.HashSet;
 import java.util.Set;
 
+import edu.scripps.yates.census.read.model.interfaces.HasKey;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedItem;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 
-public abstract class AbstractNode<T extends QuantifiedItem> implements QuantifiedItem {
+public abstract class AbstractNode<T extends QuantifiedItem> implements QuantifiedItem, HasKey {
 	private boolean discarded;
 
 	public abstract Set<QuantifiedPSMInterface> getQuantifiedPSMs();
@@ -18,6 +19,9 @@ public abstract class AbstractNode<T extends QuantifiedItem> implements Quantifi
 	public abstract Set<QuantifiedProteinInterface> getQuantifiedProteins();
 
 	public abstract Set<T> getItemsInNode();
+
+	@Override
+	public abstract String getKey();
 
 	@Override
 	public void setDiscarded(boolean b) {
@@ -66,5 +70,16 @@ public abstract class AbstractNode<T extends QuantifiedItem> implements Quantifi
 		}
 		return ret;
 
+	}
+
+	@Override
+	public boolean isQuantified() {
+
+		for (T t : getItemsInNode()) {
+			if (t.isQuantified()) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

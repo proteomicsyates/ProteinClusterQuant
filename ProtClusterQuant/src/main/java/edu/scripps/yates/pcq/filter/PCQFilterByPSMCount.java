@@ -11,6 +11,7 @@ public class PCQFilterByPSMCount extends PCQFilter {
 
 	public PCQFilterByPSMCount(int minPSMCountPerNode) {
 		this.minPSMCountPerNode = minPSMCountPerNode;
+		log.info("Creating filter by psm count=" + minPSMCountPerNode);
 	}
 
 	@Override
@@ -25,6 +26,11 @@ public class PCQFilterByPSMCount extends PCQFilter {
 		if (psmCount >= minPSMCountPerNode) {
 			return true;
 		}
+		return false;
+	}
+
+	@Override
+	protected boolean filterNonQuantifiedNodes() {
 		return false;
 	}
 

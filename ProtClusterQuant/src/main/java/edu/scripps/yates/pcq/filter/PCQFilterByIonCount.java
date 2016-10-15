@@ -26,4 +26,9 @@ public class PCQFilterByIonCount extends PCQFilter {
 		return false;
 	}
 
+	@Override
+	protected boolean filterNonQuantifiedNodes() {
+		return false;
+	}
+
 }

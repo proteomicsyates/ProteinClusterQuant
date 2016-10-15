@@ -3,20 +3,21 @@ package edu.scripps.yates.pcq.model;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
 
 import edu.scripps.yates.census.analysis.QuantCondition;
-import edu.scripps.yates.census.read.model.IsobaricQuantifiedPeptide;
+import edu.scripps.yates.census.read.model.CensusRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 import edu.scripps.yates.census.read.util.QuantUtils;
 import edu.scripps.yates.pcq.util.PCQUtils;
+import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 
 /**
  * Wrapper class for a peptide node, that could contain more than one
@@ -30,6 +31,8 @@ import edu.scripps.yates.pcq.util.PCQUtils;
 public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	private final static Logger log = Logger.getLogger(PCQPeptideNode.class);
 
+	public static final String INTEGRATED_PEPTIDE_NODE_RATIO = "Integrated peptide node ratio";
+
 	private final Set<QuantifiedPeptideInterface> peptideSet = new HashSet<QuantifiedPeptideInterface>();
 	private Double confidenceValue;
 	private final Set<QuantRatio> consensusRatios = new HashSet<QuantRatio>();
@@ -39,6 +42,8 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	private final Map<String, QuantRatio> consensusRatiosByReplicateName = new HashMap<String, QuantRatio>();
 
 	private final ProteinCluster proteinCluster;
+
+	private String key;
 
 	public PCQPeptideNode(ProteinCluster proteinCluster, Collection<QuantifiedPeptideInterface> peptideCollection) {
 		peptideSet.addAll(peptideCollection);
@@ -90,8 +95,18 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 		return set;
 	}
 
+	@Override
 	public String getKey() {
-		return getSequence();
+		if (key != null) {
+			return key;
+		}
+		return getFullSequence();
+	}
+
+	@Override
+	public void setKey(String key) {
+		this.key = key;
+
 	}
 
 	public Set<QuantRatio> getRatios() {
@@ -106,6 +121,8 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	}
 
 	public QuantRatio getConsensusRatio(QuantCondition cond1, QuantCondition cond2) {
+		// first look if there is an externally set consensus ratio that can be
+		// come from the ratio integration analysis
 		for (QuantRatio ratio : consensusRatios) {
 			if (ratio.getCondition1().equals(cond1) && ratio.getCondition2().equals(cond2)) {
 				return ratio;
@@ -114,27 +131,11 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 				return ratio;
 			}
 		}
-		// instead of returning a null ratio, return the ion count ratio if
-		// possible
-		QuantRatio ionCountRatio = getIonCountRatio(cond1, cond2);
-		if (ionCountRatio != null) {
-			return ionCountRatio;
-		}
-		return null;
-	}
+		// return Nan ratio
+		CensusRatio ratio = new CensusRatio(Double.NaN, false, cond1, cond2, AggregationLevel.PEPTIDE_NODE,
+				INTEGRATED_PEPTIDE_NODE_RATIO);
+		return ratio;
 
-	private QuantRatio getIonCountRatio(QuantCondition cond1, QuantCondition cond2) {
-		Set<IsobaricQuantifiedPeptide> isobaricPeptides = new HashSet<IsobaricQuantifiedPeptide>();
-		final Set<QuantifiedPeptideInterface> individualPeptides = getQuantifiedPeptides();
-		for (QuantifiedPeptideInterface quantifiedPeptideInterface : individualPeptides) {
-			if (quantifiedPeptideInterface instanceof IsobaricQuantifiedPeptide) {
-				isobaricPeptides.add((IsobaricQuantifiedPeptide) quantifiedPeptideInterface);
-			}
-		}
-		if (isobaricPeptides.isEmpty()) {
-			return null;
-		}
-		return PCQUtils.getConsensusIonCountRatio(isobaricPeptides, cond1, cond2);
 	}
 
 	public boolean addConsensusRatio(QuantRatio ratio) {
@@ -143,6 +144,7 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 
 	public boolean addConsensusRatio(QuantRatio ratio, String replicateName) {
 		if (replicateName != null) {
+
 			return consensusRatiosByReplicateName.put(replicateName, ratio) != null;
 		} else {
 			return addConsensusRatio(ratio);
@@ -189,22 +191,20 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	}
 
 	public void removePeptidesFromProteinsInNode() {
-		for (QuantifiedPeptideInterface peptide : peptideSet) {
+		final Iterator<QuantifiedPeptideInterface> peptideSetIterator = peptideSet.iterator();
+		while (peptideSetIterator.hasNext()) {
+			QuantifiedPeptideInterface peptide = peptideSetIterator.next();
 			QuantUtils.discardPeptide(peptide);
+			if (peptide.getQuantifiedProteins().isEmpty() || peptide.getQuantifiedPSMs().isEmpty()) {
+				peptideSetIterator.remove();
+			}
 		}
 	}
 
 	@Override
 	public String toString() {
-		final List<QuantifiedPeptideInterface> quantifiedPeptides = PCQUtils.getSortedPeptidesBySequence(peptideSet);
-		StringBuilder sb = new StringBuilder();
-		for (QuantifiedPeptideInterface quantifiedPeptideInterface : quantifiedPeptides) {
-			if (!"".equals(sb.toString())) {
-				sb.append(",");
-			}
-			sb.append(quantifiedPeptideInterface.getSequence() + "'");
-		}
-		return "{" + getSequence() + "'}";
+
+		return "{" + getFullSequence() + "'}";
 	}
 
 	public boolean addProteinNode(PCQProteinNode proteinNode) {
@@ -249,6 +249,15 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 			}
 		}
 		return ret;
+	}
+
+	public boolean containsPTMs() {
+		for (QuantifiedPeptideInterface peptide : getItemsInNode()) {
+			if (peptide.containsPTMs()) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 }

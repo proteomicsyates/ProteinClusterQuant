@@ -34,7 +34,7 @@ import edu.scripps.yates.utilities.exec.ProcessExecutorHandler;
 public class SanxotRunner {
 	private final QuantAnalysis quantAnalysis;
 	private final static Logger log = Logger.getLogger(SanxotRunner.class);
-	public static final long DEFAULT_TIMEOUT = 1000 * 60 * 1;// 1 min
+	public static final long DEFAULT_TIMEOUT = 1000 * 60 * 20;// 20 min
 
 	public SanxotRunner(ProteinClusterQuant pcq, QuantificationType quantType, File workingFolder,
 			QuantCondition condition1, QuantCondition condition2, File fastaFile, QuantParameters quantParameters)
@@ -42,7 +42,7 @@ public class SanxotRunner {
 		quantAnalysis = new QuantAnalysis(quantType, workingFolder, condition1, condition2,
 				ANALYSIS_LEVEL_OUTCOME.PEPTIDE);
 		quantAnalysis.setQuantParameters(quantParameters);
-		for (ExperimentFiles experimentFiles : ProteinClusterQuantParameters.getInstance().getInputFileNames()) {
+		for (ExperimentFiles experimentFiles : ProteinClusterQuantParameters.getInstance().getInputQuantificationFileNames()) {
 			QuantExperiment quantExperiment = new QuantExperiment(experimentFiles.getExperimentName());
 			for (String replicateFileName : experimentFiles.getRelicateFileNames()) {
 				Map<QuantCondition, QuantificationLabel> labelsByConditions = pcq
@@ -80,7 +80,6 @@ public class SanxotRunner {
 
 	public SanXotAnalysisResult run() throws IOException {
 		// run sanxot until peptide level and asign a
-		quantAnalysis.setTimeout(1000 * 60 * 15);
 		quantAnalysis.runSanXot();
 		final SanXotAnalysisResult result = quantAnalysis.getResult();
 

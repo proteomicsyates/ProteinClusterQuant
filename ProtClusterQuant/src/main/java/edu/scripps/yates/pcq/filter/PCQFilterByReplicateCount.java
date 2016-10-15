@@ -11,6 +11,8 @@ public class PCQFilterByReplicateCount extends PCQFilter {
 
 	public PCQFilterByReplicateCount(int minReplicatesPerNode) {
 		this.minReplicatesPerNode = minReplicatesPerNode;
+		log.info("Creating filter by replicate count=" + minReplicatesPerNode);
+
 	}
 
 	@Override
@@ -26,6 +28,11 @@ public class PCQFilterByReplicateCount extends PCQFilter {
 		if (minReplicatesPerNode >= this.minReplicatesPerNode) {
 			return true;
 		}
+		return false;
+	}
+
+	@Override
+	protected boolean filterNonQuantifiedNodes() {
 		return false;
 	}
 

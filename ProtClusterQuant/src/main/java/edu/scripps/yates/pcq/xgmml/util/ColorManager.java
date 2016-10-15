@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
+import edu.scripps.yates.utilities.colors.ColorGenerator;
 
 public class ColorManager {
 	private final Map<String, Color> colorsByTaxonomies = new HashMap<String, Color>();
@@ -43,30 +44,6 @@ public class ColorManager {
 		return Color.WHITE;
 	}
 
-	/**
-	 *
-	 * @param colorStr
-	 *            e.g. "#FFFFFF"
-	 * @return
-	 */
-	public static Color hex2Rgb(String colorStr) {
-		try {
-			return new Color(Integer.valueOf(colorStr.substring(1, 3), 16),
-					Integer.valueOf(colorStr.substring(3, 5), 16), Integer.valueOf(colorStr.substring(5, 7), 16));
-		} catch (StringIndexOutOfBoundsException e) {
-			throw new IllegalArgumentException(colorStr + " is malformed");
-		}
-	}
-
-	public static String getHexString(Color c) {
-		if (c == null) {
-			return "#000000";
-		}
-		String hexString = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
-
-		return hexString;
-	}
-
 	// public Color getColorByClassification1Case(Classification1Case case2) {
 	// if (colorsByCases1.containsKey(case2)) {
 	// return colorsByCases1.get(case2);
@@ -92,7 +69,7 @@ public class ColorManager {
 	// }
 
 	public void addColorByTaxonomy(String tax, String colorString) {
-		final Color hex2Rgb = hex2Rgb(colorString);
+		final Color hex2Rgb = ColorGenerator.hex2Rgb(colorString);
 		if (hex2Rgb != null) {
 			addColorByTaxonomy(tax, hex2Rgb);
 		}
@@ -120,7 +97,7 @@ public class ColorManager {
 	}
 
 	public void setMultiTaxonomyColor(String multiTaxonomyColor) {
-		this.multiTaxonomyColor = hex2Rgb(multiTaxonomyColor);
+		this.multiTaxonomyColor = ColorGenerator.hex2Rgb(multiTaxonomyColor);
 	}
 
 	/**
@@ -158,7 +135,7 @@ public class ColorManager {
 	// }
 
 	public void setAlignedPeptidesEdgeColor(String alignedPeptideEdgecolor) {
-		alignedPeptidesEdgeColor = hex2Rgb(alignedPeptideEdgecolor);
+		alignedPeptidesEdgeColor = ColorGenerator.hex2Rgb(alignedPeptideEdgecolor);
 
 	}
 

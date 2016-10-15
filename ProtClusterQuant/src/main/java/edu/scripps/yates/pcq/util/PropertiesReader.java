@@ -14,6 +14,7 @@ import edu.scripps.yates.pcq.ProteinClusterQuantProperties;
 import edu.scripps.yates.pcq.xgmml.util.ColorManager;
 import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
 import edu.scripps.yates.pcq.xgmml.util.Shape;
+import edu.scripps.yates.utilities.colors.ColorGenerator;
 
 public class PropertiesReader {
 	private static final String PROPERTIES_FILE_NAME = "setup.properties";
@@ -77,9 +78,6 @@ public class PropertiesReader {
 			boolean skipSingletons = Boolean.valueOf(properties.getProperty("skipSingletons", false));
 			params.setSkipSingletons(skipSingletons);
 		}
-		boolean generateMiscellaneousFiles = Boolean
-				.valueOf(properties.getProperty("generateMiscellaneousFiles", "false"));
-		params.setGenerateMiscellaneousFiles(generateMiscellaneousFiles);
 
 		boolean applyClassificationsByProteinPair = Boolean
 				.valueOf(properties.getProperty("applyClassificationsByProteinPairs", "false"));
@@ -130,9 +128,7 @@ public class PropertiesReader {
 		// determines if we align the peptides or not
 		boolean makeAlignments = Boolean.valueOf(properties.getProperty("makeAlignments", "false"));
 		params.setMakeAlignments(makeAlignments);
-		// if prints out data for k-means clustering
-		boolean printKMeans = Boolean.valueOf(properties.getProperty("kMeans", "true"));
-		params.setPrintKMeans(printKMeans);
+
 		// DmDv, A, B, and E use 'K'
 		// Human samples use 'K', 'R'
 		final String enzymeArrayString = properties.getProperty("enzymeArray", "K,R");
@@ -199,11 +195,26 @@ public class PropertiesReader {
 			String[] tmp = fileNamesString.split("\\|");
 			for (int i = 0; i < tmp.length; i++) {
 				ExperimentFiles experimentFiles = parseExperimentFileNames(tmp[i].trim());
-				params.addInputFileNames(experimentFiles);
+				params.addQuantificationInputFileNames(experimentFiles);
 			}
 		} else {
 			ExperimentFiles experimentFiles = parseExperimentFileNames(fileNamesString);
-			params.addInputFileNames(experimentFiles);
+			params.addQuantificationInputFileNames(experimentFiles);
+		}
+
+		// input files
+		fileNamesString = properties.getProperty("inputIDFiles", false);
+		if (fileNamesString != null) {
+			if (fileNamesString.contains("|")) {
+				String[] tmp = fileNamesString.split("\\|");
+				for (int i = 0; i < tmp.length; i++) {
+					ExperimentFiles experimentFiles = parseExperimentFileNames(tmp[i].trim());
+					params.addIdentificationInputFileNames(experimentFiles);
+				}
+			} else {
+				ExperimentFiles experimentFiles = parseExperimentFileNames(fileNamesString);
+				params.addIdentificationInputFileNames(experimentFiles);
+			}
 		}
 
 		// fasta file
@@ -294,15 +305,15 @@ public class PropertiesReader {
 		Shape peptideShape = Shape.valueOf(properties.getProperty("peptideNodeShape", "ROUNDRECT"));
 		params.setPeptideNodeShape(peptideShape);
 
-		Color colorRatioMin = ColorManager.hex2Rgb(properties.getProperty("colorRatioMin", "#00ffff"));
+		Color colorRatioMin = ColorGenerator.hex2Rgb(properties.getProperty("colorRatioMin", "#00ffff"));
 		params.setColorRatioMin(colorRatioMin);
 
-		Color colorRatioMax = ColorManager.hex2Rgb(properties.getProperty("colorRatioMax", "#00ffff"));
+		Color colorRatioMax = ColorGenerator.hex2Rgb(properties.getProperty("colorRatioMax", "#00ffff"));
 		params.setColorRatioMax(colorRatioMax);
 
 		final String colorNonRegulatedString = properties.getProperty("colorNonRegulatedPeptides", false);
 		if (colorNonRegulatedString != null) {
-			Color colorNonRegulated = ColorManager.hex2Rgb(colorNonRegulatedString);
+			Color colorNonRegulated = ColorGenerator.hex2Rgb(colorNonRegulatedString);
 			params.setColorNonRegulated(colorNonRegulated);
 		}
 
@@ -359,6 +370,17 @@ public class PropertiesReader {
 		} catch (NumberFormatException e) {
 			// do nothing
 		}
+
+		final boolean removeFilteredNodes = Boolean.valueOf(properties.getProperty("removeFilteredNodes", "true"));
+		params.setRemoveFilteredNodes(removeFilteredNodes);
+
+		final boolean statisticalTestForProteinPairApplied = Boolean
+				.valueOf(properties.getProperty("statisticalTestForProteinPairApplied", "false"));
+		params.setStatisticalTestForProteinPairApplied(statisticalTestForProteinPairApplied);
+
+		final boolean ignorePTMs = Boolean.valueOf(properties.getProperty("ignorePTMs", "true"));
+		params.setIgnorePTMs(ignorePTMs);
+
 		// check errors
 		checkErrorsInParameters(params);
 	}

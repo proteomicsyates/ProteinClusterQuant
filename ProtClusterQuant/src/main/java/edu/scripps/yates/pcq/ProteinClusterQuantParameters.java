@@ -14,6 +14,7 @@ import edu.scripps.yates.pcq.filter.PCQFilter;
 import edu.scripps.yates.pcq.filter.PCQFilterByIonCount;
 import edu.scripps.yates.pcq.filter.PCQFilterByPSMCount;
 import edu.scripps.yates.pcq.filter.PCQFilterByReplicateCount;
+import edu.scripps.yates.pcq.sanxot.SanxotRunner;
 import edu.scripps.yates.pcq.util.AnalysisInputType;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
 import edu.scripps.yates.pcq.xgmml.util.ColorManager;
@@ -33,14 +34,14 @@ public class ProteinClusterQuantParameters {
 	private boolean collapseIndistinguishableProteins;
 	private boolean collapseIndistinguishablePeptides;
 	private boolean makeAlignments;
-	private boolean printKMeans;
 	private char[] enzymeArray;
 	private int missedCleavages;
 	private boolean uniquePepOnly;
 	private File uniprotReleasesFolder;
 	private File inputFileFolder;
 	private File outputFileFolder;
-	private final List<ExperimentFiles> inputFiles = new ArrayList<ExperimentFiles>();
+	private final List<ExperimentFiles> inputQuantificationFiles = new ArrayList<ExperimentFiles>();
+	private final List<ExperimentFiles> inputIdentificationFiles = new ArrayList<ExperimentFiles>();
 	private String outputPrefix;
 	private String outputSuffix;
 	private String lightSpecies;
@@ -79,7 +80,6 @@ public class ProteinClusterQuantParameters {
 	private boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep;
 	private boolean skipSingletons;
 	private Color colorNonRegulated;
-	private boolean generateMiscellaneousFiles;
 	private String separator;
 	private boolean applyClassificationsByProteinPair;
 	private boolean analysisRun;
@@ -88,9 +88,13 @@ public class ProteinClusterQuantParameters {
 	private int replicatesPerPeptideNodeThreshold;
 	private boolean replicatesPerPeptideNodeThresholdOn;
 	private final QuantParameters quantParameters;
+	private boolean removeFilteredNodes;
+	private boolean statisticalTestForProteinPairApplied;
+	private boolean ignorePTMs;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
+		quantParameters.setTimeout(SanxotRunner.DEFAULT_TIMEOUT);
 	}
 
 	public static ProteinClusterQuantParameters getInstance() {
@@ -157,13 +161,6 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @return the printKMeans
-	 */
-	public boolean isPrintKMeans() {
-		return printKMeans;
-	}
-
-	/**
 	 * @return the enzymeArray
 	 */
 	public char[] getEnzymeArray() {
@@ -208,13 +205,13 @@ public class ProteinClusterQuantParameters {
 	/**
 	 * @return the inputFileNames
 	 */
-	public List<ExperimentFiles> getInputFileNames() {
-		return inputFiles;
+	public List<ExperimentFiles> getInputQuantificationFileNames() {
+		return inputQuantificationFiles;
 	}
 
 	public List<String> getExperimentNames() {
 		List<String> ret = new ArrayList<String>();
-		final List<ExperimentFiles> inputFileNames = getInputFileNames();
+		final List<ExperimentFiles> inputFileNames = getInputQuantificationFileNames();
 		for (ExperimentFiles experimentFiles : inputFileNames) {
 			ret.add(experimentFiles.getExperimentName());
 		}
@@ -223,7 +220,7 @@ public class ProteinClusterQuantParameters {
 
 	public Map<String, List<String>> getReplicateNamesByExperimentNameMap() {
 		Map<String, List<String>> map = new HashMap<String, List<String>>();
-		for (ExperimentFiles experimentFiles : getInputFileNames()) {
+		for (ExperimentFiles experimentFiles : getInputQuantificationFileNames()) {
 			List<String> replicateNames = new ArrayList<String>();
 			replicateNames.addAll(experimentFiles.getRelicateFileNames());
 			map.put(experimentFiles.getExperimentName(), replicateNames);
@@ -295,10 +292,6 @@ public class ProteinClusterQuantParameters {
 		this.makeAlignments = makeAlignments;
 	}
 
-	public void setPrintKMeans(boolean printKMeans) {
-		this.printKMeans = printKMeans;
-	}
-
 	public void setEnzymeArray(char[] enzymeArray) {
 		this.enzymeArray = enzymeArray;
 	}
@@ -324,8 +317,12 @@ public class ProteinClusterQuantParameters {
 		this.outputFileFolder = outputFileFolder;
 	}
 
-	public void addInputFileNames(ExperimentFiles experimentFiles) {
-		inputFiles.add(experimentFiles);
+	public void addQuantificationInputFileNames(ExperimentFiles experimentFiles) {
+		inputQuantificationFiles.add(experimentFiles);
+	}
+
+	public void addIdentificationInputFileNames(ExperimentFiles experimentFiles) {
+		inputIdentificationFiles.add(experimentFiles);
 	}
 
 	public void setOutputPrefix(String outputPrefix) {
@@ -728,36 +725,37 @@ public class ProteinClusterQuantParameters {
 				+ psmsPerPeptideNodeThreshold + ", iglewiczHoaglinTestThreshold=" + iglewiczHoaglinTestThreshold
 				+ ", collapseIndistinguishableProteins=" + collapseIndistinguishableProteins
 				+ ", collapseIndistinguishablePeptides=" + collapseIndistinguishablePeptides + ", makeAlignments="
-				+ makeAlignments + ", printKMeans=" + printKMeans + ", enzymeArray=" + Arrays.toString(enzymeArray)
-				+ ", missedCleavages=" + missedCleavages + ", uniquePepOnly=" + uniquePepOnly
-				+ ", uniprotReleasesFolder=" + uniprotReleasesFolder + ", uniprotVersion=" + uniprotVersion
-				+ ", inputFileFolder=" + inputFileFolder + ", outputFileFolder=" + outputFileFolder + ", inputFiles="
-				+ inputFiles + ", outputPrefix=" + outputPrefix + ", outputSuffix=" + outputSuffix + ", lightSpecies="
-				+ lightSpecies + ", heavySpecies=" + heavySpecies + ", colorManager=" + colorManager + ", fastaFile="
-				+ fastaFile + ", decoyRegexp=" + decoyRegexp + ", finalAlignmentScore=" + finalAlignmentScore
-				+ ", sequenceIdentity=" + sequenceIdentity + ", maxConsecutiveIdenticalAlignment="
-				+ minConsecutiveIdenticalAlignment + ", temporalOutputFolder=" + temporalOutputFolder
-				+ ", proteinLabel=" + proteinLabel + ", proteinNodeWidth=" + proteinNodeWidth + ", proteinNodeHeight="
-				+ proteinNodeHeight + ", peptideNodeWidth=" + peptideNodeWidth + ", peptideNodeHeight="
-				+ peptideNodeHeight + ", proteinNodeShape=" + proteinNodeShape + ", peptideNodeShape="
-				+ peptideNodeShape + ", minimumRatioForColor=" + minimumRatioForColor + ", maximumRatioForColor="
-				+ maximumRatioForColor + ", showCasesInEdges=" + showCasesInEdges + ", colorRatioMin=" + colorRatioMin
-				+ ", colorRatioMax=" + colorRatioMax + ", remarkSignificantPeptides=" + remarkSignificantPeptides
-				+ ", mongoDBURI=" + mongoDBURI + ", mongoProtDBName=" + mongoProtDBName + ", mongoSeqDBName="
-				+ mongoSeqDBName + ", mongoMassDBName=" + mongoMassDBName + ", ignoreNotFoundPeptidesInDB="
-				+ ignoreNotFoundPeptidesInDB + ", inputType=" + inputType + ", outliersRemovalFDR="
-				+ quantParameters.getOutlierRemovalFDR() + ", significantFDRThreshold=" + significantFDRThreshold
-				+ " ]";
+				+ makeAlignments + ", enzymeArray=" + Arrays.toString(enzymeArray) + ", missedCleavages="
+				+ missedCleavages + ", uniquePepOnly=" + uniquePepOnly + ", uniprotReleasesFolder="
+				+ uniprotReleasesFolder + ", uniprotVersion=" + uniprotVersion + ", inputFileFolder=" + inputFileFolder
+				+ ", outputFileFolder=" + outputFileFolder + ", inputQuantificationFiles=" + inputQuantificationFiles
+				+ ", inputIdentificationFiles=" + inputIdentificationFiles + ", outputPrefix=" + outputPrefix
+				+ ", outputSuffix=" + outputSuffix + ", lightSpecies=" + lightSpecies + ", heavySpecies=" + heavySpecies
+				+ ", colorManager=" + colorManager + ", fastaFile=" + fastaFile + ", decoyRegexp=" + decoyRegexp
+				+ ", finalAlignmentScore=" + finalAlignmentScore + ", sequenceIdentity=" + sequenceIdentity
+				+ ", maxConsecutiveIdenticalAlignment=" + minConsecutiveIdenticalAlignment + ", temporalOutputFolder="
+				+ temporalOutputFolder + ", proteinLabel=" + proteinLabel + ", proteinNodeWidth=" + proteinNodeWidth
+				+ ", proteinNodeHeight=" + proteinNodeHeight + ", peptideNodeWidth=" + peptideNodeWidth
+				+ ", peptideNodeHeight=" + peptideNodeHeight + ", proteinNodeShape=" + proteinNodeShape
+				+ ", peptideNodeShape=" + peptideNodeShape + ", minimumRatioForColor=" + minimumRatioForColor
+				+ ", maximumRatioForColor=" + maximumRatioForColor + ", showCasesInEdges=" + showCasesInEdges
+				+ ", colorRatioMin=" + colorRatioMin + ", colorRatioMax=" + colorRatioMax
+				+ ", remarkSignificantPeptides=" + remarkSignificantPeptides + ", mongoDBURI=" + mongoDBURI
+				+ ", mongoProtDBName=" + mongoProtDBName + ", mongoSeqDBName=" + mongoSeqDBName + ", mongoMassDBName="
+				+ mongoMassDBName + ", ignoreNotFoundPeptidesInDB=" + ignoreNotFoundPeptidesInDB + ", inputType="
+				+ inputType + ", outliersRemovalFDR=" + quantParameters.getOutlierRemovalFDR()
+				+ ", significantFDRThreshold=" + significantFDRThreshold + ", removeFilteredNodes="
+				+ removeFilteredNodes + " ]";
 	}
 
-	public String[] getInputFileNamesArray() {
+	public String[] getQuantInputFileNamesArray() {
 		int size = 0;
-		for (ExperimentFiles experimentFileName : inputFiles) {
+		for (ExperimentFiles experimentFileName : inputQuantificationFiles) {
 			size += experimentFileName.getRelicateFileNames().size();
 		}
 		String[] ret = new String[size];
 		int index = 0;
-		for (ExperimentFiles experimentFileName : inputFiles) {
+		for (ExperimentFiles experimentFileName : inputQuantificationFiles) {
 			final List<String> list = experimentFileName.getRelicateFileNames();
 			for (String fileName : list) {
 				ret[index++] = fileName;
@@ -938,18 +936,6 @@ public class ProteinClusterQuantParameters {
 		return colorNonRegulated;
 	}
 
-	public boolean isGenerateMiscellaneousFiles() {
-		return generateMiscellaneousFiles;
-	}
-
-	/**
-	 * @param generateMiscellaneousFiles
-	 *            the generateMiscellaneousFiles to set
-	 */
-	public void setGenerateMiscellaneousFiles(boolean generateMiscellaneousFiles) {
-		this.generateMiscellaneousFiles = generateMiscellaneousFiles;
-	}
-
 	public String getSeparator() {
 		return separator;
 	}
@@ -1030,8 +1016,57 @@ public class ProteinClusterQuantParameters {
 	}
 
 	public boolean isRemoveFilteredNodes() {
-		// TODO Auto-generated method stub
-		return false;
+		return removeFilteredNodes;
 	}
 
+	/**
+	 * @param removeFilteredNodes
+	 *            the removeFilteredNodes to set
+	 */
+	public void setRemoveFilteredNodes(boolean removeFilteredNodes) {
+		this.removeFilteredNodes = removeFilteredNodes;
+	}
+
+	public boolean isStatisticalTestForProteinPairApplied() {
+		return statisticalTestForProteinPairApplied;
+	}
+
+	/**
+	 * @param statisticalTestForProteinPairApplied
+	 *            the statisticalTestForProteinPairApplied to set
+	 */
+	public void setStatisticalTestForProteinPairApplied(boolean statisticalTestForProteinPairApplied) {
+		this.statisticalTestForProteinPairApplied = statisticalTestForProteinPairApplied;
+	}
+
+	/**
+	 * @return the ignorePTMs
+	 */
+	public boolean isIgnorePTMs() {
+		return ignorePTMs;
+	}
+
+	/**
+	 * @param ignorePTMs
+	 *            the ignorePTMs to set
+	 */
+	public void setIgnorePTMs(boolean ignorePTMs) {
+		this.ignorePTMs = ignorePTMs;
+	}
+
+	public String[] getIdentificationInputFileNamesArray() {
+		int size = 0;
+		for (ExperimentFiles experimentFileName : inputIdentificationFiles) {
+			size += experimentFileName.getRelicateFileNames().size();
+		}
+		String[] ret = new String[size];
+		int index = 0;
+		for (ExperimentFiles experimentFileName : inputIdentificationFiles) {
+			final List<String> list = experimentFileName.getRelicateFileNames();
+			for (String fileName : list) {
+				ret[index++] = fileName;
+			}
+		}
+		return ret;
+	}
 }

@@ -25,11 +25,10 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 	// private final static Logger log = Logger.getLogger(PCQProteinNode.class);
 	private final Set<QuantifiedProteinInterface> proteinSet = new HashSet<QuantifiedProteinInterface>();
 	private final Set<PCQPeptideNode> peptideNodes = new HashSet<PCQPeptideNode>();
-	private String accessionString;
-	private String descriptionString;
 	private HashSet<String> taxonomies;
 	private final ProteinCluster proteinCluster;
 	private ProteinPair proteinPair;
+	private String key;
 
 	public PCQProteinNode(ProteinCluster proteinCluster, Collection<QuantifiedProteinInterface> proteinCollection) {
 		proteinSet.addAll(proteinCollection);
@@ -63,22 +62,30 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 		return ret;
 	}
 
-	public String getAccession() {
-		if (accessionString == null) {
-			accessionString = PCQUtils.getAccessionString(getQuantifiedProteins());
-		}
-		return accessionString;
+	private String getAccession() {
+
+		return PCQUtils.getAccessionString(getQuantifiedProteins());
+
 	}
 
+	@Override
 	public String getKey() {
-		return getAccession();
+		if (key != null) {
+			return key;
+		}
+		return PCQUtils.getKeyString(getQuantifiedProteins());
+	}
+
+	@Override
+	public void setKey(String key) {
+		this.key = key;
+
 	}
 
 	public String getDescription() {
-		if (descriptionString == null) {
-			descriptionString = PCQUtils.getDescriptionStringFromIndividualProteins(proteinSet, true);
-		}
-		return descriptionString;
+
+		return PCQUtils.getDescriptionStringFromIndividualProteins(proteinSet, true);
+
 	}
 
 	public Set<String> getTaxonomies() {
@@ -101,18 +108,12 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 
 	public void addProtein(QuantifiedProteinInterface protein) {
 		proteinSet.add(protein);
-		resetStrings();
 
-	}
-
-	private void resetStrings() {
-		accessionString = null;
-		descriptionString = null;
 	}
 
 	public void addProteins(Collection<QuantifiedProteinInterface> proteins) {
 		proteinSet.addAll(proteins);
-		resetStrings();
+
 	}
 
 	@Override
@@ -129,10 +130,10 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 			}
 		});
 		StringBuilder sb2 = new StringBuilder();
-		for (PCQPeptideNode quantifiedPeptide : list) {
+		for (PCQPeptideNode peptideNode : list) {
 			if (!"".equals(sb2.toString()))
 				sb2.append(",");
-			sb2.append(quantifiedPeptide);
+			sb2.append(peptideNode);
 		}
 		sb.append(sb2);
 		return "{" + sb.toString() + "}";
@@ -171,5 +172,37 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 
 	public ProteinPair getProteinPair() {
 		return proteinPair;
+	}
+
+	/**
+	 * A {@link PCQProteinNode} is discarded when:
+	 * <ul>
+	 * <li>it is filtered out, OR</li>
+	 * <li>all its {@link PCQPeptideNode}s are discarded</li>
+	 * </ul>
+	 */
+	@Override
+	public boolean isDiscarded() {
+		if (super.isDiscarded()) {
+			return true;
+		} else {
+			// return true if all peptide nodes are discarded
+			final Set<PCQPeptideNode> peptideNodes2 = getPeptideNodes();
+			for (PCQPeptideNode pcqPeptideNode : peptideNodes2) {
+				if (!pcqPeptideNode.isDiscarded()) {
+					return false;
+				}
+			}
+			return true;
+		}
+	}
+
+	public boolean containsPTMs() {
+		for (PCQPeptideNode peptideNode : getPeptideNodes()) {
+			if (peptideNode.containsPTMs()) {
+				return true;
+			}
+		}
+		return false;
 	}
 }
