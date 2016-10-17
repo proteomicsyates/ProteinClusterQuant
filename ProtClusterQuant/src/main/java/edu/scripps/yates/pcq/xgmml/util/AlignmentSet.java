@@ -15,7 +15,6 @@ public class AlignmentSet {
 	private final Map<QuantifiedPeptideInterface, Set<AlignedPeptides>> map = new HashMap<QuantifiedPeptideInterface, Set<AlignedPeptides>>();
 
 	public void addAlignment(AlignedPeptides alignment) {
-		log.info(alignment);
 		addToMap(alignment.getPeptide1(), alignment);
 		addToMap(alignment.getPeptide2(), alignment);
 	}

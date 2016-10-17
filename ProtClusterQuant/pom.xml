@@ -87,11 +87,6 @@
 		</dependency>
 		<dependency>
 			<groupId>edu.scripps.yates</groupId>
-			<artifactId>utilities</artifactId>
-			<version>1.2-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>edu.scripps.yates</groupId>
 			<artifactId>quant</artifactId>
 			<version>1.0.0-SNAPSHOT</version>
 		</dependency>

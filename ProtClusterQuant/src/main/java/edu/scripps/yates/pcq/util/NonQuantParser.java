@@ -51,8 +51,7 @@ public class NonQuantParser extends AbstractQuantParser {
 		final String inputFileName = psm.getMsRunId();
 		String experimentKey = FilenameUtils.getBaseName(inputFileName);
 
-		QuantifiedPSMInterface quantifiedPSM = new NonQuantifiedPSM(psm, chargeStateSensible,
-				distinguishModifiedPeptides);
+		QuantifiedPSMInterface quantifiedPSM = new NonQuantifiedPSM(psm, chargeStateSensible);
 		if (quantifiedPSM.getSequence().equals("AGALQVSAMSMVNGFFSFSAALELKERHAK")) {
 			log.info(quantifiedPSM);
 		}
@@ -72,7 +71,7 @@ public class NonQuantParser extends AbstractQuantParser {
 
 		// create the peptide
 		QuantifiedPeptideInterface quantifiedPeptide = null;
-		final String peptideKey = KeyUtils.getSequenceKey(quantifiedPSM, distinguishModifiedPeptides);
+		final String peptideKey = KeyUtils.getSequenceKey(quantifiedPSM, true);
 		if (peptideKey.equals("EHALAQAELLK")) {
 			log.info(quantifiedPSM);
 		}
@@ -82,7 +81,7 @@ public class NonQuantParser extends AbstractQuantParser {
 			if (quantifiedPSM.getFullSequence().equals("PNS(114.042927)VPQE(14.01565)LAATTEKTEPNSQEDKNDGGK")) {
 				log.info(quantifiedPSM);
 			}
-			quantifiedPeptide = new QuantifiedPeptide(quantifiedPSM, distinguishModifiedPeptides);
+			quantifiedPeptide = new QuantifiedPeptide(quantifiedPSM);
 			quantifiedPeptide.addFileName(inputFileName);
 		}
 		QuantStaticMaps.peptideMap.addItem(quantifiedPeptide);
@@ -127,8 +126,7 @@ public class NonQuantParser extends AbstractQuantParser {
 				quantifiedProtein.addPeptide(quantifiedPeptide, true);
 				// add to the map (if it was already there
 				// is not a problem, it will be only once)
-				addToMap(proteinKey, proteinToPeptidesMap,
-						KeyUtils.getSequenceKey(quantifiedPSM, distinguishModifiedPeptides));
+				addToMap(proteinKey, proteinToPeptidesMap, KeyUtils.getSequenceKey(quantifiedPSM, true));
 				// add protein to protein map
 				localProteinMap.put(proteinKey, quantifiedProtein);
 				// add to protein-experiment map
@@ -139,10 +137,6 @@ public class NonQuantParser extends AbstractQuantParser {
 		final Set<DTASelectProtein> proteins = psm.getProteins();
 		for (DTASelectProtein dtaSelectProtein : proteins) {
 			String proteinKey = FastaParser.getACC(dtaSelectProtein.getLocus()).getFirstelement();
-			if (proteinKey.equals("Q03181")) {
-				log.info(dtaSelectProtein);
-			}
-
 			QuantifiedProteinInterface quantifiedProtein = null;
 			if (QuantStaticMaps.proteinMap.containsKey(proteinKey)) {
 				quantifiedProtein = QuantStaticMaps.proteinMap.getItem(proteinKey);
@@ -158,8 +152,7 @@ public class NonQuantParser extends AbstractQuantParser {
 			quantifiedProtein.addPeptide(quantifiedPeptide, true);
 			// add to the map (if it was already there
 			// is not a problem, it will be only once)
-			addToMap(proteinKey, proteinToPeptidesMap,
-					KeyUtils.getSequenceKey(quantifiedPSM, distinguishModifiedPeptides));
+			addToMap(proteinKey, proteinToPeptidesMap, KeyUtils.getSequenceKey(quantifiedPSM, true));
 			// add protein to protein map
 			localProteinMap.put(proteinKey, quantifiedProtein);
 			// add to protein-experiment map

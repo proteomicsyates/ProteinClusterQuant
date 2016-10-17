@@ -53,9 +53,6 @@ public class ProteinPair {
 	}
 
 	public void proteinPairAnalysis(QuantCondition cond1, QuantCondition cond2) throws IOException {
-		if (proteinNode1.getKey().equals("B4M242") || proteinNode2.getKey().equals("B4M242")) {
-			log.info(this + "");
-		}
 		Double[] threeCombined = new Double[3];
 		// Protein 1's unique peptides
 		// has only ratios or inf
@@ -96,14 +93,6 @@ public class ProteinPair {
 
 			classifyPairByClassification2(params.getThresholdForSignificance(), Arrays.asList(threeCombined),
 					sharedPeptidesProteinKey, cond1, cond2, pepRatProt1, pepRatShared, pepRatProt2);
-
-			if ((proteinNode1.getKey().equals("P35908 ") && proteinNode2.getKey().equals("P04264"))
-					|| (proteinNode2.getKey().equals("P35908") && proteinNode1.getKey().equals("P04264"))) {
-				if (sharedPeptidesMap.get(sharedPeptidesProteinKey).iterator().next().getSequence().equals("YEDEINK")) {
-					log.info(this);
-
-				}
-			}
 
 			// classifyPairByclassification1(Arrays.asList(threeCombined),
 			// pepRatProt1, pepRatShared, pepRatProt2,

@@ -83,23 +83,14 @@ public abstract class PCQFilter {
 					.iterator();
 			while (peptidesFromPeptideNode.hasNext()) {
 				QuantifiedPeptideInterface peptide = peptidesFromPeptideNode.next();
-				if (peptide.getSequence().equals("PGLMNVPRVEAIQDTILR")) {
-					log.info(peptideNode);
-				}
 				final Iterator<QuantifiedPSMInterface> psmsFromPeptide = peptide.getQuantifiedPSMs().iterator();
 				while (psmsFromPeptide.hasNext()) {
 					final QuantifiedPSMInterface psm = psmsFromPeptide.next();
 					final Iterator<QuantifiedProteinInterface> proteinsFromPSM = psm.getQuantifiedProteins().iterator();
 					while (proteinsFromPSM.hasNext()) {
 						final QuantifiedProteinInterface protein = proteinsFromPSM.next();
-						if (protein.getAccession().equals("Q03181")) {
-							log.info(protein.getAccession() + "-" + protein.hashCode() + "\t" + psm);
-							for (QuantifiedProteinInterface protein2 : psm.getQuantifiedProteins()) {
-								log.info(protein2);
-							}
-						}
 						// remove psm from its protein
-						boolean removed = protein.getQuantifiedPSMs().remove(psm);
+						protein.getQuantifiedPSMs().remove(psm);
 						// remove protein from psm
 						proteinsFromPSM.remove();
 						// if protein has no psm, remove protein from cluster
@@ -112,6 +103,9 @@ public abstract class PCQFilter {
 								final PCQProteinNode proteinNode = proteinNodesFromCluster.next();
 								// remove protein from protein node
 								proteinNode.getItemsInNode().remove(protein);
+								// remove the link between protein and protein
+								// node in the cluster
+								cluster.getProteinNodesByProteinKey().remove(protein.getKey());
 								// remove peptide node from protein node
 								proteinNode.getPeptideNodes().remove(peptideNode);
 								// remove protein node from peptide node
@@ -122,6 +116,7 @@ public abstract class PCQFilter {
 									proteinNodesFromCluster.remove();
 								}
 							}
+
 						}
 					}
 					// remove psm from its peptide
@@ -147,7 +142,9 @@ public abstract class PCQFilter {
 				cluster.getPeptideSet().remove(peptide);
 				// remove peptide node from cluster
 				cluster.getPeptideNodes().remove(peptideNode);
-
+				// remove link between peptide node and peptide sequence in the
+				// cluster
+				cluster.getPeptideNodesByPeptideSequence().remove(peptide.getKey());
 			}
 			// if
 			// (ProteinClusterQuantParameters.getInstance().isRemoveFilteredNodes())
@@ -158,7 +155,6 @@ public abstract class PCQFilter {
 
 		// check if all the individual proteins have psms or not
 		// if so, remove those proteins
-		cluster.toString();
 		cluster.removeIndividualProteinsWithNoPSMs();
 	}
 

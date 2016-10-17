@@ -18,10 +18,9 @@ import edu.scripps.yates.utilities.util.StringPosition;
 public class NonQuantifiedPSM extends QuantifiedPSM {
 	private final DTASelectPSM psm;
 
-	public NonQuantifiedPSM(DTASelectPSM psm, boolean chargeStateSensible, boolean distinguishModifiedPeptides)
-			throws NumberFormatException, IOException {
+	public NonQuantifiedPSM(DTASelectPSM psm, boolean chargeStateSensible) throws NumberFormatException, IOException {
 		super(psm.getSequence().getSequence(), null, null, Integer.valueOf(psm.getScan()), psm.getChargeState(),
-				chargeStateSensible, distinguishModifiedPeptides, psm.getSpectraFileName(), false);
+				chargeStateSensible, psm.getSpectraFileName(), false);
 		this.psm = psm;
 	}
 

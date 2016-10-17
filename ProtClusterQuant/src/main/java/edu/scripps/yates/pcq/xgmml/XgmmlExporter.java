@@ -405,12 +405,6 @@ public class XgmmlExporter {
 			boolean isSharedPeptidesInconsistent, boolean isUniquePeptidesProt1Inconsistent,
 			boolean isUniquePeptidesProt2Inconsistent, Collection<Classification2Case> classification2Cases,
 			Graph graph) {
-		if (proteinNode1.getKey().equals("P25007")) {
-			log.info(proteinNode1);
-		}
-		if (proteinNode1.getKey().equals("B4M328")) {
-			log.info(proteinNode1);
-		}
 		// COLORS
 		Color edgeColorU1 = Color.black;
 		Color edgeColorS1 = Color.black;

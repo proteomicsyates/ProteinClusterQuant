@@ -229,7 +229,6 @@ public class PCQUtils {
 			parser.addIonExclusion(IonSerieType.B, 1);
 			parser.addIonExclusion(IonSerieType.Y, 1);
 			parser.setDecoyPattern(decoyRegexp);
-			parser.setDistinguishModifiedPeptides(distinguishModifiedPeptides);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages);
 			parser.setDbIndex(fastaDBIndex);
@@ -306,7 +305,6 @@ public class PCQUtils {
 				QuantificationLabel.HEAVY);
 		try {
 			parser.setDecoyPattern(decoyRegexp);
-			parser.setDistinguishModifiedPeptides(distinguishModifiedPeptides);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			parser.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
 					onlyOneSpectrumPerChromatographicPeakAndPerSaltStep);
@@ -345,7 +343,6 @@ public class PCQUtils {
 				QuantificationLabel.LIGHT, QuantificationLabel.HEAVY);
 		try {
 			parser.setDecoyPattern(decoyRegexp);
-			parser.setDistinguishModifiedPeptides(distinguishModifiedPeptides);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages);
 			parser.setDbIndex(fastaDBIndex);
@@ -411,7 +408,6 @@ public class PCQUtils {
 			parser.addIonExclusion(IonSerieType.B, 1);
 			parser.addIonExclusion(IonSerieType.Y, 1);
 			parser.setDecoyPattern(decoyRegexp);
-			parser.setDistinguishModifiedPeptides(distinguishModifiedPeptides);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			final DBIndexInterface mongoDBIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
 					mongoProtDBName);
@@ -458,7 +454,6 @@ public class PCQUtils {
 				QuantificationLabel.HEAVY);
 		try {
 			parser.setDecoyPattern(decoyRegexp);
-			parser.setDistinguishModifiedPeptides(distinguishModifiedPeptides);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			parser.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
 					onlyOneSpectrumPerChromatographicPeakAndPerSaltStep);
@@ -530,7 +525,6 @@ public class PCQUtils {
 				QuantificationLabel.LIGHT, QuantificationLabel.HEAVY);
 		try {
 			parser.setDecoyPattern(decoyRegexp);
-			parser.setDistinguishModifiedPeptides(distinguishModifiedPeptides);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName, mongoProtDBName);
 			parser.setDbIndex(dbIndex);
@@ -1710,7 +1704,10 @@ public class PCQUtils {
 
 	public static DTASelectParser getDTASelectParser(ProteinClusterQuantParameters params)
 			throws FileNotFoundException {
-		return getDTASelectParser(params, params.getIdentificationInputFileNamesArray());
+		if (params.getIdentificationInputFileNamesArray() == null) {
+			return getDTASelectParser(params, params.getIdentificationInputFileNamesArray());
+		}
+		return null;
 	}
 
 	public static DTASelectParser getDTASelectParser(ProteinClusterQuantParameters params,

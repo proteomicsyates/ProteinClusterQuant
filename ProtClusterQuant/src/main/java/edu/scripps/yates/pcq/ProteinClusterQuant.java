@@ -137,7 +137,9 @@ public class ProteinClusterQuant {
 		CommandLineParser parser = new BasicParser();
 		try {
 			CommandLine cmd = parser.parse(options, args);
-
+			if (cmd.getOptionValue("f") == null) {
+				throw new Exception("Provide input parameter file with 'f' option");
+			}
 			File inputFile = new File(cmd.getOptionValue("f"));
 			if (cmd.hasOption("c")) {
 				ComparisonInput comparisonInput = new ComparisonInput(inputFile);
@@ -217,6 +219,10 @@ public class ProteinClusterQuant {
 
 			if (params.isMakeAlignments()) {
 				makePeptideAlignments(peptideList);
+			}
+			if (params.isIgnorePTMs()) {
+				// remove modified peptides
+				removePTMPeptides(pepMap);
 			}
 			int numClusters = 0;
 			int i = 0;
@@ -334,6 +340,32 @@ public class ProteinClusterQuant {
 			log.error(e.getMessage());
 		}
 
+	}
+
+	private void removePTMPeptides(Map<String, QuantifiedPeptideInterface> pepMap) {
+		log.info("Removing peptides with PTMs...");
+		Set<QuantifiedPeptideInterface> peptidesToRemove = new HashSet<QuantifiedPeptideInterface>();
+		for (String peptideKey : pepMap.keySet()) {
+			final QuantifiedPeptideInterface peptide = pepMap.get(peptideKey);
+			if (peptide.containsPTMs()) {
+				peptidesToRemove.add(peptide);
+				final Set<QuantifiedPSMInterface> psms = peptide.getQuantifiedPSMs();
+				for (QuantifiedPSMInterface psm : psms) {
+					psm.setQuantifiedPeptide(null, false);
+					final Set<QuantifiedProteinInterface> proteins = psm.getQuantifiedProteins();
+					for (QuantifiedProteinInterface protein : proteins) {
+						protein.getQuantifiedPSMs().remove(psm);
+					}
+				}
+			}
+		}
+		for (QuantifiedPeptideInterface peptide : peptidesToRemove) {
+			final QuantifiedPeptideInterface removed = pepMap.remove(peptide.getKey());
+			if (removed == null) {
+				log.info(peptide);
+			}
+		}
+		log.info(peptidesToRemove.size() + " peptides with PTMs were ignored.");
 	}
 
 	/**
@@ -1226,7 +1258,6 @@ public class ProteinClusterQuant {
 		Map<String, ProteinCluster> clustersByPeptideSequence = new HashMap<String, ProteinCluster>();
 		Set<ProteinCluster> clusterSet = new HashSet<ProteinCluster>();
 		log.info("Starting clustering " + peptideMap.size() + " peptides...");
-		log.info("Asignining proteins and peptides to clusters...");
 		long t0 = System.currentTimeMillis();
 		for (QuantifiedPeptideInterface peptide : peptideMap.values()) {
 			if (params.isIgnorePTMs() && peptide.containsPTMs()) {
