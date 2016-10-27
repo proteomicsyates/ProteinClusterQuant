@@ -124,8 +124,8 @@ public class ProteinCluster {
 				QuantifiedPeptideInterface peptide1 = peptides.get(i);
 				for (int j = i + 1; j < peptides.size(); j++) {
 					QuantifiedPeptideInterface peptide2 = peptides.get(j);
-					if (peptide1.getKey().startsWith("SGGGYGGDR") || peptide2.getKey().startsWith("SGGGYGGDR")) {
-						log.info(peptide1);
+					if (peptide1.getKey().startsWith("EFMDDS") || peptide2.getKey().startsWith("EFMDDS")) {
+						log.info(peptide1.getKey() + "  " + peptide2.getKey());
 					}
 					if (getParams().isCollapseIndistinguishablePeptides()
 							&& PCQUtils.peptidesShareAllProteins(peptide1, peptide2)) {
@@ -202,9 +202,6 @@ public class ProteinCluster {
 		// create a map to store proteins by accession
 		Map<String, Set<QuantifiedProteinInterface>> proteinMap = new HashMap<String, Set<QuantifiedProteinInterface>>();
 		for (QuantifiedProteinInterface protein : individualQuantifiedProteinSet) {
-			if (protein.getKey().equals("A0A075B7C1")) {
-				log.info(this);
-			}
 			if (proteinMap.containsKey(protein.getKey())) {
 				proteinMap.get(protein.getKey()).add(protein);
 			} else {
@@ -221,9 +218,6 @@ public class ProteinCluster {
 				Set<QuantifiedProteinInterface> proteins1 = proteinMap.get(key1);
 				for (int j = i + 1; j < keyList.size(); j++) {
 					final String key2 = keyList.get(j);
-					if (key1.equals("A0A075B7C1") || key2.equals("A0A075B7C1")) {
-						log.info("asdf");
-					}
 					Set<QuantifiedProteinInterface> proteins2 = proteinMap.get(key2);
 
 					if (getParams().isCollapseIndistinguishableProteins()

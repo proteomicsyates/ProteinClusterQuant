@@ -213,6 +213,10 @@ public class ProteinClusterQuant {
 				}
 				pepMap.putAll(nonQuantPeptideMap);
 			}
+			if (params.isIgnorePTMs()) {
+				// remove modified peptides
+				removePTMPeptides(pepMap);
+			}
 			// List to hold all peptides
 			List<QuantifiedPeptideInterface> peptideList = new ArrayList<QuantifiedPeptideInterface>();
 			peptideList.addAll(pepMap.values());
@@ -220,10 +224,7 @@ public class ProteinClusterQuant {
 			if (params.isMakeAlignments()) {
 				makePeptideAlignments(peptideList);
 			}
-			if (params.isIgnorePTMs()) {
-				// remove modified peptides
-				removePTMPeptides(pepMap);
-			}
+
 			int numClusters = 0;
 			int i = 0;
 			while (i < 1) {
@@ -1481,11 +1482,7 @@ public class ProteinClusterQuant {
 						// is from the psms:
 						// ptmPeptide.getQuantifiedProteins().remove(protein);
 						//
-						// add filenames
-						final Set<String> fileNames = ptmPeptide.getFileNames();
-						for (String fileName : fileNames) {
-							proteinPTM.addFileName(fileName);
-						}
+
 						// add psms to ptmProtein and remove them from original
 						// protein
 						final Set<QuantifiedPSMInterface> quantifiedPSMs = ptmPeptide.getQuantifiedPSMs();

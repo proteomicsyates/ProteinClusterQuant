@@ -4,12 +4,11 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Set;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 
 import edu.scripps.yates.census.analysis.util.KeyUtils;
 import edu.scripps.yates.census.read.AbstractQuantParser;
-import edu.scripps.yates.census.read.model.QuantStaticMaps;
+import edu.scripps.yates.census.read.model.StaticQuantMaps;
 import edu.scripps.yates.census.read.model.QuantifiedPeptide;
 import edu.scripps.yates.census.read.model.QuantifiedProteinFromDBIndexEntry;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
@@ -48,20 +47,18 @@ public class NonQuantParser extends AbstractQuantParser {
 
 	private void processPSM(DTASelectPSM psm) throws IOException {
 
-		final String inputFileName = psm.getMsRunId();
-		String experimentKey = FilenameUtils.getBaseName(inputFileName);
+		String experimentKey = psm.getRawFileName();
 
-		QuantifiedPSMInterface quantifiedPSM = new NonQuantifiedPSM(psm, chargeStateSensible);
-		if (quantifiedPSM.getSequence().equals("AGALQVSAMSMVNGFFSFSAALELKERHAK")) {
-			log.info(quantifiedPSM);
+		QuantifiedPSMInterface quantifiedPSM = new NonQuantifiedPSM(psm);
+		for (String inputFileName : dtaSelectParser.getInputFilePathes()) {
+			quantifiedPSM.getFileNames().add(inputFileName);
 		}
-		quantifiedPSM.addFileName(psm.getRunID());
-		final String psmKey = KeyUtils.getSpectrumKey(quantifiedPSM, chargeStateSensible);
+		final String psmKey = KeyUtils.getSpectrumKey(quantifiedPSM, true);
 		// in case of TMT, the psm may have been created before
-		if (QuantStaticMaps.psmMap.containsKey(psmKey)) {
-			quantifiedPSM = QuantStaticMaps.psmMap.getItem(psmKey);
+		if (StaticQuantMaps.psmMap.containsKey(psmKey)) {
+			quantifiedPSM = StaticQuantMaps.psmMap.getItem(psmKey);
 		}
-		QuantStaticMaps.psmMap.addItem(quantifiedPSM);
+		StaticQuantMaps.psmMap.addItem(quantifiedPSM);
 
 		// psms.add(quantifiedPSM);
 		// add to map
@@ -75,16 +72,15 @@ public class NonQuantParser extends AbstractQuantParser {
 		if (peptideKey.equals("EHALAQAELLK")) {
 			log.info(quantifiedPSM);
 		}
-		if (QuantStaticMaps.peptideMap.containsKey(peptideKey)) {
-			quantifiedPeptide = QuantStaticMaps.peptideMap.getItem(peptideKey);
+		if (StaticQuantMaps.peptideMap.containsKey(peptideKey)) {
+			quantifiedPeptide = StaticQuantMaps.peptideMap.getItem(peptideKey);
 		} else {
 			if (quantifiedPSM.getFullSequence().equals("PNS(114.042927)VPQE(14.01565)LAATTEKTEPNSQEDKNDGGK")) {
 				log.info(quantifiedPSM);
 			}
 			quantifiedPeptide = new QuantifiedPeptide(quantifiedPSM);
-			quantifiedPeptide.addFileName(inputFileName);
 		}
-		QuantStaticMaps.peptideMap.addItem(quantifiedPeptide);
+		StaticQuantMaps.peptideMap.addItem(quantifiedPeptide);
 
 		quantifiedPSM.setQuantifiedPeptide(quantifiedPeptide, true);
 		// add peptide to map
@@ -112,11 +108,10 @@ public class NonQuantParser extends AbstractQuantParser {
 					log.info(indexedProtein);
 				}
 				QuantifiedProteinInterface quantifiedProtein = null;
-				if (QuantStaticMaps.proteinMap.containsKey(proteinKey)) {
-					quantifiedProtein = QuantStaticMaps.proteinMap.getItem(proteinKey);
+				if (StaticQuantMaps.proteinMap.containsKey(proteinKey)) {
+					quantifiedProtein = StaticQuantMaps.proteinMap.getItem(proteinKey);
 				} else {
 					quantifiedProtein = new QuantifiedProteinFromDBIndexEntry(indexedProtein);
-					quantifiedProtein.addFileName(inputFileName);
 				}
 				// add psm to the proteins
 				quantifiedProtein.addPSM(quantifiedPSM, true);
@@ -138,11 +133,10 @@ public class NonQuantParser extends AbstractQuantParser {
 		for (DTASelectProtein dtaSelectProtein : proteins) {
 			String proteinKey = FastaParser.getACC(dtaSelectProtein.getLocus()).getFirstelement();
 			QuantifiedProteinInterface quantifiedProtein = null;
-			if (QuantStaticMaps.proteinMap.containsKey(proteinKey)) {
-				quantifiedProtein = QuantStaticMaps.proteinMap.getItem(proteinKey);
+			if (StaticQuantMaps.proteinMap.containsKey(proteinKey)) {
+				quantifiedProtein = StaticQuantMaps.proteinMap.getItem(proteinKey);
 			} else {
 				quantifiedProtein = new NonQuantifiedProtein(dtaSelectProtein);
-				quantifiedProtein.addFileName(inputFileName);
 			}
 			// add psm to the proteins
 			quantifiedProtein.addPSM(quantifiedPSM, true);

@@ -79,7 +79,7 @@ public class PCQUtils {
 		AlignmentSet ret = new AlignmentSet();
 
 		try {
-			log.info("Aligning " + peptideList.size() + " between them");
+			log.info("Aligning " + peptideList.size() + " peptides between them");
 			for (int i = 0; i < peptideList.size(); i++) {
 				QuantifiedPeptideInterface pep1 = peptideList.get(i);
 				if (i % 25 == 0) {
@@ -1141,7 +1141,10 @@ public class PCQUtils {
 
 	public static List<PCQPeptideNode> getSortedPeptideNodesBySequence(Collection<PCQPeptideNode> peptides) {
 		List<PCQPeptideNode> ret = new ArrayList<PCQPeptideNode>();
-		ret.addAll(peptides);
+		for (PCQPeptideNode pcqPeptideNode : peptides) {
+			if (pcqPeptideNode != null)
+				ret.add(pcqPeptideNode);
+		}
 		Collections.sort(ret, new Comparator<PCQPeptideNode>() {
 
 			@Override
@@ -1476,7 +1479,7 @@ public class PCQUtils {
 						boolean valid = false;
 						if (validTaxonomies != null && !validTaxonomies.isEmpty()) {
 							for (String skipTaxonomy : validTaxonomies) {
-								if (taxon.contains(skipTaxonomy)) {
+								if (taxon.toLowerCase().contains(skipTaxonomy.toLowerCase())) {
 									valid = true;
 								}
 							}
@@ -1704,7 +1707,7 @@ public class PCQUtils {
 
 	public static DTASelectParser getDTASelectParser(ProteinClusterQuantParameters params)
 			throws FileNotFoundException {
-		if (params.getIdentificationInputFileNamesArray() == null) {
+		if (params.getIdentificationInputFileNamesArray() != null) {
 			return getDTASelectParser(params, params.getIdentificationInputFileNamesArray());
 		}
 		return null;

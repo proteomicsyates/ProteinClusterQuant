@@ -47,12 +47,6 @@ public abstract class AbstractNode<T extends QuantifiedItem> implements Quantifi
 	}
 
 	@Override
-	public void addFileName(String fileName) {
-		throw new UnsupportedOperationException("addFileName not supported in Nodes");
-
-	}
-
-	@Override
 	public Set<String> getRawFileNames() {
 		Set<String> rawFileNames = new HashSet<String>();
 		for (T t : getItemsInNode()) {

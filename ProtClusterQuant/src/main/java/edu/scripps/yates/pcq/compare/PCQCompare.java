@@ -52,23 +52,27 @@ public class PCQCompare {
 		try {
 			in = new BufferedReader(new FileReader(file));
 
-			String line = in.readLine();
-			while (line != null) {
-				line = in.readLine();
-				if (line == null) {
-					break;
+			String line = null;
+			boolean firstLine = true;
+			while ((line = in.readLine()) != null) {
+				if (firstLine) {
+					firstLine = false;
+					continue;
 				}
 				line = line.trim();
-
+				// System.out.println(line);
 				String string = line.split("\t")[colIndex].trim();
-				Double fdr = Double.valueOf(line.split("\t")[12]);
-				Double ratio = Double.valueOf(line.split("\t")[9]);
-				Double variance = Double.valueOf(line.split("\t")[14]);
-				int numPSMs = Integer.valueOf(line.split("\t")[6]);
 
 				if (!"".equals(string)) {
-					if (fdr <= fdrThreshol) {
-						set.add(new ContainsFDRAndRatioItem(string, separator, fdr, ratio, variance, numPSMs));
+					final String fdrString = line.split("\t")[12];
+					if (!"".equals(fdrString)) {
+						Double fdr = Double.valueOf(fdrString);
+						Double ratio = Double.valueOf(line.split("\t")[9]);
+						Double variance = Double.valueOf(line.split("\t")[14]);
+						int numPSMs = Integer.valueOf(line.split("\t")[6]);
+						if (fdr <= fdrThreshol) {
+							set.add(new ContainsFDRAndRatioItem(string, separator, fdr, ratio, variance, numPSMs));
+						}
 					}
 				}
 

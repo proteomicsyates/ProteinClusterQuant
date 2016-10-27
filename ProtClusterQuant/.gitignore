@@ -14,3 +14,7 @@
 /*.params
 /*.log
 /SanXot/
+/networks_Generation.bat
+/networks_Generation_CFBE.bat
+/networks_Generation_DmDv.bat
+/networks_Generation_FIbulin_IDs.bat

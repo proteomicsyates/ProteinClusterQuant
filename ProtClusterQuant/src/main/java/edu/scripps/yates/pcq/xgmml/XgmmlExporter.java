@@ -354,6 +354,7 @@ public class XgmmlExporter {
 		final Set<PCQPeptideNode> peptideNodes = proteinCluster.getPeptideNodes();
 		for (PCQPeptideNode peptideNode : peptideNodes) {
 			final Set<PCQPeptideNode> alignedPeptides = proteinCluster.getAlignedPeptideNodes(peptideNode);
+
 			for (PCQPeptideNode peptideNode2 : alignedPeptides) {
 
 				Set<PCQPeptideNode> peptidesToLink = new HashSet<PCQPeptideNode>();

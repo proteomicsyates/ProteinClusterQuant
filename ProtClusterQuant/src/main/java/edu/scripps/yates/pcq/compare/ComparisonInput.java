@@ -31,15 +31,15 @@ public class ComparisonInput {
 				}
 
 				final String[] split = line.split("=");
-				String name = split[0];
+				String name = split[0].trim();
 				if (name.equals("threshold")) {
-					threshold = Double.valueOf(split[1]);
+					threshold = Double.valueOf(split[1].trim());
 					System.out.println("Comparison FDR threshold: " + threshold);
 				} else if (name.equals("comparison_type")) {
-					comparisonType = ComparisonType.valueOf(split[1]);
+					comparisonType = ComparisonType.valueOf(split[1].trim());
 					System.out.println("Comparison type: " + comparisonType);
 				} else {
-					File file = new File(split[1]);
+					File file = new File(split[1].trim());
 					addName(name);
 					addFile(file);
 					System.out.println("Dataset: " + name + "\t" + file.getAbsolutePath());

@@ -204,7 +204,7 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	@Override
 	public String toString() {
 
-		return "{" + getFullSequence() + "'}";
+		return "{" + getKey() + "'}";
 	}
 
 	public boolean addProteinNode(PCQProteinNode proteinNode) {

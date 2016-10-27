@@ -70,10 +70,10 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 
 	@Override
 	public String getKey() {
-		if (key != null) {
-			return key;
+		if (key == null) {
+			key = PCQUtils.getKeyString(getQuantifiedProteins());
 		}
-		return PCQUtils.getKeyString(getQuantifiedProteins());
+		return key;
 	}
 
 	@Override
