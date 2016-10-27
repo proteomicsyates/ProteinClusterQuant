@@ -3,12 +3,12 @@
 ######################################################
 # Comparison type: Compare peptide nodes ('PEPTIDE_NODES') or protein nodes ('PROTEIN_NODES')
 ######################################################
-comparison_type PROTEIN_NODES
+comparison_type = PROTEIN_NODES
 
 ######################################################
 # FDR threshold: only consider the entries with a FDR value greater than the threshold
 ######################################################
-threshold   0.05
+threshold = 0.05
 
 ######################################################
 # INPUT FILES TO COMPARE 
@@ -16,6 +16,6 @@ threshold   0.05
 # first column correspond with the name of the dataset
 # second column correspond with the full path to the file corresponding to the FDR output file of a PCQ analysis, which typically is named as: 'prefix_FDR_sufix.txt' where prefix and sufix correspond to the input analysis parameters: 'output_prefix' and 'output_sufix'
 ######################################################
-dataset1    /path_to_significance_files/prefix1_FDR_suffix1.txt
-dataset2    /path_to_significance_files/prefix2_FDR_suffix2.txt
-dataset3    /path_to_significance_files/prefix2_FDR_suffix2.txt
+dataset1 = /path_to_significance_files/prefix1_finalTable_suffix1.txt
+dataset2 = /path_to_significance_files/prefix2_finalTable_suffix2.txt
+dataset3 = /path_to_significance_files/prefix2_finalTable_suffix2.txt
