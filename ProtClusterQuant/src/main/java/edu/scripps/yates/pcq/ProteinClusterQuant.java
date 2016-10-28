@@ -536,6 +536,7 @@ public class ProteinClusterQuant {
 			}
 		}
 		sb.append(sep);
+
 		// ratio
 		if (sanxotQuantResult != null) {
 			sb.append(PCQUtils.escapeInfinity(sanxotQuantResult.getNonLog2ratio()));
@@ -1731,7 +1732,7 @@ public class ProteinClusterQuant {
 		int numPeptideNodesWithOneTax = 0;
 		int numPeptideNodesWithTwoTax = 0;
 		int numPeptideNodesWithMoreTax = 0;
-		int numPeptideDiscarded = 0;
+		int numPeptideNodesDiscarded = 0;
 		// List<ProteinPairPValue> ranking = new ArrayList<ProteinPairPValue>();
 		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 		try {
@@ -1767,7 +1768,7 @@ public class ProteinClusterQuant {
 				numPepNodes += cluster.getNonDiscardedPeptideNodes().size();
 				for (PCQPeptideNode peptideNode : cluster.getPeptideNodes()) {
 					if (peptideNode.isDiscarded()) {
-						numPeptideDiscarded++;
+						numPeptideNodesDiscarded++;
 						continue;
 					}
 					final QuantRatio peptideNodeFinalRatio = PCQUtils.getRepresentativeRatioForPeptideNode(peptideNode,
@@ -2001,9 +2002,19 @@ public class ProteinClusterQuant {
 					+ numNonUniqueProteinPairs + "\n");
 			stats.append("Number of Proteins:\t " + numProt + "\n");
 			stats.append("Number of Proteins Nodes:\t " + numProtNodes + "\n");
-			stats.append("Number of Peptides:\t " + numPep + "\n");
-			stats.append("Number of Peptides Nodes:\t " + numPepNodes + "\n");
 
+			if (params.isRemoveFilteredNodes()) {
+				stats.append("Number of Peptides:\t " + numPep + "\n");
+				stats.append("Number of Peptides Nodes:\t " + numPepNodes + "\n");
+				stats.append("Number of Peptides Nodes removed by filters:\t "
+						+ PCQFilterByIonCount.getDiscardedPeptideNodes().size() + "\n");
+			} else {
+				stats.append("Number of Peptides:\t " + numPep + "\n");
+				stats.append("Number of Peptides Nodes:\t " + numPepNodes + "\n");
+				stats.append("Number of Peptides Nodes tagged as filtered (greyed out):\t " + numPeptideNodesDiscarded
+						+ "\n");
+
+			}
 			// stats.append("\n\n" + numPeptideNodesWithNoTax + "\t" +
 			// numPeptideNodesWithOneTax + "\t"
 			// + numPeptideNodesWithTwoTax + "\t" + numPeptideNodesWithMoreTax +
@@ -2079,20 +2090,20 @@ public class ProteinClusterQuant {
 		for (QuantifiedPeptideInterface quantifiedPeptide : peptideSet) {
 			final Set<String> fileNames = quantifiedPeptide.getFileNames();
 			for (String string : fileNames) {
-				boolean someAdded = false;
+				// boolean someAdded = false;
 				final String[] replicateIdentifiers = ProteinClusterQuantParameters.getInstance()
 						.getQuantInputFileNamesArray();
 				if (replicateIdentifiers != null) {
 					for (String replicateIdentifier : replicateIdentifiers) {
 						if (string.contains(replicateIdentifier)) {
 							ret.add(replicateIdentifier);
-							someAdded = true;
+							// someAdded = true;
 						}
 					}
 				}
-				if (!someAdded) {
-					ret.add(string);
-				}
+				// if (!someAdded) {
+				// ret.add(FilenameUtils.getName(string));
+				// }
 
 			}
 		}
