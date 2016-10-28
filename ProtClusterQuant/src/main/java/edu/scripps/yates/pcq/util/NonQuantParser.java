@@ -8,9 +8,9 @@ import org.apache.log4j.Logger;
 
 import edu.scripps.yates.census.analysis.util.KeyUtils;
 import edu.scripps.yates.census.read.AbstractQuantParser;
-import edu.scripps.yates.census.read.model.StaticQuantMaps;
 import edu.scripps.yates.census.read.model.QuantifiedPeptide;
 import edu.scripps.yates.census.read.model.QuantifiedProteinFromDBIndexEntry;
+import edu.scripps.yates.census.read.model.StaticQuantMaps;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
@@ -29,6 +29,9 @@ public class NonQuantParser extends AbstractQuantParser {
 
 	public NonQuantParser(DTASelectParser dtaSelectParser) {
 		this.dtaSelectParser = dtaSelectParser;
+		// do not clear static maps, in order to get the same objects than a
+		// previous quantparser
+		super.clearStaticMapsBeforeReading = false;
 	}
 
 	@Override
