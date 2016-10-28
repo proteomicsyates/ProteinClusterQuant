@@ -124,9 +124,6 @@ public class ProteinCluster {
 				QuantifiedPeptideInterface peptide1 = peptides.get(i);
 				for (int j = i + 1; j < peptides.size(); j++) {
 					QuantifiedPeptideInterface peptide2 = peptides.get(j);
-					if (peptide1.getKey().startsWith("EFMDDS") || peptide2.getKey().startsWith("EFMDDS")) {
-						log.info(peptide1.getKey() + "  " + peptide2.getKey());
-					}
 					if (getParams().isCollapseIndistinguishablePeptides()
 							&& PCQUtils.peptidesShareAllProteins(peptide1, peptide2)) {
 
@@ -583,6 +580,23 @@ public class ProteinCluster {
 	}
 
 	/**
+	 * Get the number of different individual peptides in the cluster
+	 *
+	 * @return
+	 */
+	public int getNumDifferentDiscardedIndividualPeptides() {
+		Set<String> set = new HashSet<String>();
+		for (PCQPeptideNode peptideNode : getPeptideNodes()) {
+			if (peptideNode.isDiscarded()) {
+				for (QuantifiedPeptideInterface peptide : peptideNode.getItemsInNode()) {
+					set.add(peptide.getSequence());
+				}
+			}
+		}
+		return set.size();
+	}
+
+	/**
 	 * Get the number of different individual proteins in the cluster
 	 *
 	 * @return
@@ -630,6 +644,8 @@ public class ProteinCluster {
 		for (PCQPeptideNode peptideNode : getPeptideNodes()) {
 			if (!peptideNode.isDiscarded()) {
 				ret.add(peptideNode);
+			} else {
+				// log.info("asdf");
 			}
 		}
 		return ret;
