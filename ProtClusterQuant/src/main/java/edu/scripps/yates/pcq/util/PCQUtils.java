@@ -1939,6 +1939,9 @@ public class PCQUtils {
 				// SANXOT ENABLED
 				// get the average of the sanxot Ri
 				for (PCQPeptideNode peptideNode : peptideNodes) {
+					if (skipDiscarded && peptideNode.isDiscarded()) {
+						continue;
+					}
 					final QuantRatio consensusRatio = peptideNode.getConsensusRatio(cond1, cond2, replicateName);
 					if (consensusRatio != null) {
 						toAverage.add(consensusRatio);
@@ -1949,6 +1952,9 @@ public class PCQUtils {
 				// get the average of the normalized Rc ratios for each peptide
 				// node
 				for (PCQPeptideNode peptideNode : peptideNodes) {
+					if (skipDiscarded && peptideNode.isDiscarded()) {
+						continue;
+					}
 					final IonCountRatio normalizedIonCountRatioForPeptideNode = getNormalizedIonCountRatioForPeptideNode(
 							peptideNode, cond1, cond2, replicateName);
 					if (normalizedIonCountRatioForPeptideNode != null) {
@@ -1963,6 +1969,9 @@ public class PCQUtils {
 				// SANXOT ENABLED
 				// get the average of the sanxot ratios
 				for (PCQPeptideNode peptideNode : peptideNodes) {
+					if (skipDiscarded && peptideNode.isDiscarded()) {
+						continue;
+					}
 					final QuantRatio consensusRatio = peptideNode.getConsensusRatio(cond1, cond2, replicateName);
 					if (consensusRatio != null) {
 						toAverage.add(consensusRatio);
@@ -1972,6 +1981,9 @@ public class PCQUtils {
 				// SANXOT DISABLED
 				// get the average of the individual psm ratios
 				for (PCQPeptideNode peptideNode : peptideNodes) {
+					if (skipDiscarded && peptideNode.isDiscarded()) {
+						continue;
+					}
 					final Set<QuantifiedPSMInterface> quantifiedPSMs = peptideNode.getQuantifiedPSMs();
 					for (QuantifiedPSMInterface psm : quantifiedPSMs) {
 						if (replicateName != null && !psm.getFileNames().contains(replicateName)) {
