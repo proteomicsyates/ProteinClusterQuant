@@ -4,6 +4,7 @@
     
     <formats>
         <format>zip</format>
+        <format>tar.gz</format>
     </formats>
 
     
@@ -27,13 +28,13 @@
             </includes>
             <outputDirectory>${assembly.output.folder}/SanXot</outputDirectory>
         </fileSet>
-		<fileSet>
-			<directory>example_dataset</directory>
-			<includes>
-				<include>*</include>
-			</includes>
-			<outputDirectory>${assembly.output.folder}/example_dataset</outputDirectory>
-		</fileSet>
+<!-- 		<fileSet> -->
+<!-- 			<directory>example_dataset</directory> -->
+<!-- 			<includes> -->
+<!-- 				<include>*</include> -->
+<!-- 			</includes> -->
+<!-- 			<outputDirectory>${assembly.output.folder}/example_dataset</outputDirectory> -->
+<!-- 		</fileSet> -->
         <fileSet>
         	<directory></directory>
             <includes>

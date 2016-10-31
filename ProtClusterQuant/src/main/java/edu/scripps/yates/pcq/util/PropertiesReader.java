@@ -349,8 +349,9 @@ public class PropertiesReader {
 		params.setPerformRatioIntegration(performRatioIntegration);
 		if (performRatioIntegration) {
 			// sanxot scripts paths
-
-			File scriptsPath = new File(System.getProperty("user.dir") + File.separator + "SanXot");
+			String sanxotPath = properties.getProperty("sanxotPath",
+					System.getProperty("user.dir") + File.separator + "SanXot");
+			File scriptsPath = new File(sanxotPath);
 			params.setSanXotPath(scriptsPath);
 			try {
 				if (properties.containsKey("outliersRemovalFDR")) {
