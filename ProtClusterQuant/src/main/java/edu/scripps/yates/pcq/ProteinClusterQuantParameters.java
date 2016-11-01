@@ -326,19 +326,23 @@ public class ProteinClusterQuantParameters {
 	}
 
 	public void setOutputPrefix(String outputPrefix) {
-		this.outputPrefix = outputPrefix;
+		if (outputPrefix != null)
+			this.outputPrefix = outputPrefix.trim();
 	}
 
 	public void setOutputSuffix(String outputSuffix) {
-		this.outputSuffix = outputSuffix;
+		if (outputSuffix != null)
+			this.outputSuffix = outputSuffix.trim();
 	}
 
 	public void setLightSpecies(String lightSpecies) {
-		this.lightSpecies = lightSpecies;
+		if (lightSpecies != null)
+			this.lightSpecies = lightSpecies.trim();
 	}
 
 	public void setHeavySpecies(String heavySpecies) {
-		this.heavySpecies = heavySpecies;
+		if (heavySpecies != null)
+			this.heavySpecies = heavySpecies.trim();
 	}
 
 	public void setColorManager(ColorManager colorManager) {
@@ -358,7 +362,8 @@ public class ProteinClusterQuantParameters {
 	}
 
 	public void setDecoyRegexp(String decoyRegexp) {
-		this.decoyRegexp = decoyRegexp;
+		if (decoyRegexp != null)
+			this.decoyRegexp = decoyRegexp.trim();
 	}
 
 	/**
@@ -651,7 +656,8 @@ public class ProteinClusterQuantParameters {
 	 *            the mongoDBURI to set
 	 */
 	public void setMongoDBURI(String mongoDBURI) {
-		this.mongoDBURI = mongoDBURI;
+		if (mongoDBURI != null)
+			this.mongoDBURI = mongoDBURI.trim();
 	}
 
 	/**
@@ -666,7 +672,8 @@ public class ProteinClusterQuantParameters {
 	 *            the mongoProtDBName to set
 	 */
 	public void setMongoProtDBName(String mongoProtDBName) {
-		this.mongoProtDBName = mongoProtDBName;
+		if (mongoProtDBName != null)
+			this.mongoProtDBName = mongoProtDBName.trim();
 	}
 
 	/**
@@ -681,7 +688,8 @@ public class ProteinClusterQuantParameters {
 	 *            the mongoSeqDBName to set
 	 */
 	public void setMongoSeqDBName(String mongoSeqDBName) {
-		this.mongoSeqDBName = mongoSeqDBName;
+		if (mongoSeqDBName != null)
+			this.mongoSeqDBName = mongoSeqDBName.trim();
 	}
 
 	/**
@@ -696,7 +704,8 @@ public class ProteinClusterQuantParameters {
 	 *            the mongoMassDBName to set
 	 */
 	public void setMongoMassDBName(String mongoMassDBName) {
-		this.mongoMassDBName = mongoMassDBName;
+		if (mongoMassDBName != null)
+			this.mongoMassDBName = mongoMassDBName.trim();
 	}
 
 	public boolean isIgnoreNotFoundPeptidesInDB() {
@@ -758,7 +767,7 @@ public class ProteinClusterQuantParameters {
 		for (ExperimentFiles experimentFileName : inputQuantificationFiles) {
 			final List<String> list = experimentFileName.getRelicateFileNames();
 			for (String fileName : list) {
-				ret[index++] = fileName;
+				ret[index++] = fileName.trim();
 			}
 		}
 		return ret;
@@ -893,7 +902,8 @@ public class ProteinClusterQuantParameters {
 	 *            the uniprotVersion to set
 	 */
 	public void setUniprotVersion(String uniprotVersion) {
-		this.uniprotVersion = uniprotVersion;
+		if (uniprotVersion != null)
+			this.uniprotVersion = uniprotVersion.trim();
 	}
 
 	/**
@@ -945,7 +955,8 @@ public class ProteinClusterQuantParameters {
 	 *            the separator to set
 	 */
 	public void setSeparator(String separator) {
-		this.separator = separator;
+		if (separator != null)
+			this.separator = separator.trim();
 	}
 
 	public boolean isApplyClassificationsByProteinPair() {
@@ -1064,7 +1075,7 @@ public class ProteinClusterQuantParameters {
 		for (ExperimentFiles experimentFileName : inputIdentificationFiles) {
 			final List<String> list = experimentFileName.getRelicateFileNames();
 			for (String fileName : list) {
-				ret[index++] = fileName;
+				ret[index++] = fileName.trim();
 			}
 		}
 		return ret;
