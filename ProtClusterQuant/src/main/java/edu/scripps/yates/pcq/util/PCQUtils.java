@@ -1707,7 +1707,8 @@ public class PCQUtils {
 
 	public static DTASelectParser getDTASelectParser(ProteinClusterQuantParameters params)
 			throws FileNotFoundException {
-		if (params.getIdentificationInputFileNamesArray() != null) {
+		if (params.getIdentificationInputFileNamesArray() != null
+				&& params.getIdentificationInputFileNamesArray().length > 0) {
 			return getDTASelectParser(params, params.getIdentificationInputFileNamesArray());
 		}
 		return null;
