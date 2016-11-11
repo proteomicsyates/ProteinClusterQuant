@@ -80,7 +80,7 @@ public class ProteinClusterQuantParameters {
 	private boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep;
 	private boolean skipSingletons;
 	private Color colorNonRegulated;
-	private String separator;
+	private String separator = "\t";
 	private boolean applyClassificationsByProteinPair;
 	private boolean analysisRun;
 	private boolean comparisonRun;
