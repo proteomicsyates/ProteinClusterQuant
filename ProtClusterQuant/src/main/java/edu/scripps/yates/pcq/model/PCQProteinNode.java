@@ -91,7 +91,11 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 	public Set<String> getTaxonomies() {
 		if (taxonomies == null) {
 			taxonomies = new HashSet<String>();
-			taxonomies.addAll(PCQUtils.getSortedTaxonomies(proteinSet));
+			final List<String> sortedTaxonomies = PCQUtils.getSortedTaxonomies(proteinSet);
+			for (String taxonomy : sortedTaxonomies) {
+				if (taxonomy != null)
+					taxonomies.add(taxonomy);
+			}
 
 		}
 		return taxonomies;
