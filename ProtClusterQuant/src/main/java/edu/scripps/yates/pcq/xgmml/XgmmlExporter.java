@@ -1318,7 +1318,9 @@ public class XgmmlExporter {
 					return ret;
 				}
 			} else {
-				return colorManager.getColorForProteinTaxonomy(taxonomies.iterator().next());
+				if (!taxonomies.isEmpty()) {
+					return colorManager.getColorForProteinTaxonomy(taxonomies.iterator().next());
+				}
 			}
 		}
 		return Color.WHITE;
