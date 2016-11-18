@@ -1267,9 +1267,7 @@ public class ProteinClusterQuant {
 			}
 
 			String fullSequence1 = peptide.getFullSequence();
-			if (fullSequence1.equals("NREELDKYWSQQIEESTTVVTTQSAEVGAAET(114.042927)TLTELR(42.04695)")) {
-				log.info(peptide);
-			}
+
 			ProteinCluster cluster = null;
 
 			// if peptide has a cluster associated
