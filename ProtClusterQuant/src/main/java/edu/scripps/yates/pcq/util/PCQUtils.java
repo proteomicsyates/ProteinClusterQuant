@@ -1781,6 +1781,20 @@ public class PCQUtils {
 		return ret;
 	}
 
+	/**
+	 * Gets the peptide nodes that are unique to a protein node with respect to
+	 * another protein node.
+	 *
+	 * @param proteinNode1
+	 * @param proteinNode2
+	 * @param uniquePepOnly
+	 *            if true, only the peptide nodes that are really unique to
+	 *            proteinNode1 are reported. If false, it will return also the
+	 *            peptide nodes that are unique to proteinNode1 with respect to
+	 *            proteinNode2 but may be shared with a third protein
+	 * @param skipDiscarded
+	 * @return
+	 */
 	public static Set<PCQPeptideNode> getUniquePeptideNodes(PCQProteinNode proteinNode1, PCQProteinNode proteinNode2,
 			boolean uniquePepOnly, boolean skipDiscarded) {
 		Set<PCQPeptideNode> peptideNodes1 = proteinNode1.getPeptideNodes();
@@ -1790,13 +1804,18 @@ public class PCQUtils {
 			if (skipDiscarded && peptideNode1.isDiscarded()) {
 				continue;
 			}
+			// if we require the unique peptide nodes to be really unique (not
+			// shared by a third protein)
 			if (uniquePepOnly) {
 				if (peptideNode1.getProteinNodes().size() == 1) {
 					ret.add(peptideNode1);
 				} else {
 					continue;
 				}
+				// if we dont care wether the peptide node is shared by a third
+				// protein
 			} else {
+				// if it is shared, not take it
 				if (peptideNode1.getProteinNodes().contains(proteinNode2)) {
 					continue;
 				} else {
@@ -2188,5 +2207,20 @@ public class PCQUtils {
 		}
 
 		return ret;
+	}
+
+	public static String getSpeciesString(Set<String> taxonomies) {
+		StringBuilder sb = new StringBuilder();
+		List<String> list = new ArrayList<String>();
+		list.addAll(taxonomies);
+		Collections.sort(list);
+		for (String taxonomy : list) {
+			if (!"".equals(sb.toString())) {
+				sb.append(",");
+			}
+			sb.append(taxonomy);
+		}
+		return sb.toString();
+
 	}
 }

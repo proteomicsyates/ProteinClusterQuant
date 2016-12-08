@@ -864,7 +864,9 @@ public class XgmmlExporter {
 					+ " replicates, " + individualPeptideRatio.getDescription() + " = "
 					+ individualPeptideRatio.getLog2Ratio(cond1, cond2) + "\n");
 		}
-
+		if (peptideNode.getTaxonomies() != null && !peptideNode.getTaxonomies().isEmpty()) {
+			sb.append("\n<b>TAX:</b> " + PCQUtils.getSpeciesString(peptideNode.getTaxonomies()));
+		}
 		return sb.toString();
 	}
 
@@ -1021,6 +1023,10 @@ public class XgmmlExporter {
 		attributes.put("numReplicates", new AttributeValueType(peptideNode.getFileNames().size()));
 		attributes.put("numPeptideSequences", new AttributeValueType(peptideNode.getQuantifiedPeptides().size()));
 		attributes.put("numConnectedProteinNodes", new AttributeValueType(peptideNode.getProteinNodes().size()));
+		if (peptideNode.getTaxonomies() != null) {
+			attributes.put("Species",
+					new AttributeValueType(PCQUtils.getSpeciesString(peptideNode.getTaxonomies()), AttType.string));
+		}
 		attributes.put("ionCount", new AttributeValueType(PCQUtils.getIonCount(peptideNode)));
 		final boolean discarded = peptideNode.isDiscarded();
 		attributes.put(IS_FILTERED, new AttributeValueType(getNumFromBoolean(discarded)));
@@ -1189,7 +1195,8 @@ public class XgmmlExporter {
 				new AttributeValueType(proteinNode.getDescription().replace(PCQUtils.PROTEIN_DESCRIPTION_SEPARATOR,
 						" " + PCQUtils.PROTEIN_DESCRIPTION_SEPARATOR + " "), AttType.string));
 		if (proteinNode.getTaxonomies() != null) {
-			attributes.put("Species", new AttributeValueType(proteinNode.getTaxonomies(), AttType.string));
+			attributes.put("Species",
+					new AttributeValueType(PCQUtils.getSpeciesString(proteinNode.getTaxonomies()), AttType.string));
 		}
 		final String geneString = getGeneString(proteinNode);
 		if (geneString != null && !"".equals(geneString)) {
@@ -1228,15 +1235,18 @@ public class XgmmlExporter {
 
 	private String getProteinNodeTooltip(PCQProteinNode proteinNode, String geneString,
 			Collection<Classification2Case> classification2Cases, StringBuilder classification2String) {
-		String tooltipText = "<b>Protein ACC(s):</b>\n" + proteinNode.getKey() + "\n<b>Protein name(s):</b>\n "
-				+ proteinNode.getDescription().replace(PCQUtils.PROTEIN_DESCRIPTION_SEPARATOR, "\n");
+		StringBuilder tooltipText = new StringBuilder("<b>Protein ACC(s):</b>\n").append(proteinNode.getKey())
+				.append("\n<b>Protein name(s):</b>\n ")
+				.append(proteinNode.getDescription().replace(PCQUtils.PROTEIN_DESCRIPTION_SEPARATOR, "\n"));
 
 		if (classification2Cases != null) {
-			tooltipText += "\n<b>Classification case(s):</b>\n" + classification2String.toString();
+			tooltipText.append("\n<b>Classification case(s):</b>\n").append(classification2String.toString());
 		}
-
-		tooltipText += "\n<b>TAX:</b> " + proteinNode.getTaxonomies() + "\n<b>Gene name:</b> " + geneString;
-		return tooltipText;
+		if (proteinNode.getTaxonomies() != null && !proteinNode.getTaxonomies().isEmpty()) {
+			tooltipText.append("\n<b>TAX:</b> ").append(PCQUtils.getSpeciesString(proteinNode.getTaxonomies()))
+					.append("\n<b>Gene name:</b> ").append(geneString);
+		}
+		return tooltipText.toString();
 	}
 
 	private String getGeneString(PCQProteinNode proteinNode) {
