@@ -312,7 +312,7 @@ public class ProteinClusterQuant {
 				setIntegrationResultsIntoPeptideNodes(clusterSet, ratioStatsByPeptideNodeKey);
 			}
 			// print statistics and output files
-			classiffyAndPrintStatistics(clusterSet);
+			classiffyAndPrintStatistics(clusterSet, ratioStatsByPeptideNodeKey);
 
 			// print integration file
 			// also print it when there is no ratioStats
@@ -1688,7 +1688,8 @@ public class ProteinClusterQuant {
 		return annotatedProteins;
 	}
 
-	private void classiffyAndPrintStatistics(Set<ProteinCluster> clusterSet) {
+	private void classiffyAndPrintStatistics(Set<ProteinCluster> clusterSet,
+			Map<String, SanxotQuantResult> ratioStatsByPeptideNodeKey) {
 
 		FileWriter outputSummary = null;
 		FileWriter outputPairs = null;
@@ -1731,6 +1732,7 @@ public class ProteinClusterQuant {
 		int numPeptideNodesWithTwoTax = 0;
 		int numPeptideNodesWithMoreTax = 0;
 		int numPeptideNodesDiscarded = 0;
+		List<Double> peptideNodesVariances = new ArrayList<Double>();
 		// List<ProteinPairPValue> ranking = new ArrayList<ProteinPairPValue>();
 		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 		try {
@@ -1768,6 +1770,12 @@ public class ProteinClusterQuant {
 					if (peptideNode.isDiscarded()) {
 						numPeptideNodesDiscarded++;
 						continue;
+					}
+					if (ratioStatsByPeptideNodeKey != null
+							&& ratioStatsByPeptideNodeKey.containsKey(peptideNode.getKey())) {
+						final SanxotQuantResult sanxotQuantResult = ratioStatsByPeptideNodeKey
+								.get(peptideNode.getKey());
+						peptideNodesVariances.add(1 / sanxotQuantResult.getWeight());
 					}
 					final QuantRatio peptideNodeFinalRatio = PCQUtils.getRepresentativeRatioForPeptideNode(peptideNode,
 							cond1, cond2, true, null);
@@ -2034,6 +2042,8 @@ public class ProteinClusterQuant {
 			final double stdev = Maths.stddev(peptideNodeConsensusRatios.toArray(new Double[0]));
 			stats.append("Average of peptide node ratios: " + mean + "\n");
 			stats.append("Standard deviation of peptide node ratios: " + stdev + "\n");
+			final double meanVariance = Maths.mean(peptideNodesVariances.toArray(new Double[0]));
+			stats.append("Average of peptide node variance: " + meanVariance + "\n");
 			// print to console
 			log.info(stats.toString());
 			// print to file
