@@ -2042,8 +2042,10 @@ public class ProteinClusterQuant {
 			final double stdev = Maths.stddev(peptideNodeConsensusRatios.toArray(new Double[0]));
 			stats.append("Average of peptide node ratios: " + mean + "\n");
 			stats.append("Standard deviation of peptide node ratios: " + stdev + "\n");
-			final double meanVariance = Maths.mean(peptideNodesVariances.toArray(new Double[0]));
-			stats.append("Average of peptide node variance: " + meanVariance + "\n");
+			if (!peptideNodesVariances.isEmpty()) {
+				final double meanVariance = Maths.mean(peptideNodesVariances.toArray(new Double[0]));
+				stats.append("Average of peptide node variance: " + meanVariance + "\n");
+			}
 			// print to console
 			log.info(stats.toString());
 			// print to file
