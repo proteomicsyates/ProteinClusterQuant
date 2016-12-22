@@ -91,6 +91,7 @@ public class ProteinClusterQuantParameters {
 	private boolean removeFilteredNodes;
 	private boolean statisticalTestForProteinPairApplied;
 	private boolean ignorePTMs;
+	private boolean semiCleavage;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -1079,5 +1080,17 @@ public class ProteinClusterQuantParameters {
 			}
 		}
 		return ret;
+	}
+
+	public boolean isSemiCleavage() {
+		return semiCleavage;
+	}
+
+	/**
+	 * @param semiCleavage
+	 *            the semiCleavage to set
+	 */
+	public void setSemiCleavage(boolean semiCleavage) {
+		this.semiCleavage = semiCleavage;
 	}
 }

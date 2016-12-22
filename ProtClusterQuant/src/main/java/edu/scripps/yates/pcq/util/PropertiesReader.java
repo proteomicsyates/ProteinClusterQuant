@@ -382,6 +382,9 @@ public class PropertiesReader {
 		final boolean ignorePTMs = Boolean.valueOf(properties.getProperty("ignorePTMs", "true"));
 		params.setIgnorePTMs(ignorePTMs);
 
+		final boolean semiCleavage = Boolean.valueOf(properties.getProperty("semiCleavage", "false"));
+		params.setSemiCleavage(semiCleavage);
+
 		// check errors
 		checkErrorsInParameters(params);
 	}
