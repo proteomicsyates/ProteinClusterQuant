@@ -92,6 +92,7 @@ public class ProteinClusterQuantParameters {
 	private boolean statisticalTestForProteinPairApplied;
 	private boolean ignorePTMs;
 	private boolean semiCleavage;
+	private String peptideFilterRegexp;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -1092,5 +1093,17 @@ public class ProteinClusterQuantParameters {
 	 */
 	public void setSemiCleavage(boolean semiCleavage) {
 		this.semiCleavage = semiCleavage;
+	}
+
+	public String getPeptideFilterRegexp() {
+		return peptideFilterRegexp;
+	}
+
+	/**
+	 * @param peptideFilterRegexp
+	 *            the peptideFilterRegexp to set
+	 */
+	public void setPeptideFilterRegexp(String peptideFilterRegexp) {
+		this.peptideFilterRegexp = peptideFilterRegexp;
 	}
 }

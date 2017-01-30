@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.ProteinClusterQuantProperties;
@@ -151,6 +153,18 @@ public class PropertiesReader {
 		// missedcleavages
 		int missedCleavages = Integer.valueOf(properties.getProperty("missedCleavages", "0"));
 		params.setMissedCleavages(missedCleavages);
+
+		String peptideFilterRegexp = properties.getProperty("peptideFilterRegexp");
+		if (peptideFilterRegexp != null) {
+			// validate the regexp
+			try {
+				Pattern.compile(peptideFilterRegexp);
+			} catch (PatternSyntaxException e) {
+				e.printStackTrace();
+				throw e;
+			}
+		}
+
 		// do we only count truly unique peptides as unique
 		boolean uniquePepOnly = Boolean.valueOf(properties.getProperty("uniquePepOnly", "true"));
 		params.setUniquePepOnly(uniquePepOnly);
