@@ -184,7 +184,7 @@ public class ProteinPair {
 								}
 								return;
 							} catch (NotEnoughMeasurementsExcetion e) {
-								log.info("asdf");
+								// log.info("asdf");
 							}
 						}
 						// check if shared value is larger than first unique
