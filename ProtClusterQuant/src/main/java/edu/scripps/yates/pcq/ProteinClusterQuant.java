@@ -1714,6 +1714,8 @@ public class ProteinClusterQuant {
 
 		int numPeptidesSharedbyBothSpeciesNonInfinity = 0;
 		int numPeptidesSharedbyBothSpeciesAndInfinityRatio = 0;
+		int numPeptidesSharedbyBothSpeciesAndPositiveInfinityRatio = 0;
+		int numPeptidesSharedbyBothSpeciesAndNegativeInfinityRatio = 0;
 
 		int numProteinPairs = 0;
 		int numNonUniqueProteinPairs = 0;
@@ -1832,6 +1834,11 @@ public class ProteinClusterQuant {
 						// LIGHT AND HEAVY
 						if (Double.isInfinite(ratioValue)) {
 							numPeptidesSharedbyBothSpeciesAndInfinityRatio++;
+							if (Double.POSITIVE_INFINITY == ratioValue) {
+								numPeptidesSharedbyBothSpeciesAndPositiveInfinityRatio++;
+							} else {
+								numPeptidesSharedbyBothSpeciesAndNegativeInfinityRatio++;
+							}
 						} else {
 							numPeptidesSharedbyBothSpeciesNonInfinity++;
 						}
@@ -1976,7 +1983,10 @@ public class ProteinClusterQuant {
 					+ "' species (not +/- INF):\t" + numPeptidesSharedbyBothSpeciesNonInfinity + "\n");
 			stats.append("Peptide nodes shared by '" + params.getLightSpecies() + "' and '" + params.getHeavySpecies()
 					+ "' species having +/-INF ratio:\t" + numPeptidesSharedbyBothSpeciesAndInfinityRatio + "\n");
-
+			stats.append("Peptide nodes shared by '" + params.getLightSpecies() + "' and '" + params.getHeavySpecies()
+					+ "' species having +INF ratio:\t" + numPeptidesSharedbyBothSpeciesAndPositiveInfinityRatio + "\n");
+			stats.append("Peptide nodes shared by '" + params.getLightSpecies() + "' and '" + params.getHeavySpecies()
+					+ "' species having -INF ratio:\t" + numPeptidesSharedbyBothSpeciesAndNegativeInfinityRatio + "\n");
 			stats.append("'" + params.getLightSpecies() + "' specific peptide nodes with POS_INF:\t "
 					+ numLightPosInfinity + "\n");
 			stats.append("'" + params.getLightSpecies() + "' specific peptide nodes with NEG_INF (wrong):\t "
