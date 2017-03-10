@@ -1,5 +1,6 @@
 /logs/
-/*.properties
+/*setup_*.properties
+/*_setup*.properties
 /xsd/
 /bin/
 /lib/
