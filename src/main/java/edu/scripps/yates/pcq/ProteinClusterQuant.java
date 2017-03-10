@@ -1259,10 +1259,6 @@ public class ProteinClusterQuant {
 		log.info("Starting clustering " + peptideMap.size() + " peptides...");
 		long t0 = System.currentTimeMillis();
 		for (QuantifiedPeptideInterface peptide : peptideMap.values()) {
-			if (peptide.getKey().equals("MAFLPTDGNDAQSSK")
-					|| peptide.getKey().equals("STVPVEVYSYFMDLLLETVRDEIGACIEK")) {
-				log.info(peptide);
-			}
 			if (params.isIgnorePTMs() && peptide.containsPTMs()) {
 				continue;
 			}
