@@ -1728,7 +1728,16 @@ public class PCQUtils {
 		throw new IllegalArgumentException("inputType is not recognized");
 	}
 
-	public static DTASelectParser getDTASelectParser(ProteinClusterQuantParameters params)
+	public static NonQuantParser getIdNonQuantParser(ProteinClusterQuantParameters params)
+			throws FileNotFoundException {
+		final DTASelectParser dtaSelectParser = getDTASelectParser(params);
+		if (dtaSelectParser != null) {
+			return new NonQuantParser(dtaSelectParser);
+		}
+		return null;
+	}
+
+	private static DTASelectParser getDTASelectParser(ProteinClusterQuantParameters params)
 			throws FileNotFoundException {
 		if (params.getIdentificationInputFileNamesArray() != null
 				&& params.getIdentificationInputFileNamesArray().length > 0) {
@@ -1737,7 +1746,7 @@ public class PCQUtils {
 		return null;
 	}
 
-	public static DTASelectParser getDTASelectParser(ProteinClusterQuantParameters params,
+	private static DTASelectParser getDTASelectParser(ProteinClusterQuantParameters params,
 			final String[] inputFileNamesArray) throws FileNotFoundException {
 		log.debug("Getting input file parser");
 

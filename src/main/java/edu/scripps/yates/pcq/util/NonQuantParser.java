@@ -14,6 +14,7 @@ import edu.scripps.yates.census.read.model.StaticQuantMaps;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
+import edu.scripps.yates.dbindex.DBIndexInterface;
 import edu.scripps.yates.dbindex.IndexedProtein;
 import edu.scripps.yates.dbindex.util.PeptideNotFoundInDBIndexException;
 import edu.scripps.yates.dtaselectparser.DTASelectParser;
@@ -26,9 +27,11 @@ import edu.scripps.yates.utilities.fasta.FastaParser;
 public class NonQuantParser extends AbstractQuantParser {
 	private final static Logger log = Logger.getLogger(NonQuantParser.class);
 	private final DTASelectParser dtaSelectParser;
+	private final DBIndexInterface dbIndex;
 
 	public NonQuantParser(DTASelectParser dtaSelectParser) {
 		this.dtaSelectParser = dtaSelectParser;
+		dbIndex = dtaSelectParser.getDBIndex();
 		// do not clear static maps, in order to get the same objects than a
 		// previous quantparser
 		super.clearStaticMapsBeforeReading = false;
@@ -107,15 +110,13 @@ public class NonQuantParser extends AbstractQuantParser {
 			// indexedProtein
 			for (IndexedProtein indexedProtein : indexedProteins) {
 				String proteinKey = KeyUtils.getProteinKey(indexedProtein);
-				if (proteinKey.equals("Q03181")) {
-					log.info(indexedProtein);
-				}
 				QuantifiedProteinInterface quantifiedProtein = null;
 				if (StaticQuantMaps.proteinMap.containsKey(proteinKey)) {
 					quantifiedProtein = StaticQuantMaps.proteinMap.getItem(proteinKey);
 				} else {
 					quantifiedProtein = new QuantifiedProteinFromDBIndexEntry(indexedProtein);
 				}
+				StaticQuantMaps.proteinMap.addItem(quantifiedProtein);
 				// add psm to the proteins
 				quantifiedProtein.addPSM(quantifiedPSM, true);
 				// add protein to the psm
@@ -141,6 +142,7 @@ public class NonQuantParser extends AbstractQuantParser {
 			} else {
 				quantifiedProtein = new NonQuantifiedProtein(dtaSelectProtein);
 			}
+			StaticQuantMaps.proteinMap.addItem(quantifiedProtein);
 			// add psm to the proteins
 			quantifiedProtein.addPSM(quantifiedPSM, true);
 			// add protein to the psm

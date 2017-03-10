@@ -51,7 +51,6 @@ import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 import edu.scripps.yates.census.read.util.QuantificationLabel;
-import edu.scripps.yates.dtaselectparser.DTASelectParser;
 import edu.scripps.yates.pcq.cases.Classification2Case;
 import edu.scripps.yates.pcq.compare.ComparisonInput;
 import edu.scripps.yates.pcq.compare.PCQCompare;
@@ -92,7 +91,6 @@ public class ProteinClusterQuant {
 	private final ProteinClusterQuantParameters params;
 	private Map<String, Entry> annotatedProteins;
 	private final Map<String, Set<String>> nonModifiedToModifiedMap = new HashMap<String, Set<String>>();
-	private DTASelectParser idParser;
 
 	public ProteinClusterQuant(File setupPropertiesFile) {
 		this(ProteinClusterQuantParameters.getInstance(), setupPropertiesFile);
@@ -195,13 +193,12 @@ public class ProteinClusterQuant {
 
 			quantParser = PCQUtils.getQuantParser(params, labelsByConditionsList);
 			// try to get an dtaSelectParser
-			idParser = PCQUtils.getDTASelectParser(params);
+			NonQuantParser idParser = PCQUtils.getIdNonQuantParser(params);
 			log.info("Reading input files...");
 			Map<String, QuantifiedPeptideInterface> pepMap = quantParser.getPeptideMap();
 			if (idParser != null) {
-				NonQuantParser nonQuantParser = new NonQuantParser(idParser);
 				// add the peptides to the map
-				final Map<String, QuantifiedPeptideInterface> nonQuantPeptideMap = nonQuantParser.getPeptideMap();
+				final Map<String, QuantifiedPeptideInterface> nonQuantPeptideMap = idParser.getPeptideMap();
 				for (String peptideKey : nonQuantPeptideMap.keySet()) {
 					if (pepMap.containsKey(peptideKey)) {
 						final QuantifiedPeptideInterface quantifiedPeptideInterface = pepMap.get(peptideKey);
@@ -1262,6 +1259,10 @@ public class ProteinClusterQuant {
 		log.info("Starting clustering " + peptideMap.size() + " peptides...");
 		long t0 = System.currentTimeMillis();
 		for (QuantifiedPeptideInterface peptide : peptideMap.values()) {
+			if (peptide.getKey().equals("MAFLPTDGNDAQSSK")
+					|| peptide.getKey().equals("STVPVEVYSYFMDLLLETVRDEIGACIEK")) {
+				log.info(peptide);
+			}
 			if (params.isIgnorePTMs() && peptide.containsPTMs()) {
 				continue;
 			}
