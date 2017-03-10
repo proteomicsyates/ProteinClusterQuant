@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>edu.scripps.yates</groupId>
 	<artifactId>ProtClusterQuant</artifactId>
-	<version>1.31-SNAPSHOT</version>
+	<version>1.32-SNAPSHOT</version>
 	<properties>
 		<assembly.output.folder>PCQ</assembly.output.folder>
 		<lib.dir>lib</lib.dir>
