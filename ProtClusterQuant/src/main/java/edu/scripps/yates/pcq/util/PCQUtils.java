@@ -197,7 +197,7 @@ public class PCQUtils {
 			Map<QuantCondition, QuantificationLabel> labelsByConditions, char[] enzymeArray, int missedCleavages,
 			boolean semiCleavage, File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp,
 			boolean ignoreNotFoundPeptidesInDB, boolean distinguishModifiedPeptides, String peptideFilterRegexp)
-			throws FileNotFoundException {
+					throws FileNotFoundException {
 		List<Map<QuantCondition, QuantificationLabel>> list = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
 		for (int i = 0; i < fileNames.length; i++) {
 			list.add(labelsByConditions);
@@ -211,7 +211,7 @@ public class PCQUtils {
 			List<Map<QuantCondition, QuantificationLabel>> labelsByConditions, char[] enzymeArray, int missedCleavages,
 			boolean semiCleavage, File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp,
 			boolean ignoreNotFoundPeptidesInDB, boolean distinguishModifiedPeptides, String peptideFilterRegexp)
-			throws FileNotFoundException {
+					throws FileNotFoundException {
 		List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 		// Set parser (6 files) to peptides
 		for (String fileName : fileNames) {
@@ -229,6 +229,7 @@ public class PCQUtils {
 		CensusChroParser parser = new CensusChroParser(xmlFiles, labelsByConditions, QuantificationLabel.LIGHT,
 				QuantificationLabel.HEAVY);
 		try {
+			parser.setRetrieveFastaIsoforms(false);
 			parser.addIonExclusion(IonSerieType.B, 1);
 			parser.addIonExclusion(IonSerieType.Y, 1);
 			parser.setDecoyPattern(decoyRegexp);
@@ -248,7 +249,7 @@ public class PCQUtils {
 	private static DTASelectParser getDTASelectParser(File fastaFile, File inputFilefolder, String[] fileNames,
 			char[] enzymeArray, int missedCleavages, boolean semiCleavage, File uniprotReleasesFolder,
 			String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB, String peptideFilterRegexp)
-			throws FileNotFoundException {
+					throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		Map<String, RemoteSSHFileReference> xmlFiles = new HashMap<String, RemoteSSHFileReference>();
 		for (String fileName : fileNames) {
@@ -293,7 +294,7 @@ public class PCQUtils {
 			boolean semiCleavage, File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp,
 			boolean ignoreNotFoundPeptidesInDB, boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep,
 			boolean skipSingletons, boolean distinguishModifiedPeptides, String peptideFilterRegexp)
-			throws FileNotFoundException {
+					throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -311,6 +312,7 @@ public class PCQUtils {
 		CensusOutParser parser = new CensusOutParser(xmlFiles, labelsByConditions, QuantificationLabel.LIGHT,
 				QuantificationLabel.HEAVY);
 		try {
+			parser.setRetrieveFastaIsoforms(false);
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			parser.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
@@ -350,6 +352,7 @@ public class PCQUtils {
 		SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, labelsByConditions,
 				QuantificationLabel.LIGHT, QuantificationLabel.HEAVY);
 		try {
+			parser.setRetrieveFastaIsoforms(false);
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages, semiCleavage,
@@ -419,6 +422,7 @@ public class PCQUtils {
 		CensusChroParser parser = new CensusChroParser(xmlFiles, labelsByConditions, QuantificationLabel.LIGHT,
 				QuantificationLabel.HEAVY);
 		try {
+			parser.setRetrieveFastaIsoforms(false);
 			parser.addIonExclusion(IonSerieType.B, 1);
 			parser.addIonExclusion(IonSerieType.Y, 1);
 			parser.setDecoyPattern(decoyRegexp);
@@ -467,6 +471,7 @@ public class PCQUtils {
 		CensusOutParser parser = new CensusOutParser(xmlFiles, labelsByConditions, QuantificationLabel.LIGHT,
 				QuantificationLabel.HEAVY);
 		try {
+			parser.setRetrieveFastaIsoforms(false);
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			parser.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
@@ -540,6 +545,7 @@ public class PCQUtils {
 		SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, labelsByConditions,
 				QuantificationLabel.LIGHT, QuantificationLabel.HEAVY);
 		try {
+			parser.setRetrieveFastaIsoforms(false);
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName, mongoProtDBName,
@@ -1667,7 +1673,7 @@ public class PCQUtils {
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
 			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList, final String[] inputFileNamesArray)
-			throws FileNotFoundException {
+					throws FileNotFoundException {
 		log.debug("Getting input file parser");
 		if (params.getInputType() == AnalysisInputType.CENSUS_CHRO) {
 			if (params.getMongoDBURI() != null) {
@@ -1756,7 +1762,7 @@ public class PCQUtils {
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
 			Map<QuantCondition, QuantificationLabel> labelsByConditions, String inputFileName)
-			throws FileNotFoundException {
+					throws FileNotFoundException {
 		log.debug("Getting input file parser");
 		List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
 		labelsByConditionsList.add(labelsByConditions);
