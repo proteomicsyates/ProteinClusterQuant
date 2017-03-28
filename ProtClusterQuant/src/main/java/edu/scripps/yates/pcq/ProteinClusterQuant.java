@@ -876,7 +876,7 @@ public class ProteinClusterQuant {
 	 */
 	private SanXotAnalysisResult calculatePeptideNodeExperimentReplicateRatios(
 			SanXotAnalysisResult peptideRepSanxotResult, Set<ProteinCluster> clusterSet)
-			throws IOException, InterruptedException, ExecutionException {
+					throws IOException, InterruptedException, ExecutionException {
 		File relationshipFile = writeRelationshipFileFromPeptideExpRepToPeptideNodeExpRep(clusterSet);
 		boolean relationnshipFileIsValid = SanXotInterfaze.checkAnyDifferentRelationShip(relationshipFile);
 
@@ -1265,6 +1265,11 @@ public class ProteinClusterQuant {
 			if (params.isIgnorePTMs() && peptide.containsPTMs()) {
 				continue;
 			}
+			// discard it if it is not conected to any protein
+			if (peptide.getQuantifiedProteins().isEmpty()) {
+				log.warn(peptide.getSequence() + " peptide ignored because it is not connected to any protein");
+				continue;
+			}
 
 			String fullSequence1 = peptide.getFullSequence();
 
@@ -1334,7 +1339,7 @@ public class ProteinClusterQuant {
 			// get proteins of the peptide and add them to the cluster
 			Set<QuantifiedProteinInterface> proteinSet = peptide.getQuantifiedProteins();
 			if (proteinSet.isEmpty()) {
-				log.info(peptide);
+				log.info(peptide.getQuantifiedProteins());
 				final Set<QuantifiedPSMInterface> quantifiedPSMs = peptide.getQuantifiedPSMs();
 				for (QuantifiedPSMInterface quantifiedPSMInterface : quantifiedPSMs) {
 					final Set<QuantifiedProteinInterface> proteinSet2 = quantifiedPSMInterface.getQuantifiedProteins();
