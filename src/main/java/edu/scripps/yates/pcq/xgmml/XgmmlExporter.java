@@ -85,6 +85,7 @@ public class XgmmlExporter {
 	private static final String VARIANCE = "Variance";
 	private static final String SIGNIFICANTLY_REGULATED_ATTRIBUTE = "significant";
 	private static final String IS_FILTERED = "isFiltered";
+
 	static {
 		ratioAttributes.add(COUNT_RATIO);
 		ratioAttributes.add(FINAL_RATIO);
@@ -1300,11 +1301,14 @@ public class XgmmlExporter {
 
 		final Map<String, Entry> annotatedProteins = getAnnotatedProtein(acc);
 		if (annotatedProteins.containsKey(acc)) {
-			final String proteinName = annotatedProteins.get(acc).getName().get(0);
-			if (proteinName.contains("obsolete")) {
-				return acc;
+			Entry entry = annotatedProteins.get(acc);
+			if (entry != null && entry.getName() != null && !entry.getName().isEmpty()) {
+				final String proteinName = entry.getName().get(0);
+				if (proteinName.contains("obsolete")) {
+					return acc;
+				}
+				return proteinName;
 			}
-			return proteinName;
 		}
 		return null;
 
