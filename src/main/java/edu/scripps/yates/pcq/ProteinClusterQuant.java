@@ -192,12 +192,16 @@ public class ProteinClusterQuant {
 
 		try {
 			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList();
-
+			// try to get an quantParser
 			quantParser = PCQUtils.getQuantParser(params, labelsByConditionsList);
 			// try to get an dtaSelectParser
 			idParser = PCQUtils.getDTASelectParser(params);
 			log.info("Reading input files...");
-			Map<String, QuantifiedPeptideInterface> pepMap = quantParser.getPeptideMap();
+
+			Map<String, QuantifiedPeptideInterface> pepMap = new HashMap<String, QuantifiedPeptideInterface>();
+			if (quantParser != null) {
+				pepMap.putAll(quantParser.getPeptideMap());
+			}
 			if (idParser != null) {
 				NonQuantParser nonQuantParser = new NonQuantParser(idParser);
 				// add the peptides to the map
@@ -1678,13 +1682,21 @@ public class ProteinClusterQuant {
 	private Map<String, Entry> getAnnotatedProteins() {
 		if (annotatedProteins == null) {
 			if (getParams().getUniprotReleasesFolder() != null) {
-				log.info("Getting UniprotKB annotations for " + quantParser.getProteinMap().size() + " proteins");
 
 				UniprotProteinLocalRetriever uplr = PCQUtils
 						.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
 
-				annotatedProteins = uplr.getAnnotatedProteins(getParams().getUniprotVersion(),
-						quantParser.getUniprotAccSet());
+				Set<String> uniprotAccSet = new HashSet<String>();
+				if (quantParser != null) {
+					log.info(
+							"Getting UniprotKB annotations for " + quantParser.getUniprotAccSet().size() + " proteins");
+					uniprotAccSet.addAll(quantParser.getUniprotAccSet());
+				}
+				if (idParser != null) {
+					log.info("Getting UniprotKB annotations for " + idParser.getUniprotAccSet().size() + " proteins");
+					uniprotAccSet.addAll(idParser.getUniprotAccSet());
+				}
+				annotatedProteins = uplr.getAnnotatedProteins(getParams().getUniprotVersion(), uniprotAccSet);
 				log.info(annotatedProteins.size() + " annotations retrieved out of "
 						+ quantParser.getProteinMap().size() + " proteins");
 			}
