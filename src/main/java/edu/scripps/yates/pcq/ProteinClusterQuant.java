@@ -880,7 +880,7 @@ public class ProteinClusterQuant {
 	 */
 	private SanXotAnalysisResult calculatePeptideNodeExperimentReplicateRatios(
 			SanXotAnalysisResult peptideRepSanxotResult, Set<ProteinCluster> clusterSet)
-					throws IOException, InterruptedException, ExecutionException {
+			throws IOException, InterruptedException, ExecutionException {
 		File relationshipFile = writeRelationshipFileFromPeptideExpRepToPeptideNodeExpRep(clusterSet);
 		boolean relationnshipFileIsValid = SanXotInterfaze.checkAnyDifferentRelationShip(relationshipFile);
 
@@ -1542,7 +1542,7 @@ public class ProteinClusterQuant {
 
 		Map<String, Entry> annotatedProteins = getAnnotatedProteins();
 
-		if (getParams().getQuantInputFileNamesArray() != null
+		if (getParams().getQuantInputFileNamesArray() != null && getParams().getQuantInputFileNamesArray().length > 0
 				&& !"".equals(getParams().getQuantInputFileNamesArray()[0])) {
 			log.info("Replicate names are empty. PSEA-Quant files will contain a column for each original RAW file");
 
@@ -1688,17 +1688,16 @@ public class ProteinClusterQuant {
 
 				Set<String> uniprotAccSet = new HashSet<String>();
 				if (quantParser != null) {
-					log.info(
-							"Getting UniprotKB annotations for " + quantParser.getUniprotAccSet().size() + " proteins");
 					uniprotAccSet.addAll(quantParser.getUniprotAccSet());
 				}
 				if (idParser != null) {
-					log.info("Getting UniprotKB annotations for " + idParser.getUniprotAccSet().size() + " proteins");
 					uniprotAccSet.addAll(idParser.getUniprotAccSet());
 				}
+				log.info("Getting UniprotKB annotations for " + idParser.getUniprotAccSet().size() + " proteins");
+
 				annotatedProteins = uplr.getAnnotatedProteins(getParams().getUniprotVersion(), uniprotAccSet);
-				log.info(annotatedProteins.size() + " annotations retrieved out of "
-						+ quantParser.getProteinMap().size() + " proteins");
+				log.info(annotatedProteins.size() + " annotations retrieved out of " + uniprotAccSet.size()
+						+ " proteins");
 			}
 		}
 
