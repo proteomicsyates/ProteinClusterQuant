@@ -62,12 +62,16 @@ public class PropertiesReader {
 	private static void readParametersFromProperties(ProteinClusterQuantProperties properties) throws IOException {
 		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 
-		try {
-			AnalysisInputType inputType = AnalysisInputType.valueOf(properties.getProperty("inputType", true));
-			params.setInputType(inputType);
-		} catch (Exception e) {
-			throw new IllegalArgumentException("'inputType' parameter can only have the following values: "
-					+ AnalysisInputType.getPossibleValues());
+		if (properties.containsKey("inputType")) {
+			try {
+				AnalysisInputType inputType = AnalysisInputType.valueOf(properties.getProperty("inputType", true));
+				params.setInputType(inputType);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("'inputType' parameter can only have the following values: "
+						+ AnalysisInputType.getPossibleValues());
+			}
+		} else {
+			log.info("inputType not present");
 		}
 
 		if (properties.containsKey("onlyOneSpectrumPerChromatographicPeakAndPerSaltStep")) {
@@ -204,20 +208,24 @@ public class PropertiesReader {
 		params.setOutputFileFolder(outputFileFolder);
 
 		// input files
-		String fileNamesString = properties.getProperty("inputFiles", true);
-		if (fileNamesString.contains("|")) {
-			String[] tmp = fileNamesString.split("\\|");
-			for (int i = 0; i < tmp.length; i++) {
-				ExperimentFiles experimentFiles = parseExperimentFileNames(tmp[i].trim());
+		if (properties.containsKey("inputFiles")) {
+			String fileNamesString = properties.getProperty("inputFiles", true);
+			if (fileNamesString.contains("|")) {
+				String[] tmp = fileNamesString.split("\\|");
+				for (int i = 0; i < tmp.length; i++) {
+					ExperimentFiles experimentFiles = parseExperimentFileNames(tmp[i].trim());
+					params.addQuantificationInputFileNames(experimentFiles);
+				}
+			} else {
+				ExperimentFiles experimentFiles = parseExperimentFileNames(fileNamesString);
 				params.addQuantificationInputFileNames(experimentFiles);
 			}
 		} else {
-			ExperimentFiles experimentFiles = parseExperimentFileNames(fileNamesString);
-			params.addQuantificationInputFileNames(experimentFiles);
+			log.info("Parameter 'inputFiles' not found. PCQ will not process quantitative values.");
 		}
 
 		// input files
-		fileNamesString = properties.getProperty("inputIDFiles", false);
+		String fileNamesString = properties.getProperty("inputIDFiles", false);
 		if (fileNamesString != null) {
 			if (fileNamesString.contains("|")) {
 				String[] tmp = fileNamesString.split("\\|");
@@ -228,6 +236,14 @@ public class PropertiesReader {
 			} else {
 				ExperimentFiles experimentFiles = parseExperimentFileNames(fileNamesString);
 				params.addIdentificationInputFileNames(experimentFiles);
+			}
+		}
+		if (params.getInputQuantificationFileNames().isEmpty()) {
+			if (params.getIdentificationInputFileNamesArray().length > 0) {
+				log.info("Working only with identification data, not quantitation.");
+			} else {
+				throw new IllegalArgumentException(
+						"One of the two 'inputFiles' or 'inputIDFiles' should be present and no empty");
 			}
 		}
 
