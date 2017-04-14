@@ -7,7 +7,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -16,6 +18,7 @@ import edu.scripps.yates.pcq.ProteinClusterQuantProperties;
 import edu.scripps.yates.pcq.xgmml.util.ColorManager;
 import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
 import edu.scripps.yates.pcq.xgmml.util.Shape;
+import edu.scripps.yates.pcq.xgmml.util.UniprotAnnotationColumn;
 import edu.scripps.yates.utilities.colors.ColorGenerator;
 
 public class PropertiesReader {
@@ -415,8 +418,40 @@ public class PropertiesReader {
 		final boolean semiCleavage = Boolean.valueOf(properties.getProperty("semiCleavage", "false"));
 		params.setSemiCleavage(semiCleavage);
 
+		String tripletsString = properties.getProperty("uniprot_xpath", false);
+		if (tripletsString != null && !"".contentEquals(tripletsString)) {
+			List<String> triplets = parseTriplets(tripletsString);
+			for (String triplet : triplets) {
+				UniprotAnnotationColumn column = new UniprotAnnotationColumn(triplet);
+				params.addUniprotAnnotationColumn(column);
+			}
+		}
 		// check errors
 		checkErrorsInParameters(params);
+	}
+
+	private static List<String> parseTriplets(String tripletsString) {
+		List<String> ret = new ArrayList<String>();
+		StringBuilder triplet = new StringBuilder();
+		boolean insideBrackets = false;
+		for (int i = 0; i < tripletsString.length(); i++) {
+			char charAt = tripletsString.charAt(i);
+			if (charAt == '[') {
+				insideBrackets = true;
+				continue;
+			}
+			if (charAt == ']') {
+				if (!"".equals(triplet.toString())) {
+					ret.add(triplet.toString());
+				}
+				insideBrackets = false;
+				continue;
+			}
+			if (insideBrackets) {
+				triplet.append(charAt);
+			}
+		}
+		return ret;
 	}
 
 	/**

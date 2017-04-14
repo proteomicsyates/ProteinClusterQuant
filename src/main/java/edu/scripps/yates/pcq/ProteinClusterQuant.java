@@ -1679,7 +1679,7 @@ public class ProteinClusterQuant {
 		}
 	}
 
-	private Map<String, Entry> getAnnotatedProteins() {
+	public Map<String, Entry> getAnnotatedProteins() {
 		if (annotatedProteins == null) {
 			if (getParams().getUniprotReleasesFolder() != null) {
 

@@ -20,6 +20,7 @@ import edu.scripps.yates.pcq.util.ExperimentFiles;
 import edu.scripps.yates.pcq.xgmml.util.ColorManager;
 import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
 import edu.scripps.yates.pcq.xgmml.util.Shape;
+import edu.scripps.yates.pcq.xgmml.util.UniprotAnnotationColumn;
 
 public class ProteinClusterQuantParameters {
 
@@ -93,6 +94,7 @@ public class ProteinClusterQuantParameters {
 	private boolean ignorePTMs;
 	private boolean semiCleavage;
 	private String peptideFilterRegexp;
+	private List<UniprotAnnotationColumn> uniprotAnnotationColumns = new ArrayList<UniprotAnnotationColumn>();
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -436,6 +438,7 @@ public class ProteinClusterQuantParameters {
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#toString()
 	 */
 
@@ -724,6 +727,7 @@ public class ProteinClusterQuantParameters {
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#toString()
 	 */
 	@Override
@@ -1105,5 +1109,13 @@ public class ProteinClusterQuantParameters {
 	 */
 	public void setPeptideFilterRegexp(String peptideFilterRegexp) {
 		this.peptideFilterRegexp = peptideFilterRegexp;
+	}
+
+	public List<UniprotAnnotationColumn> getUniprotAnnotationColumns() {
+		return uniprotAnnotationColumns;
+	}
+
+	public void addUniprotAnnotationColumn(UniprotAnnotationColumn uniprotAnnotationColumn) {
+		this.uniprotAnnotationColumns.add(uniprotAnnotationColumn);
 	}
 }

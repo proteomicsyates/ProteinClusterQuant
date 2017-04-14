@@ -35,6 +35,7 @@ import edu.scripps.yates.census.read.model.IonCountRatio;
 import edu.scripps.yates.census.read.model.IsobaricQuantifiedPeptide;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
+import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.cases.Classification1Case;
 import edu.scripps.yates.pcq.cases.Classification2Case;
@@ -53,6 +54,7 @@ import edu.scripps.yates.pcq.xgmml.jaxb.ObjectFactory;
 import edu.scripps.yates.pcq.xgmml.util.ColorManager;
 import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
 import edu.scripps.yates.pcq.xgmml.util.Shape;
+import edu.scripps.yates.pcq.xgmml.util.UniprotAnnotationColumn;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.colors.ColorGenerator;
 import edu.scripps.yates.utilities.proteomicsmodel.Score;
@@ -1139,6 +1141,30 @@ public class XgmmlExporter {
 
 		attributes.put("numPsmsInProtein", new AttributeValueType(proteinNode.getQuantifiedPSMs().size()));
 		attributes.put("numConnectedPeptideNodes", new AttributeValueType(proteinNode.getQuantifiedPeptides().size()));
+
+		// chack uniprot columsn
+		List<UniprotAnnotationColumn> uniprotAnnotationColumns = ProteinClusterQuantParameters.getInstance()
+				.getUniprotAnnotationColumns();
+		if (!uniprotAnnotationColumns.isEmpty()) {
+			for (UniprotAnnotationColumn uniprotAnnotationColumn : uniprotAnnotationColumns) {
+				StringBuilder sb = new StringBuilder();
+				for (QuantifiedProteinInterface protein : proteinNode.getQuantifiedProteins()) {
+
+					List<String> valuesForProtein = uniprotAnnotationColumn.getValuesForProtein(protein.getAccession(),
+							annotatedProteins);
+					for (String value : valuesForProtein) {
+						if (!"".equals(sb.toString())) {
+							sb.append(" ");
+						}
+						sb.append(value);
+					}
+				}
+				if (!"".equals(sb.toString())) {
+					attributes.put(uniprotAnnotationColumn.getColumnName(),
+							new AttributeValueType(sb.toString(), AttType.string));
+				}
+			}
+		}
 
 		// StringBuilder classification1String = new StringBuilder();
 		// StringBuilder classification1StringNOHTML = new StringBuilder();
