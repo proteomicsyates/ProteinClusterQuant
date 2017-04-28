@@ -578,10 +578,9 @@ public class ProteinPair {
 	public static String getSummaryLinesHeader() {
 		StringBuilder sb = new StringBuilder();
 
-		sb.append("Unique Pep1 (U1)").append("\t").append("Ratio (U1)").append("\t").append("Protein 1").append("\t")
-				.append("Shared Pep (S)").append("\t").append("Ratio (S)").append("\t").append("Protein 2")
-				.append("\tUnique Pep2 (U2)").append("\t").append("Ratio (U2)").append("\t")
-				.append("ClassificationCase");
+		sb.append("Unique Pep1 (U1)\t").append("Ratio (U1)\t").append("Protein 1\t").append("Taxon_P1\t")
+				.append("Shared Pep (S)\t").append("Ratio (S)\t").append("Protein 2\t").append("Taxon_P2\t")
+				.append("Unique Pep2 (U2)\t").append("Ratio (U2)\t").append("ClassificationCase");
 		return sb.toString();
 	}
 
@@ -597,6 +596,9 @@ public class ProteinPair {
 		List<String> ret = new ArrayList<String>();
 		final Map<String, Set<PCQPeptideNode>> sharedPeptidesMap = PCQUtils.getSharedPeptideNodesMap(proteinNode1,
 				proteinNode2, false, true);
+		String taxonomy1 = PCQUtils.getTaxonomyString(proteinNode1);
+
+		String taxonomy2 = PCQUtils.getTaxonomyString(proteinNode2);
 		for (String proteinKey : sharedPeptidesMap.keySet()) {
 			final Set<PCQPeptideNode> sharedPeptideNodes = sharedPeptidesMap.get(proteinKey);
 
@@ -618,6 +620,8 @@ public class ProteinPair {
 			sb.append(PCQUtils.escapeInfinity(value1) + "\t");
 			// Protein1
 			sb.append(proteinNode1.getKey() + "\t");
+			// taxonomy of protein 1
+			sb.append(taxonomy1 + "\t");
 			// Shared peptide
 			sb.append(PCQUtils.getPeptideNodesSequenceString(sharedPeptideNodes) + "\t");
 			// shared peptide ratio
@@ -633,6 +637,8 @@ public class ProteinPair {
 			sb.append(PCQUtils.escapeInfinity(valueShared) + "\t");
 			// Protein2
 			sb.append(proteinNode2.getKey() + "\t");
+			// taxonomy of protein 2
+			sb.append(taxonomy2 + "\t");
 			// UniquePep2
 			final Set<PCQPeptideNode> uniquePeptideNodes2 = PCQUtils.getUniquePeptideNodes(proteinNode2, proteinNode1,
 					true, true);
