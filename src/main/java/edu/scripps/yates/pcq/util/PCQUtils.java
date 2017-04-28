@@ -2255,4 +2255,30 @@ public class PCQUtils {
 		return sb.toString();
 
 	}
+
+	public static String getPeptideNodeKeyByProteinSite(char[] aaQuantified, PCQPeptideNode pcqPeptideNode) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public static String getTaxonomyString(PCQProteinNode proteinNode) {
+		StringBuilder sb = new StringBuilder();
+
+		Set<String> taxonomies = proteinNode.getTaxonomies();
+		List<String> list = new ArrayList<String>();
+		for (String tax : taxonomies) {
+			if (tax != null) {
+				list.add(tax);
+			}
+		}
+		Collections.sort(list);
+		for (String tax : list) {
+			if (!"".equals(sb.toString())) {
+				sb.append(",");
+			}
+			sb.append(tax);
+		}
+
+		return sb.toString();
+	}
 }
