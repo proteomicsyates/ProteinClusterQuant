@@ -373,16 +373,17 @@ public class ProteinClusterQuant {
 					}
 				});
 				// header
-				out.write("Raw file " + "\t" + "PSM id" + "\t" + "Sequence" + "\t" + "Log2Ratio" + "\t"
-						+ "QuantSitePositionInPeptide" + "\t" + "Quant site" + "\n");
+				out.write("Raw file " + "\t" + "PSM id" + "\t" + "Sequence" + "\t" + "Proteins" + "\t" + "Log2Ratio"
+						+ "\t" + "QuantSitePositionInPeptide" + "\t" + "Quant site" + "\n");
 				for (QuantifiedPSMInterface psm : psmList) {
+					String accessionString = PCQUtils.getAccessionString(psm.getQuantifiedProteins());
 					Set<QuantRatio> ratios = psm.getRatios();
 					for (QuantRatio quantRatio : ratios) {
 						if (quantRatio instanceof IsoRatio) {
 							IsoRatio isoRatio = (IsoRatio) quantRatio;
 
 							out.write(psm.getRawFileNames().iterator().next() + "\t" + psm.getKey() + "\t"
-									+ psm.getSequence() + "\t"
+									+ psm.getSequence() + "\t" + accessionString + "\t"
 									+ PCQUtils.escapeInfinity(isoRatio.getLog2Ratio(cond1, cond2)) + "\t"
 									+ isoRatio.getQuantifiedSitePositionInPeptide() + "\t" + isoRatio.getQuantifiedAA()
 									+ "\n");
