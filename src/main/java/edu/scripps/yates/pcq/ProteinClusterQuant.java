@@ -359,8 +359,8 @@ public class ProteinClusterQuant {
 			final File outputFileFolder = params.getTemporalOutputFolder();
 			final String outputPrefix = params.getOutputPrefix();
 			final String outputSuffix = params.getOutputSuffix();
-			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix
-					+ "_psmSiteSpecificRatios_" + outputSuffix + ".txt");
+			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix + "_psmTable_"
+					+ outputSuffix + ".txt");
 			if (quantParser != null) {
 				Collection<QuantifiedPSMInterface> psms = quantParser.getPSMMap().values();
 				List<QuantifiedPSMInterface> psmList = new ArrayList<QuantifiedPSMInterface>();
