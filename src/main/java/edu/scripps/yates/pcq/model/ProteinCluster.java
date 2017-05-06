@@ -41,7 +41,7 @@ public class ProteinCluster {
 	private Map<String, QuantifiedPeptideInterface> peptideMap;
 
 	private final HashMap<String, PCQProteinNode> proteinNodesByProteinKey = new HashMap<String, PCQProteinNode>();
-	private final HashMap<String, PCQPeptideNode> peptideNodesByPeptideSequence = new HashMap<String, PCQPeptideNode>();
+	private final HashMap<String, PCQPeptideNode> peptideNodesByPeptideNodeKey = new HashMap<String, PCQPeptideNode>();
 
 	private final int clusterID;
 
@@ -132,11 +132,11 @@ public class ProteinCluster {
 						// if the protein was already associated with some
 						// protein
 						// node
-						if (peptideNodesByPeptideSequence.containsKey(peptide1.getKey())) {
-							peptideNode = peptideNodesByPeptideSequence.get(peptide1.getKey());
+						if (peptideNodesByPeptideNodeKey.containsKey(peptide1.getKey())) {
+							peptideNode = peptideNodesByPeptideNodeKey.get(peptide1.getKey());
 						}
-						if (peptideNodesByPeptideSequence.containsKey(peptide2.getKey())) {
-							peptideNode2 = peptideNodesByPeptideSequence.get(peptide2.getKey());
+						if (peptideNodesByPeptideNodeKey.containsKey(peptide2.getKey())) {
+							peptideNode2 = peptideNodesByPeptideNodeKey.get(peptide2.getKey());
 						}
 						if (peptideNode == null && peptideNode2 == null) {
 							peptideNode = new PCQPeptideNode(this, peptide1, peptide2);
@@ -157,30 +157,30 @@ public class ProteinCluster {
 						// add to the set of nodes
 						peptideNodes.add(peptideNode);
 						// add to the map
-						peptideNodesByPeptideSequence.put(peptide1.getKey(), peptideNode);
-						peptideNodesByPeptideSequence.put(peptide2.getKey(), peptideNode);
+						peptideNodesByPeptideNodeKey.put(peptide1.getKey(), peptideNode);
+						peptideNodesByPeptideNodeKey.put(peptide2.getKey(), peptideNode);
 
 					} else {
 						// create a peptide node for each peptide separated
 						// peptide node for psm1
 						PCQPeptideNode peptideNode = null;
-						if (peptideNodesByPeptideSequence.containsKey(peptide1.getKey())) {
-							peptideNode = peptideNodesByPeptideSequence.get(peptide1.getKey());
+						if (peptideNodesByPeptideNodeKey.containsKey(peptide1.getKey())) {
+							peptideNode = peptideNodesByPeptideNodeKey.get(peptide1.getKey());
 						} else {
 							peptideNode = new PCQPeptideNode(this, peptide1);
 						}
 						peptideNodes.add(peptideNode);
-						peptideNodesByPeptideSequence.put(peptide1.getKey(), peptideNode);
+						peptideNodesByPeptideNodeKey.put(peptide1.getKey(), peptideNode);
 
 						// protein node for protein2
 						PCQPeptideNode peptideNode2 = null;
-						if (peptideNodesByPeptideSequence.containsKey(peptide2.getKey())) {
-							peptideNode2 = peptideNodesByPeptideSequence.get(peptide2.getKey());
+						if (peptideNodesByPeptideNodeKey.containsKey(peptide2.getKey())) {
+							peptideNode2 = peptideNodesByPeptideNodeKey.get(peptide2.getKey());
 						} else {
 							peptideNode2 = new PCQPeptideNode(this, peptide2);
 						}
 						peptideNodes.add(peptideNode2);
-						peptideNodesByPeptideSequence.put(peptide2.getKey(), peptideNode2);
+						peptideNodesByPeptideNodeKey.put(peptide2.getKey(), peptideNode2);
 					}
 				}
 			}
@@ -190,7 +190,7 @@ public class ProteinCluster {
 			QuantifiedPeptideInterface peptide = peptides.iterator().next();
 			PCQPeptideNode peptideNode = new PCQPeptideNode(this, peptide);
 			peptideNodes.add(peptideNode);
-			peptideNodesByPeptideSequence.put(peptide.getKey(), peptideNode);
+			peptideNodesByPeptideNodeKey.put(peptide.getKey(), peptideNode);
 		}
 
 	}
@@ -333,7 +333,7 @@ public class ProteinCluster {
 
 	private void resetPeptideNodes() {
 		peptideNodes.clear();
-		peptideNodesByPeptideSequence.clear();
+		peptideNodesByPeptideNodeKey.clear();
 	}
 
 	/**
@@ -525,8 +525,8 @@ public class ProteinCluster {
 		Set<PCQPeptideNode> ret = new HashSet<PCQPeptideNode>();
 
 		for (AlignedPeptides alignment : alignmentSet.getAlignmentsForPeptide(peptide)) {
-			ret.add(peptideNodesByPeptideSequence.get(alignment.getPeptide1().getKey()));
-			ret.add(peptideNodesByPeptideSequence.get(alignment.getPeptide2().getKey()));
+			ret.add(peptideNodesByPeptideNodeKey.get(alignment.getPeptide1().getKey()));
+			ret.add(peptideNodesByPeptideNodeKey.get(alignment.getPeptide2().getKey()));
 		}
 		// not include the same as peptideNode
 		ret.remove(peptideNode);
@@ -730,7 +730,7 @@ public class ProteinCluster {
 	 * @return the peptideNodesByPeptideSequence
 	 */
 	public HashMap<String, PCQPeptideNode> getPeptideNodesByPeptideSequence() {
-		return peptideNodesByPeptideSequence;
+		return peptideNodesByPeptideNodeKey;
 	}
 
 }

@@ -95,6 +95,7 @@ public class ProteinClusterQuantParameters {
 	private boolean semiCleavage;
 	private String peptideFilterRegexp;
 	private List<UniprotAnnotationColumn> uniprotAnnotationColumns = new ArrayList<UniprotAnnotationColumn>();
+	private char[] aaQuantified;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -1117,5 +1118,17 @@ public class ProteinClusterQuantParameters {
 
 	public void addUniprotAnnotationColumn(UniprotAnnotationColumn uniprotAnnotationColumn) {
 		this.uniprotAnnotationColumns.add(uniprotAnnotationColumn);
+	}
+
+	public char[] getAaQuantified() {
+		return aaQuantified;
+	}
+
+	public void setAaQuantified(char[] aaQuantified) {
+		this.aaQuantified = aaQuantified;
+	}
+
+	public boolean isCollapseBySites() {
+		return this.aaQuantified != null && this.aaQuantified.length > 0;
 	}
 }

@@ -130,10 +130,37 @@ public class PropertiesReader {
 		boolean collapseIndistinguishableProteins = Boolean
 				.valueOf(properties.getProperty("collapseIndistinguishableProteins", "true"));
 		params.setCollapseIndistinguishableProteins(collapseIndistinguishableProteins);
-		// are we collapsing the indisintuishable peptides
+		// aminacids to quantify
+		char[] aaQuantified = null;
+		final String aaQuantifiedArrayString = properties.getProperty("collapsePeptidesBySites");
+		if (aaQuantifiedArrayString != null && !"".equals(aaQuantifiedArrayString.trim())) {
+			if (aaQuantifiedArrayString.contains(",")) {
+				String[] tmp = aaQuantifiedArrayString.split(",");
+				aaQuantified = new char[tmp.length];
+				for (int i = 0; i < tmp.length; i++) {
+					aaQuantified[i] = tmp[i].trim().charAt(0);
+				}
+			} else {
+				if (aaQuantifiedArrayString.length() > 1) {
+					throw new FileNotFoundException(
+							"Aminoacid array contains more than one character but is not separated by ','. Try something like 'K,R'");
+				}
+				aaQuantified = new char[1];
+				aaQuantified[0] = aaQuantifiedArrayString.trim().charAt(0);
+			}
+		}
+		params.setAaQuantified(aaQuantified);
+
+		// are we collapsing the indistinguishable peptides
 		boolean collapseIndistinguishablePeptides = Boolean
 				.valueOf(properties.getProperty("collapseIndistinguishablePeptides", "true"));
 		params.setCollapseIndistinguishablePeptides(collapseIndistinguishablePeptides);
+
+		if (params.isCollapseBySites() && params.isCollapseIndistinguishablePeptides()) {
+			throw new IllegalArgumentException(
+					"collapsePeptidesBySites and collapseIndistinguishablePeptides cannot be used at the same time");
+		}
+
 		// determines if we align the peptides or not
 		boolean makeAlignments = Boolean.valueOf(properties.getProperty("makeAlignments", "false"));
 		params.setMakeAlignments(makeAlignments);

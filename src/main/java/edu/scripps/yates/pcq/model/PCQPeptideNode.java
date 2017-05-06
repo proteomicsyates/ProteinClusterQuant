@@ -48,7 +48,6 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	public PCQPeptideNode(ProteinCluster proteinCluster, Collection<QuantifiedPeptideInterface> peptideCollection) {
 		peptideSet.addAll(peptideCollection);
 		this.proteinCluster = proteinCluster;
-
 	}
 
 	public PCQPeptideNode(ProteinCluster proteinCluster, QuantifiedPeptideInterface... peptides) {
@@ -56,6 +55,7 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 			peptideSet.add(peptide);
 		}
 		this.proteinCluster = proteinCluster;
+
 	}
 
 	public Set<PCQProteinNode> getProteinNodes() {
@@ -97,10 +97,12 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 
 	@Override
 	public String getKey() {
-		if (key != null) {
-			return key;
+		if (key == null) {
+
+			key = getFullSequence();
+
 		}
-		return getFullSequence();
+		return key;
 	}
 
 	@Override

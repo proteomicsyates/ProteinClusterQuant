@@ -43,6 +43,7 @@ import edu.scripps.yates.census.analysis.wrappers.SanxotQuantResult;
 import edu.scripps.yates.census.read.AbstractQuantParser;
 import edu.scripps.yates.census.read.model.CensusRatio;
 import edu.scripps.yates.census.read.model.IonCountRatio;
+import edu.scripps.yates.census.read.model.IsoRatio;
 import edu.scripps.yates.census.read.model.QuantifiedProtein;
 import edu.scripps.yates.census.read.model.RatioScore;
 import edu.scripps.yates.census.read.model.interfaces.QuantParser;
@@ -202,6 +203,9 @@ public class ProteinClusterQuant {
 			if (quantParser != null) {
 				pepMap.putAll(quantParser.getPeptideMap());
 			}
+			// if (params.getAaQuantified() != null) {
+			printPSMRatios();
+			// }
 			if (idParser != null) {
 				NonQuantParser nonQuantParser = new NonQuantParser(idParser);
 				// add the peptides to the map
@@ -343,6 +347,60 @@ public class ProteinClusterQuant {
 		} catch (ExecutionException e) {
 			e.printStackTrace();
 			log.error(e.getMessage());
+		}
+
+	}
+
+	private void printPSMRatios() {
+		FileWriter out = null;
+		log.info("Printing PSM ratios");
+		try {
+			final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+			final File outputFileFolder = params.getTemporalOutputFolder();
+			final String outputPrefix = params.getOutputPrefix();
+			final String outputSuffix = params.getOutputSuffix();
+			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix
+					+ "_psmSiteSpecificRatios_" + outputSuffix + ".txt");
+			if (quantParser != null) {
+				Collection<QuantifiedPSMInterface> psms = quantParser.getPSMMap().values();
+				List<QuantifiedPSMInterface> psmList = new ArrayList<QuantifiedPSMInterface>();
+				psmList.addAll(psms);
+				Collections.sort(psmList, new Comparator<QuantifiedPSMInterface>() {
+
+					@Override
+					public int compare(QuantifiedPSMInterface o1, QuantifiedPSMInterface o2) {
+						return o1.getPSMIdentifier().compareTo(o2.getPSMIdentifier());
+					}
+				});
+				// header
+				out.write("Raw file " + "\t" + "PSM id" + "\t" + "Sequence" + "\t" + "Log2Ratio" + "\t"
+						+ "QuantSitePositionInPeptide" + "\t" + "Quant site" + "\n");
+				for (QuantifiedPSMInterface psm : psmList) {
+					Set<QuantRatio> ratios = psm.getRatios();
+					for (QuantRatio quantRatio : ratios) {
+						if (quantRatio instanceof IsoRatio) {
+							IsoRatio isoRatio = (IsoRatio) quantRatio;
+
+							out.write(psm.getRawFileNames().iterator().next() + "\t" + psm.getKey() + "\t"
+									+ psm.getSequence() + "\t"
+									+ PCQUtils.escapeInfinity(isoRatio.getLog2Ratio(cond1, cond2)) + "\t"
+									+ isoRatio.getQuantifiedSitePositionInPeptide() + "\t" + isoRatio.getQuantifiedAA()
+									+ "\n");
+
+						}
+					}
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (out != null) {
+				try {
+					out.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 
 	}
@@ -1693,7 +1751,7 @@ public class ProteinClusterQuant {
 				if (idParser != null) {
 					uniprotAccSet.addAll(idParser.getUniprotAccSet());
 				}
-				log.info("Getting UniprotKB annotations for " + idParser.getUniprotAccSet().size() + " proteins");
+				log.info("Getting UniprotKB annotations for " + uniprotAccSet.size() + " proteins");
 
 				annotatedProteins = uplr.getAnnotatedProteins(getParams().getUniprotVersion(), uniprotAccSet);
 				log.info(annotatedProteins.size() + " annotations retrieved out of " + uniprotAccSet.size()
