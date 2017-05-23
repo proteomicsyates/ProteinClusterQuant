@@ -22,8 +22,8 @@ import edu.scripps.yates.utilities.maths.Maths;
 
 public class ProteinPair {
 	private static final Logger log = Logger.getLogger(ProteinPair.class);
-	private final PCQProteinNode proteinNode1;
-	private final PCQProteinNode proteinNode2;
+	private PCQProteinNode proteinNode1;
+	private PCQProteinNode proteinNode2;
 	private boolean uniquePeptidesProt1Inconsistent = false;
 	private boolean uniquePeptidesProt2Inconsistent = false;
 	private boolean sharedPeptidesInconsistent = false;
@@ -36,8 +36,35 @@ public class ProteinPair {
 	private final static int MIN_RATIOS_TO_TEST = 10;
 
 	public ProteinPair(PCQProteinNode proteinNode1, PCQProteinNode proteinNode2) {
-		this.proteinNode1 = proteinNode1;
-		this.proteinNode2 = proteinNode2;
+		// sort consistently the protein pairs in order to show the proteinNode1
+		// as the node with a unique peptide node and sort them alphabetically
+		boolean protein1HasUniquePeptides = false;
+		boolean protein2HasUniquePeptides = false;
+
+		if (!PCQUtils.getUniquePeptideNodes(proteinNode1, proteinNode2, false, true).isEmpty()) {
+			protein1HasUniquePeptides = true;
+		}
+		if (!PCQUtils.getUniquePeptideNodes(proteinNode2, proteinNode1, false, true).isEmpty()) {
+			protein2HasUniquePeptides = true;
+		}
+		if (protein1HasUniquePeptides && !protein2HasUniquePeptides) {
+			this.proteinNode1 = proteinNode1;
+			this.proteinNode2 = proteinNode2;
+		} else if (!protein1HasUniquePeptides && protein2HasUniquePeptides) {
+			this.proteinNode1 = proteinNode2;
+			this.proteinNode2 = proteinNode1;
+		} else if (Boolean.compare(protein1HasUniquePeptides, protein2HasUniquePeptides) == 0) {
+			// sort by acc
+			int res = proteinNode1.getKey().compareTo(proteinNode2.getKey());
+			if (res >= 0) {
+				this.proteinNode1 = proteinNode1;
+				this.proteinNode2 = proteinNode2;
+			} else if (res < 0) {
+				this.proteinNode1 = proteinNode2;
+				this.proteinNode2 = proteinNode1;
+			}
+		}
+
 		this.proteinNode1.setProteinPair(this);
 		this.proteinNode2.setProteinPair(this);
 		containsDiscardedProteinNode = proteinNode1.isDiscarded() || proteinNode2.isDiscarded();
@@ -580,7 +607,8 @@ public class ProteinPair {
 
 		sb.append("Unique Pep1 (U1)\t").append("Ratio (U1)\t").append("Protein 1\t").append("Taxon_P1\t")
 				.append("Shared Pep (S)\t").append("Ratio (S)\t").append("Protein 2\t").append("Taxon_P2\t")
-				.append("Unique Pep2 (U2)\t").append("Ratio (U2)\t").append("ClassificationCase");
+				.append("Unique Pep2 (U2)\t").append("Ratio (U2)\t").append("ClassificationCase\t")
+				.append("Incomplete sifnificant case 6");
 		return sb.toString();
 	}
 
@@ -665,6 +693,15 @@ public class ProteinPair {
 			if (classification2Case != null) {
 				sb.append(classification2Case.name());
 			}
+
+			// show a flag if we have case 6, that is, shared peptide node is
+			// significantly different
+			if (classification1Case == Classification1Case.CASE6 && Double.isNaN(value2)) {
+				if (Math.abs(valueShared - value1) >= params.getThresholdForSignificance()) {
+					sb.append("\tX");
+				}
+			}
+
 			ret.add(sb.toString());
 		}
 
