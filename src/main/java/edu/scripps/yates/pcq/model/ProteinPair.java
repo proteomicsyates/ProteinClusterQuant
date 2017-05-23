@@ -608,7 +608,7 @@ public class ProteinPair {
 		sb.append("Unique Pep1 (U1)\t").append("Ratio (U1)\t").append("Protein 1\t").append("Taxon_P1\t")
 				.append("Shared Pep (S)\t").append("Ratio (S)\t").append("Protein 2\t").append("Taxon_P2\t")
 				.append("Unique Pep2 (U2)\t").append("Ratio (U2)\t").append("ClassificationCase\t")
-				.append("Incomplete significant case 6");
+				.append("Incomplete pair and significant case 6");
 		return sb.toString();
 	}
 
