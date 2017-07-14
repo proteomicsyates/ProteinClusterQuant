@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -13,6 +12,7 @@ import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 import edu.scripps.yates.census.read.util.QuantUtils;
 import edu.scripps.yates.pcq.util.PCQUtils;
+import gnu.trove.set.hash.THashSet;
 
 /**
  * Wrapper class for a protein node, that could contain several proteins sharing
@@ -23,9 +23,9 @@ import edu.scripps.yates.pcq.util.PCQUtils;
  */
 public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 	// private final static Logger log = Logger.getLogger(PCQProteinNode.class);
-	private final Set<QuantifiedProteinInterface> proteinSet = new HashSet<QuantifiedProteinInterface>();
-	private final Set<PCQPeptideNode> peptideNodes = new HashSet<PCQPeptideNode>();
-	private HashSet<String> taxonomies;
+	private final Set<QuantifiedProteinInterface> proteinSet = new THashSet<QuantifiedProteinInterface>();
+	private final Set<PCQPeptideNode> peptideNodes = new THashSet<PCQPeptideNode>();
+	private Set<String> taxonomies;
 	private final ProteinCluster proteinCluster;
 	private ProteinPair proteinPair;
 	private String key;
@@ -55,7 +55,7 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 
 	@Override
 	public Set<QuantifiedPeptideInterface> getQuantifiedPeptides() {
-		Set<QuantifiedPeptideInterface> ret = new HashSet<QuantifiedPeptideInterface>();
+		Set<QuantifiedPeptideInterface> ret = new THashSet<QuantifiedPeptideInterface>();
 		for (PCQPeptideNode peptideNode : getPeptideNodes()) {
 			ret.addAll(peptideNode.getQuantifiedPeptides());
 		}
@@ -76,12 +76,6 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 		return key;
 	}
 
-	@Override
-	public void setKey(String key) {
-		this.key = key;
-
-	}
-
 	public String getDescription() {
 
 		return PCQUtils.getDescriptionStringFromIndividualProteins(proteinSet, true);
@@ -90,7 +84,7 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 
 	public Set<String> getTaxonomies() {
 		if (taxonomies == null) {
-			taxonomies = new HashSet<String>();
+			taxonomies = new THashSet<String>();
 			final List<String> sortedTaxonomies = PCQUtils.getSortedTaxonomies(proteinSet);
 			for (String taxonomy : sortedTaxonomies) {
 				if (taxonomy != null)
@@ -103,7 +97,7 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 
 	@Override
 	public Set<QuantifiedPSMInterface> getQuantifiedPSMs() {
-		Set<QuantifiedPSMInterface> set = new HashSet<QuantifiedPSMInterface>();
+		Set<QuantifiedPSMInterface> set = new THashSet<QuantifiedPSMInterface>();
 		for (QuantifiedProteinInterface protein : proteinSet) {
 			set.addAll(protein.getQuantifiedPSMs());
 		}

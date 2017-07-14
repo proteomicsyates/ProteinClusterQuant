@@ -6,12 +6,12 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Set;
 
 import edu.scripps.yates.pcq.compare.ComparisonInput.ComparisonType;
 import edu.scripps.yates.utilities.venndata.ContainsMultipleKeys;
 import edu.scripps.yates.utilities.venndata.VennDataForLists;
+import gnu.trove.set.hash.THashSet;
 
 public class PCQCompare {
 	private final String name1;
@@ -47,7 +47,7 @@ public class PCQCompare {
 		if (file == null) {
 			return null;
 		}
-		Set<ContainsMultipleKeys> set = new HashSet<ContainsMultipleKeys>();
+		Set<ContainsMultipleKeys> set = new THashSet<ContainsMultipleKeys>();
 		BufferedReader in = null;
 		try {
 			in = new BufferedReader(new FileReader(file));

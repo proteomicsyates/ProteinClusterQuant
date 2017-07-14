@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -13,35 +11,41 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
+import edu.scripps.yates.annotations.uniprot.UniprotProteinLocalRetriever;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
-import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.filter.PCQFilter;
+import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.pcq.xgmml.util.AlignedPeptides;
 import edu.scripps.yates.pcq.xgmml.util.AlignmentSet;
 import edu.scripps.yates.utilities.alignment.nwalign.NWAlign;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
+import edu.scripps.yates.utilities.sequence.PositionInPeptide;
+import edu.scripps.yates.utilities.sequence.PositionInProtein;
+import edu.scripps.yates.utilities.util.Pair;
+import gnu.trove.map.hash.THashMap;
+import gnu.trove.set.hash.THashSet;
 
 public class ProteinCluster {
 	private final static Logger log = Logger.getLogger(ProteinCluster.class);
 	private static int proteinClusterCounter = 0;
 	// Two sets for proteins and peptides
-	private final Set<QuantifiedProteinInterface> individualQuantifiedProteinSet = new HashSet<QuantifiedProteinInterface>();
-	private final Set<QuantifiedPeptideInterface> individualQuantifiedPeptideSet = new HashSet<QuantifiedPeptideInterface>();
+	private final Set<QuantifiedProteinInterface> individualQuantifiedProteinSet = new THashSet<QuantifiedProteinInterface>();
+	private final Set<QuantifiedPeptideInterface> individualQuantifiedPeptideSet = new THashSet<QuantifiedPeptideInterface>();
 
-	private final Set<PCQProteinNode> proteinNodes = new HashSet<PCQProteinNode>();
-	private final Set<PCQPeptideNode> peptideNodes = new HashSet<PCQPeptideNode>();
+	private final Set<PCQProteinNode> proteinNodes = new THashSet<PCQProteinNode>();
+	private final Set<PCQPeptideNode> peptideNodes = new THashSet<PCQPeptideNode>();
 
-	private final Set<ProteinPair> proteinPairs = new HashSet<ProteinPair>();
+	private final Set<ProteinPair> proteinPairs = new THashSet<ProteinPair>();
 	// proteinPairs with discarded proteins
-	private final Set<ProteinPair> discardedProteinPairs = new HashSet<ProteinPair>();
+	private final Set<ProteinPair> discardedProteinPairs = new THashSet<ProteinPair>();
 	private final AlignmentSet alignmentSet = new AlignmentSet();
 	private Map<String, QuantifiedPeptideInterface> peptideMap;
 
-	private final HashMap<String, PCQProteinNode> proteinNodesByProteinKey = new HashMap<String, PCQProteinNode>();
-	private final HashMap<String, PCQPeptideNode> peptideNodesByPeptideNodeKey = new HashMap<String, PCQPeptideNode>();
+	private final Map<String, PCQProteinNode> proteinNodesByProteinKey = new THashMap<String, PCQProteinNode>();
+	private final Map<String, PCQPeptideNode> peptideNodesByPeptideNodeKey = new THashMap<String, PCQPeptideNode>();
 
 	private final int clusterID;
 
@@ -55,10 +59,11 @@ public class ProteinCluster {
 
 	/**
 	 * By calling this function, the cluster will reorganize by collapsing the
-	 * nodes appropiatelly and calculating the ratios accordingly
+	 * nodes properly and calculating the ratios accordingly
 	 */
 	public void createNodes() {
 		// reset nodes
+		// removes all nodes in the cluster and clear all maps
 		resetNodes();
 
 		// create nodes with the individual proteins and peptides
@@ -67,7 +72,11 @@ public class ProteinCluster {
 		createProteinNodes();
 
 		// create nodes peptide nodes
-		createPeptideNodes();
+		if (getParams().isCollapseBySites()) {
+			createPeptideNodesByQuantifiedSites(getParams().getAaQuantified());
+		} else {
+			createPeptideNodes();
+		}
 
 		// connect protein and peptide nodes
 		connectProteinAndPeptideNodes();
@@ -111,10 +120,10 @@ public class ProteinCluster {
 		// log.debug("Creating peptide nodes in cluster");
 		List<QuantifiedPeptideInterface> peptides = new ArrayList<QuantifiedPeptideInterface>();
 		peptides.addAll(individualQuantifiedPeptideSet);
-		Set<String> set = new HashSet<String>();
+		Set<String> set = new THashSet<String>();
 		for (QuantifiedPeptideInterface pep : peptides) {
 			if (set.contains(pep.getKey())) {
-				log.info("error");
+				log.info("Inconsistency error. 2 peptides with the same key cannot exist!");
 			} else {
 				set.add(pep.getKey());
 			}
@@ -169,6 +178,7 @@ public class ProteinCluster {
 						} else {
 							peptideNode = new PCQPeptideNode(this, peptide1);
 						}
+						peptideNode.addQuantifiedPeptide(peptide1);
 						peptideNodes.add(peptideNode);
 						peptideNodesByPeptideNodeKey.put(peptide1.getKey(), peptideNode);
 
@@ -179,6 +189,7 @@ public class ProteinCluster {
 						} else {
 							peptideNode2 = new PCQPeptideNode(this, peptide2);
 						}
+						peptideNode2.addQuantifiedPeptide(peptide2);
 						peptideNodes.add(peptideNode2);
 						peptideNodesByPeptideNodeKey.put(peptide2.getKey(), peptideNode2);
 					}
@@ -195,14 +206,228 @@ public class ProteinCluster {
 
 	}
 
+	/**
+	 * Iterates all peptides in the cluster over all others and creates a node
+	 * for all peptides that have the same key, which, in this case is the
+	 * position of the quantifiedAA in the protein.
+	 * 
+	 * @param quantifiedAAs
+	 */
+	private void createPeptideNodesByQuantifiedSites(char[] quantifiedAAs) {
+		UniprotProteinLocalRetriever uplr = PCQUtils
+				.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
+		List<QuantifiedPeptideInterface> peptides = new ArrayList<QuantifiedPeptideInterface>();
+		peptides.addAll(individualQuantifiedPeptideSet);
+		Set<String> set = new THashSet<String>();
+		for (QuantifiedPeptideInterface pep : peptides) {
+			if (set.contains(pep.getKey())) {
+				log.info("Inconsistency error. 2 peptides with the same key cannot exist!");
+			} else {
+				set.add(pep.getKey());
+			}
+		}
+		if (peptides.size() > 1) {
+			for (int i = 0; i < peptides.size(); i++) {
+				QuantifiedPeptideInterface peptide1 = peptides.get(i);
+				// get the keys from the peptide.
+				// not that the peptide could have more than one key because 2
+				// reasons:
+				// - it could be shared by more than one protein
+				// - it could have more than one quantified aminoacid in its
+				// sequence
+				Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide1Keys = peptide1
+						.getProteinKeysByPeptideKeysForQuantifiedAAs(quantifiedAAs, uplr);
+				if (proteinKeysByPeptide1Keys.isEmpty()) {
+					// peptides without a site mapped to a protein are discarded
+					// TODO remove it from individualQuantifiedPeptideSet ?
+					individualQuantifiedPeptideSet.remove(peptide1);
+					continue;
+				}
+				for (int j = i + 1; j < peptides.size(); j++) {
+					QuantifiedPeptideInterface peptide2 = peptides.get(j);
+					Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = peptide2
+							.getProteinKeysByPeptideKeysForQuantifiedAAs(quantifiedAAs, uplr);
+					if (proteinKeysByPeptide2Keys.isEmpty()) {
+						// peptides without a site mapped to a protein are
+						// discarded
+						// TODO remove it from individualQuantifiedPeptideSet ?
+						individualQuantifiedPeptideSet.remove(peptide2);
+						continue;
+					}
+
+					// iterate over all the keys
+					for (PositionInPeptide positionInPeptide1 : proteinKeysByPeptide1Keys.keySet()) {
+						List<PositionInProtein> proteinKeysFromPeptide1 = proteinKeysByPeptide1Keys
+								.get(positionInPeptide1);
+						for (PositionInPeptide positionInPeptide2 : proteinKeysByPeptide2Keys.keySet()) {
+							List<PositionInProtein> proteinKeysFromPeptide2 = proteinKeysByPeptide2Keys
+									.get(positionInPeptide2);
+
+							// now I compare the two list of keys
+							if (PCQUtils.areEquals(proteinKeysFromPeptide1, proteinKeysFromPeptide2)) {
+
+								String key = PCQUtils.getStringKey(proteinKeysFromPeptide1);
+
+								// collapsed in the same peptide node
+								PCQPeptideNode peptideNode = null;
+								// if the protein was already associated with
+								// some protein node
+								if (peptideNodesByPeptideNodeKey.containsKey(key)) {
+									peptideNode = peptideNodesByPeptideNodeKey.get(key);
+								} else {
+									peptideNode = new PCQPeptideNode(this, key,
+											new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide1,
+													positionInPeptide1),
+											new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide2,
+													positionInPeptide2));
+								}
+								// add the two peptides to the peptide node
+								peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide1);
+								peptideNode.addQuantifiedPeptide(peptide2, positionInPeptide2);
+								// add to the set of nodes
+								peptideNodes.add(peptideNode);
+								// add to the map
+								peptideNodesByPeptideNodeKey.put(key, peptideNode);
+
+							} else if (PCQUtils.shareAny(proteinKeysFromPeptide1, proteinKeysFromPeptide2)) {
+								// they have keys in common, but not all of them
+								// now, create a node with all this keys unique
+								// to the first peptide
+								List<PositionInProtein> uniqueKeysForPeptide1 = PCQUtils
+										.getUniqueToFirst(proteinKeysFromPeptide1, proteinKeysFromPeptide2);
+								if (!uniqueKeysForPeptide1.isEmpty()) {
+
+									String key1 = PCQUtils.getStringKey(uniqueKeysForPeptide1);
+									PCQPeptideNode peptideNode = null;
+									if (peptideNodesByPeptideNodeKey.containsKey(key1)) {
+										peptideNode = peptideNodesByPeptideNodeKey.get(key1);
+									} else {
+										peptideNode = new PCQPeptideNode(this, key1,
+												new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide1,
+														positionInPeptide1));
+									}
+									// add the two peptides to the peptide node
+									peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide1);
+									// add to the set of nodes
+									peptideNodes.add(peptideNode);
+									// add to the map
+									peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+								}
+								// now, create a node with all this keys unique
+								// to the second peptide
+								List<PositionInProtein> uniqueKeysForPeptide2 = PCQUtils
+										.getUniqueToFirst(proteinKeysFromPeptide2, proteinKeysFromPeptide1);
+								if (!uniqueKeysForPeptide2.isEmpty()) {
+									String key2 = PCQUtils.getStringKey(uniqueKeysForPeptide2);
+									PCQPeptideNode peptideNode = null;
+									if (peptideNodesByPeptideNodeKey.containsKey(key2)) {
+										peptideNode = peptideNodesByPeptideNodeKey.get(key2);
+									} else {
+										peptideNode = new PCQPeptideNode(this, key2,
+												new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide2,
+														positionInPeptide2));
+									}
+									// add the two peptides to the peptide node
+									peptideNode.addQuantifiedPeptide(peptide2, positionInPeptide2);
+									// add to the set of nodes
+									peptideNodes.add(peptideNode);
+									// add to the map
+									peptideNodesByPeptideNodeKey.put(key2, peptideNode);
+								}
+								// now, create a node with all this keys in
+								// common between peptide1 and peptide2
+								List<PositionInProtein> sharedKeys = PCQUtils.getInCommon(proteinKeysFromPeptide2,
+										proteinKeysFromPeptide1);
+								if (!sharedKeys.isEmpty()) {
+									String sharedKey = PCQUtils.getStringKey(sharedKeys);
+									PCQPeptideNode peptideNode = null;
+									if (peptideNodesByPeptideNodeKey.containsKey(sharedKey)) {
+										peptideNode = peptideNodesByPeptideNodeKey.get(sharedKey);
+									} else {
+										peptideNode = new PCQPeptideNode(this, sharedKey,
+												new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide1,
+														positionInPeptide1),
+												new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide2,
+														positionInPeptide2));
+									}
+									// add the two peptides to the peptide node
+									peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide1);
+									peptideNode.addQuantifiedPeptide(peptide2, positionInPeptide2);
+									// add to the set of nodes
+									peptideNodes.add(peptideNode);
+									// add to the map
+									peptideNodesByPeptideNodeKey.put(sharedKey, peptideNode);
+								}
+							} else {
+								// they dont share any key create a peptide node
+								// for each peptide separated peptide node for
+								// psm1
+								String key1 = PCQUtils.getStringKey(proteinKeysFromPeptide1);
+								PCQPeptideNode peptideNode = null;
+								if (peptideNodesByPeptideNodeKey.containsKey(key1)) {
+									peptideNode = peptideNodesByPeptideNodeKey.get(key1);
+								} else {
+									peptideNode = new PCQPeptideNode(this, key1,
+											new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide1,
+													positionInPeptide1));
+								}
+								// add the two peptides to the peptide node
+								peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide1);
+								peptideNodes.add(peptideNode);
+								peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+
+								// protein node for protein2
+								String key2 = PCQUtils.getStringKey(proteinKeysFromPeptide2);
+								PCQPeptideNode peptideNode2 = null;
+								if (peptideNodesByPeptideNodeKey.containsKey(key2)) {
+									peptideNode2 = peptideNodesByPeptideNodeKey.get(key2);
+								} else {
+									peptideNode2 = new PCQPeptideNode(this, key2,
+											new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide2,
+													positionInPeptide2));
+								}
+								peptideNode2.addQuantifiedPeptide(peptide2, positionInPeptide2);
+								peptideNodes.add(peptideNode2);
+								peptideNodesByPeptideNodeKey.put(key2, peptideNode2);
+							}
+						}
+					}
+				}
+			}
+		} else {
+			// only one peptide
+			// create a peptide node for each position in the peptide
+			QuantifiedPeptideInterface peptide = peptides.iterator().next();
+			Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptideKeys = peptide
+					.getProteinKeysByPeptideKeysForQuantifiedAAs(quantifiedAAs, uplr);
+
+			for (PositionInPeptide positionInPeptide : proteinKeysByPeptideKeys.keySet()) {
+				List<PositionInProtein> positionsInProtein = proteinKeysByPeptideKeys.get(positionInPeptide);
+
+				String key = PCQUtils.getStringKey(positionsInProtein);
+				PCQPeptideNode peptideNode = null;
+				if (peptideNodesByPeptideNodeKey.containsKey(key)) {
+					peptideNode = peptideNodesByPeptideNodeKey.get(key);
+				} else {
+					peptideNode = new PCQPeptideNode(this, key,
+							new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide, positionInPeptide));
+				}
+				peptideNode.addQuantifiedPeptide(peptide, positionInPeptide);
+				peptideNodes.add(peptideNode);
+				peptideNodesByPeptideNodeKey.put(key, peptideNode);
+			}
+		}
+
+	}
+
 	private void createProteinNodes() {
 		// create a map to store proteins by accession
-		Map<String, Set<QuantifiedProteinInterface>> proteinMap = new HashMap<String, Set<QuantifiedProteinInterface>>();
+		Map<String, Set<QuantifiedProteinInterface>> proteinMap = new THashMap<String, Set<QuantifiedProteinInterface>>();
 		for (QuantifiedProteinInterface protein : individualQuantifiedProteinSet) {
 			if (proteinMap.containsKey(protein.getKey())) {
 				proteinMap.get(protein.getKey()).add(protein);
 			} else {
-				Set<QuantifiedProteinInterface> set = new HashSet<QuantifiedProteinInterface>();
+				Set<QuantifiedProteinInterface> set = new THashSet<QuantifiedProteinInterface>();
 				set.add(protein);
 				proteinMap.put(protein.getKey(), set);
 			}
@@ -456,7 +681,7 @@ public class ProteinCluster {
 	 * @return
 	 */
 	public Set<ProteinPair> getAllProteinPairs() {
-		Set<ProteinPair> ret = new HashSet<ProteinPair>();
+		Set<ProteinPair> ret = new THashSet<ProteinPair>();
 		ret.addAll(getProteinPairs());
 		ret.addAll(getDiscardedProteinPairs());
 		return ret;
@@ -522,7 +747,7 @@ public class ProteinCluster {
 		}
 		QuantifiedPeptideInterface peptide = peptideNode.getQuantifiedPeptides().iterator().next();
 
-		Set<PCQPeptideNode> ret = new HashSet<PCQPeptideNode>();
+		Set<PCQPeptideNode> ret = new THashSet<PCQPeptideNode>();
 
 		for (AlignedPeptides alignment : alignmentSet.getAlignmentsForPeptide(peptide)) {
 			ret.add(peptideNodesByPeptideNodeKey.get(alignment.getPeptide1().getKey()));
@@ -556,7 +781,7 @@ public class ProteinCluster {
 	}
 
 	public Set<String> getPeptideNodeKeys() {
-		Set<String> ret = new HashSet<String>();
+		Set<String> ret = new THashSet<String>();
 		for (PCQPeptideNode peptideNode : peptideNodes) {
 			ret.add(peptideNode.getKey());
 		}
@@ -570,7 +795,7 @@ public class ProteinCluster {
 	 * @return
 	 */
 	public int getNumDifferentNonDiscardedIndividualPeptides() {
-		Set<String> set = new HashSet<String>();
+		Set<String> set = new THashSet<String>();
 		for (PCQPeptideNode peptideNode : getNonDiscardedPeptideNodes()) {
 			for (QuantifiedPeptideInterface peptide : peptideNode.getItemsInNode()) {
 				set.add(peptide.getSequence());
@@ -585,7 +810,7 @@ public class ProteinCluster {
 	 * @return
 	 */
 	public int getNumDifferentDiscardedIndividualPeptides() {
-		Set<String> set = new HashSet<String>();
+		Set<String> set = new THashSet<String>();
 		for (PCQPeptideNode peptideNode : getPeptideNodes()) {
 			if (peptideNode.isDiscarded()) {
 				for (QuantifiedPeptideInterface peptide : peptideNode.getItemsInNode()) {
@@ -602,7 +827,7 @@ public class ProteinCluster {
 	 * @return
 	 */
 	public int getNumDifferentNonDiscardedIndividualProteins() {
-		Set<String> set = new HashSet<String>();
+		Set<String> set = new THashSet<String>();
 		for (PCQProteinNode proteinNode : getNonDiscardedProteinNodes()) {
 			for (QuantifiedProteinInterface protein : proteinNode.getItemsInNode()) {
 				set.add(protein.getAccession());
@@ -630,7 +855,7 @@ public class ProteinCluster {
 	}
 
 	public Set<PCQProteinNode> getNonDiscardedProteinNodes() {
-		Set<PCQProteinNode> ret = new HashSet<PCQProteinNode>();
+		Set<PCQProteinNode> ret = new THashSet<PCQProteinNode>();
 		for (PCQProteinNode proteinNode : getProteinNodes()) {
 			if (!proteinNode.isDiscarded()) {
 				ret.add(proteinNode);
@@ -640,7 +865,7 @@ public class ProteinCluster {
 	}
 
 	public Set<PCQPeptideNode> getNonDiscardedPeptideNodes() {
-		Set<PCQPeptideNode> ret = new HashSet<PCQPeptideNode>();
+		Set<PCQPeptideNode> ret = new THashSet<PCQPeptideNode>();
 		for (PCQPeptideNode peptideNode : getPeptideNodes()) {
 			if (!peptideNode.isDiscarded()) {
 				ret.add(peptideNode);
@@ -652,7 +877,7 @@ public class ProteinCluster {
 	}
 
 	public Set<QuantifiedProteinInterface> getNonDiscardedProteinSet() {
-		Set<QuantifiedProteinInterface> ret = new HashSet<QuantifiedProteinInterface>();
+		Set<QuantifiedProteinInterface> ret = new THashSet<QuantifiedProteinInterface>();
 		final Set<QuantifiedProteinInterface> proteinSet = getProteinSet();
 		for (QuantifiedProteinInterface protein : proteinSet) {
 			if (!protein.isDiscarded()) {
@@ -686,9 +911,6 @@ public class ProteinCluster {
 			final Iterator<QuantifiedPeptideInterface> peptideIterator = peptideNode.getItemsInNode().iterator();
 			while (peptideIterator.hasNext()) {
 				final QuantifiedPeptideInterface peptide = peptideIterator.next();
-				if (peptide.getQuantifiedProteins().isEmpty()) {
-					log.info(peptide);
-				}
 				final Set<QuantifiedPSMInterface> quantifiedPSMs = peptide.getQuantifiedPSMs();
 				if (quantifiedPSMs.isEmpty()) {
 					peptideIterator.remove();
@@ -721,7 +943,7 @@ public class ProteinCluster {
 		return getProteinSet().remove(protein);
 	}
 
-	public HashMap<String, PCQProteinNode> getProteinNodesByProteinKey() {
+	public Map<String, PCQProteinNode> getProteinNodesByProteinKey() {
 		return proteinNodesByProteinKey;
 
 	}
@@ -729,7 +951,7 @@ public class ProteinCluster {
 	/**
 	 * @return the peptideNodesByPeptideSequence
 	 */
-	public HashMap<String, PCQPeptideNode> getPeptideNodesByPeptideSequence() {
+	public Map<String, PCQPeptideNode> getPeptideNodesByPeptideSequence() {
 		return peptideNodesByPeptideNodeKey;
 	}
 

@@ -1,7 +1,7 @@
 package edu.scripps.yates.pcq.util;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -40,7 +40,7 @@ public class NonQuantParser extends AbstractQuantParser {
 	@Override
 	protected void process() {
 		try {
-			final HashMap<String, DTASelectPSM> psms = dtaSelectParser.getDTASelectPSMsByPSMID();
+			final Map<String, DTASelectPSM> psms = dtaSelectParser.getDTASelectPSMsByPSMID();
 			for (DTASelectPSM psm : psms.values()) {
 				processPSM(psm);
 

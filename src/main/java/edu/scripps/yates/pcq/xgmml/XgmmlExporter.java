@@ -16,8 +16,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,13 +34,13 @@ import edu.scripps.yates.census.read.model.IsobaricQuantifiedPeptide;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
-import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.cases.Classification1Case;
 import edu.scripps.yates.pcq.cases.Classification2Case;
 import edu.scripps.yates.pcq.model.PCQPeptideNode;
 import edu.scripps.yates.pcq.model.PCQProteinNode;
 import edu.scripps.yates.pcq.model.ProteinCluster;
 import edu.scripps.yates.pcq.model.ProteinPair;
+import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.util.AnalysisInputType;
 import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.pcq.xgmml.jaxb.Graph;
@@ -58,6 +56,8 @@ import edu.scripps.yates.pcq.xgmml.util.UniprotAnnotationColumn;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.colors.ColorGenerator;
 import edu.scripps.yates.utilities.proteomicsmodel.Score;
+import gnu.trove.map.hash.THashMap;
+import gnu.trove.set.hash.THashSet;
 
 public class XgmmlExporter {
 	private final static Logger log = Logger.getLogger(XgmmlExporter.class);
@@ -73,16 +73,16 @@ public class XgmmlExporter {
 	private final static DecimalFormat formatter3Decimals = new DecimalFormat("#.###");
 
 	private ColorManager colorManager;
-	private final Map<String, Node> visitedPeptideKeys = new HashMap<String, Node>();
-	private final Map<PCQProteinNode, Node> visitedProteinNodes = new HashMap<PCQProteinNode, Node>();
-	private final Map<String, Edge> edgesIDs = new HashMap<String, Edge>();
+	private final Map<String, Node> visitedPeptideKeys = new THashMap<String, Node>();
+	private final Map<PCQProteinNode, Node> visitedProteinNodes = new THashMap<PCQProteinNode, Node>();
+	private final Map<String, Edge> edgesIDs = new THashMap<String, Edge>();
 	private Map<String, Entry> annotatedProteins;
 	private static final String PCQ_ID = "PCQ_ID";
 	private static final String COUNT_RATIO = "countRatio";
 	private static final String FINAL_RATIO = "finalRatio";
 	private static int numProteinNodes = 1;
-	private static final Map<String, String> numProteinByProteinNodeID = new HashMap<String, String>();
-	private static final Set<String> ratioAttributes = new HashSet<String>();
+	private static final Map<String, String> numProteinByProteinNodeID = new THashMap<String, String>();
+	private static final Set<String> ratioAttributes = new THashSet<String>();
 	private static final String WEIGHT = "Weight";
 	private static final String VARIANCE = "Variance";
 	private static final String SIGNIFICANTLY_REGULATED_ATTRIBUTE = "significant";
@@ -360,7 +360,7 @@ public class XgmmlExporter {
 
 			for (PCQPeptideNode peptideNode2 : alignedPeptides) {
 
-				Set<PCQPeptideNode> peptidesToLink = new HashSet<PCQPeptideNode>();
+				Set<PCQPeptideNode> peptidesToLink = new THashSet<PCQPeptideNode>();
 				peptidesToLink.add(peptideNode);
 				peptidesToLink.add(peptideNode2);
 				String edgeID = getUniqueID(peptidesToLink);
@@ -495,6 +495,7 @@ public class XgmmlExporter {
 			// U1
 			for (PCQPeptideNode uniquePeptideNode_U1 : peptidesNodesU1) {
 				String edgeID = uniquePeptideNode_U1.getKey() + getUniqueID(proteinNode1);
+
 				String edgeID2 = getUniqueID(proteinNode1) + uniquePeptideNode_U1.getKey();
 				if (!edgesIDs.containsKey(edgeID) && !edgesIDs.containsKey(edgeID2)) {
 					final QuantRatio uniquePepRatio3 = uniquePeptideNode_U1.getConsensusRatio(cond1, cond2);
@@ -637,8 +638,9 @@ public class XgmmlExporter {
 		}
 		final List<edu.scripps.yates.pcq.xgmml.jaxb.Graph.Edge.Graphics.Att> atts = edge.getGraphics().getAtt();
 		String tooltip = "";
-		// Set<Classification1Case> cases1 = new HashSet<Classification1Case>();
-		Set<Classification2Case> cases2 = new HashSet<Classification2Case>();
+		// Set<Classification1Case> cases1 = new
+		// THashSet<Classification1Case>();
+		Set<Classification2Case> cases2 = new THashSet<Classification2Case>();
 		for (edu.scripps.yates.pcq.xgmml.jaxb.Graph.Edge.Graphics.Att att : atts) {
 			if (att.getName().equals("EDGE_LABEL")) {
 				if (att.getValue() != null) {
@@ -814,6 +816,9 @@ public class XgmmlExporter {
 			sb.append("<b>Peptide node discarded by applied filters</b>\n");
 		}
 		final Set<QuantifiedPeptideInterface> quantifiedPeptides = peptideNode.getQuantifiedPeptides();
+		if (!peptideNode.getKey().contentEquals(peptideNode.getFullSequence())) {
+			sb.append(peptideNode.getKey() + "\n");
+		}
 		sb.append(peptideNode.getFullSequence() + "\n");
 
 		sb.append(quantifiedPeptides.size() + " Peptide sequences\n" + peptideNode.getQuantifiedPSMs().size()
@@ -1016,9 +1021,9 @@ public class XgmmlExporter {
 			Color outlineColor) {
 		Color fillColor = Color.cyan;
 		final String sequenceString = peptideNode.getFullSequence();
-		Map<String, AttributeValueType> attributes = new HashMap<String, AttributeValueType>();
+		Map<String, AttributeValueType> attributes = new THashMap<String, AttributeValueType>();
 		attributes.put("PeptideSequences", new AttributeValueType(sequenceString));
-		attributes.put(PCQ_ID, new AttributeValueType(sequenceString));
+		attributes.put(PCQ_ID, new AttributeValueType(nodeID));
 		final int numIndividualProteins = PCQUtils.getIndividualProteinsMap(peptideNode).size();
 		attributes.put("numProteins", new AttributeValueType(numIndividualProteins));
 		attributes.put("numPsms", new AttributeValueType(peptideNode.getQuantifiedPSMs().size()));
@@ -1108,7 +1113,7 @@ public class XgmmlExporter {
 		} else {
 			attributes.put("uniquePeptideNode", new AttributeValueType(1));
 		}
-		Node node = createNode(nodeID, sequenceString, attributes);
+		Node node = createNode(nodeID, nodeID, attributes);
 
 		node.setGraphics(createGraphicsNode(label + label_sufix, getHtml(tooltip), params.getPeptideNodeShape(),
 				params.getPeptideNodeHeight(), params.getPeptideNodeWidth(), outlineColor, fillColor, labelColor,
@@ -1126,7 +1131,7 @@ public class XgmmlExporter {
 
 	private Node createNodeFromProteinNode(PCQProteinNode proteinNode,
 			Collection<Classification2Case> classification2Cases, Color outlineColor) {
-		Map<String, AttributeValueType> attributes = new HashMap<String, AttributeValueType>();
+		Map<String, AttributeValueType> attributes = new THashMap<String, AttributeValueType>();
 		attributes.put("UniprotKB", new AttributeValueType(proteinNode.getKey(), AttType.string));
 		int numdifferentAccs = 1;
 		if (proteinNode.getKey().contains(PCQUtils.PROTEIN_ACC_SEPARATOR)) {
@@ -1188,7 +1193,7 @@ public class XgmmlExporter {
 
 		StringBuilder classification2StringTooltip = new StringBuilder();
 		StringBuilder classification2StringNOHTML = new StringBuilder();
-		Set<Classification2Case> cases2 = new HashSet<Classification2Case>();
+		Set<Classification2Case> cases2 = new THashSet<Classification2Case>();
 		if (classification2Cases != null) {
 			List<Classification2Case> sortedList = new ArrayList<Classification2Case>();
 			sortedList.addAll(classification2Cases);
@@ -1409,7 +1414,7 @@ public class XgmmlExporter {
 
 	private Map<String, AttributeValueType> getAttributesForEdge(String edgeName, QuantRatio sharedPepRatio,
 			NWResult alignmentResult, Collection<Classification2Case> classification2Cases) {
-		Map<String, AttributeValueType> ret = new HashMap<String, AttributeValueType>();
+		Map<String, AttributeValueType> ret = new THashMap<String, AttributeValueType>();
 		// ret.put("name", edgeName);
 		ret.put(PCQ_ID, new AttributeValueType(edgeName));
 		if (sharedPepRatio != null) {
@@ -1597,7 +1602,7 @@ public class XgmmlExporter {
 	}
 
 	private Map<String, Entry> getAnnotatedProtein(String accession) {
-		Set<String> accs = new HashSet<String>();
+		Set<String> accs = new THashSet<String>();
 		if (accession.contains(" ")) {
 			final String[] split = accession.split("\\s+");
 			for (String string : split) {
@@ -1606,7 +1611,7 @@ public class XgmmlExporter {
 		} else {
 			accs.add(accession);
 		}
-		Map<String, Entry> ret = new HashMap<String, Entry>();
+		Map<String, Entry> ret = new THashMap<String, Entry>();
 		for (String string : accs) {
 			if (annotatedProteins != null && annotatedProteins.containsKey(string)) {
 				ret.put(string, annotatedProteins.get(string));
@@ -1704,7 +1709,7 @@ public class XgmmlExporter {
 	 */
 	private Set<ProteinCluster> getSignificantlyRegulatedProteinClusters(Collection<ProteinCluster> clusters,
 			Double fdrThreshold) {
-		Set<ProteinCluster> ret = new HashSet<ProteinCluster>();
+		Set<ProteinCluster> ret = new THashSet<ProteinCluster>();
 		for (ProteinCluster proteinCluster : clusters) {
 			final Set<PCQPeptideNode> peptideNodes = proteinCluster.getPeptideNodes();
 			for (PCQPeptideNode peptideNode : peptideNodes) {
@@ -1738,7 +1743,7 @@ public class XgmmlExporter {
 
 	private Map<Classification1Case, Set<ProteinCluster>> getProteinClustersByClassification1(
 			Collection<ProteinCluster> clusters) {
-		Map<Classification1Case, Set<ProteinCluster>> ret = new HashMap<Classification1Case, Set<ProteinCluster>>();
+		Map<Classification1Case, Set<ProteinCluster>> ret = new THashMap<Classification1Case, Set<ProteinCluster>>();
 		for (ProteinCluster proteinCluster : clusters) {
 			final Set<ProteinPair> proteinPairs = proteinCluster.getProteinPairs();
 			for (ProteinPair proteinPair : proteinPairs) {
@@ -1748,7 +1753,7 @@ public class XgmmlExporter {
 					if (ret.containsKey(classification1PairCase)) {
 						ret.get(classification1PairCase).add(proteinCluster);
 					} else {
-						Set<ProteinCluster> set = new HashSet<ProteinCluster>();
+						Set<ProteinCluster> set = new THashSet<ProteinCluster>();
 						set.add(proteinCluster);
 						ret.put(classification1PairCase, set);
 					}
@@ -1760,7 +1765,7 @@ public class XgmmlExporter {
 
 	private Map<Classification2Case, Set<ProteinCluster>> getProteinClustersByClassification2(
 			Collection<ProteinCluster> clusters) {
-		Map<Classification2Case, Set<ProteinCluster>> ret = new HashMap<Classification2Case, Set<ProteinCluster>>();
+		Map<Classification2Case, Set<ProteinCluster>> ret = new THashMap<Classification2Case, Set<ProteinCluster>>();
 		for (ProteinCluster proteinCluster : clusters) {
 			final Set<ProteinPair> proteinPairs = proteinCluster.getProteinPairs();
 			for (ProteinPair proteinPair : proteinPairs) {
@@ -1770,7 +1775,7 @@ public class XgmmlExporter {
 					if (ret.containsKey(classification2PairCase)) {
 						ret.get(classification2PairCase).add(proteinCluster);
 					} else {
-						Set<ProteinCluster> set = new HashSet<ProteinCluster>();
+						Set<ProteinCluster> set = new THashSet<ProteinCluster>();
 						set.add(proteinCluster);
 						ret.put(classification2PairCase, set);
 					}

@@ -25,7 +25,7 @@ import edu.scripps.yates.census.analysis.wrappers.SanXotAnalysisResult;
 import edu.scripps.yates.census.read.model.interfaces.QuantParser;
 import edu.scripps.yates.census.read.util.QuantificationLabel;
 import edu.scripps.yates.pcq.ProteinClusterQuant;
-import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
+import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
 import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.utilities.exec.ProcessExecutor;

@@ -10,8 +10,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,10 +48,10 @@ import edu.scripps.yates.dbindex.io.DBIndexSearchParamsImpl;
 import edu.scripps.yates.dbindex.util.IndexUtil;
 import edu.scripps.yates.dbindex.util.PeptideFilterBySequence;
 import edu.scripps.yates.dtaselectparser.DTASelectParser;
-import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.model.PCQPeptideNode;
 import edu.scripps.yates.pcq.model.PCQProteinNode;
 import edu.scripps.yates.pcq.model.ProteinCluster;
+import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.xgmml.util.AlignedPeptides;
 import edu.scripps.yates.pcq.xgmml.util.AlignmentSet;
 import edu.scripps.yates.utilities.alignment.nwalign.NWAlign;
@@ -61,20 +59,27 @@ import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.maths.Maths;
 import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.remote.RemoteSSHFileReference;
+import edu.scripps.yates.utilities.sequence.PositionInPeptide;
+import edu.scripps.yates.utilities.sequence.PositionInProtein;
+import edu.scripps.yates.utilities.util.Pair;
 import edu.scripps.yates.utilities.util.StringPosition;
+import gnu.trove.map.hash.THashMap;
+import gnu.trove.set.hash.THashSet;
+import gnu.trove.set.hash.TIntHashSet;
 
 public class PCQUtils {
 
 	public static final String PROTEIN_DESCRIPTION_SEPARATOR = "####";
 	public static DecimalFormat df = new DecimalFormat("#.#");
-	private static Map<String, DBIndexInterface> indexByFastaIndexKey = new HashMap<String, DBIndexInterface>();
-	private static final Map<String, UniprotProteinLocalRetriever> uplrMap = new HashMap<String, UniprotProteinLocalRetriever>();
+	private static Map<String, DBIndexInterface> indexByFastaIndexKey = new THashMap<String, DBIndexInterface>();
+	private static final Map<String, UniprotProteinLocalRetriever> uplrMap = new THashMap<String, UniprotProteinLocalRetriever>();
 	private final static Logger log = Logger.getLogger(PCQUtils.class);
 	public static final String PROTEIN_ACC_SEPARATOR = " ";
 	public static final double factor = 1.2;
 	public static final String FDR_CONFIDENCE_SCORE_NAME = "FDR";
-	private static Map<String, QuantParser> quantParsersByFileNamesKey = new HashMap<String, QuantParser>();
-	private static Map<String, DTASelectParser> dtaSelectParsersByFileNamesKey = new HashMap<String, DTASelectParser>();
+	private static Map<String, QuantParser> quantParsersByFileNamesKey = new THashMap<String, QuantParser>();
+	private static Map<String, DTASelectParser> dtaSelectParsersByFileNamesKey = new THashMap<String, DTASelectParser>();
+	public static final String KEY_SEPARATOR = "-";
 
 	public static AlignmentSet alignPeptides(List<QuantifiedPeptideInterface> peptideList, QuantCondition cond1,
 			QuantCondition cond2, FileWriter Output2) throws IOException {
@@ -173,7 +178,7 @@ public class PCQUtils {
 		// if gAM does not have the sequence, make a new set of results, add the
 		// results to this set, and then put the sequence and the set in gAM
 		else {
-			Set<NWResult> set = new HashSet<NWResult>();
+			Set<NWResult> set = new THashSet<NWResult>();
 			set.add(result);
 			gAM.put(seq, set);
 		}
@@ -230,7 +235,7 @@ public class PCQUtils {
 		CensusChroParser parser = new CensusChroParser(xmlFiles, labelsByConditions, QuantificationLabel.LIGHT,
 				QuantificationLabel.HEAVY);
 		try {
-			parser.setRetrieveFastaIsoforms(false);
+			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
 			parser.addIonExclusion(IonSerieType.B, 1);
 			parser.addIonExclusion(IonSerieType.Y, 1);
 			parser.setDecoyPattern(decoyRegexp);
@@ -258,7 +263,7 @@ public class PCQUtils {
 			String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB, String peptideFilterRegexp)
 			throws FileNotFoundException {
 		// Set parser (6 files) to peptides
-		Map<String, RemoteSSHFileReference> xmlFiles = new HashMap<String, RemoteSSHFileReference>();
+		Map<String, RemoteSSHFileReference> xmlFiles = new THashMap<String, RemoteSSHFileReference>();
 		for (String fileName : fileNames) {
 			final File inputXmlFile = new File(inputFilefolder.getAbsolutePath() + File.separator + fileName);
 			if (!inputXmlFile.exists()) {
@@ -319,7 +324,7 @@ public class PCQUtils {
 		CensusOutParser parser = new CensusOutParser(xmlFiles, labelsByConditions, QuantificationLabel.LIGHT,
 				QuantificationLabel.HEAVY);
 		try {
-			parser.setRetrieveFastaIsoforms(false);
+			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			parser.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
@@ -359,7 +364,7 @@ public class PCQUtils {
 		SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, labelsByConditions,
 				QuantificationLabel.LIGHT, QuantificationLabel.HEAVY);
 		try {
-			parser.setRetrieveFastaIsoforms(false);
+			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages, semiCleavage,
@@ -430,7 +435,7 @@ public class PCQUtils {
 		CensusChroParser parser = new CensusChroParser(xmlFiles, labelsByConditions, QuantificationLabel.LIGHT,
 				QuantificationLabel.HEAVY);
 		try {
-			parser.setRetrieveFastaIsoforms(false);
+			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
 			parser.addIonExclusion(IonSerieType.B, 1);
 			parser.addIonExclusion(IonSerieType.Y, 1);
 			parser.setDecoyPattern(decoyRegexp);
@@ -455,9 +460,12 @@ public class PCQUtils {
 	}
 
 	public static UniprotProteinLocalRetriever getUniprotProteinLocalRetrieverByFolder(File uniprotReleasesFolder) {
+		if (uniprotReleasesFolder == null) {
+			return null;
+		}
 		if (!uplrMap.containsKey(uniprotReleasesFolder.getAbsolutePath())) {
-			uplrMap.put(uniprotReleasesFolder.getAbsolutePath(),
-					new UniprotProteinLocalRetriever(uniprotReleasesFolder, true));
+			UniprotProteinLocalRetriever uplr = new UniprotProteinLocalRetriever(uniprotReleasesFolder, true);
+			uplrMap.put(uniprotReleasesFolder.getAbsolutePath(), uplr);
 		}
 		return uplrMap.get(uniprotReleasesFolder.getAbsolutePath());
 	}
@@ -485,7 +493,7 @@ public class PCQUtils {
 		CensusOutParser parser = new CensusOutParser(xmlFiles, labelsByConditions, QuantificationLabel.LIGHT,
 				QuantificationLabel.HEAVY);
 		try {
-			parser.setRetrieveFastaIsoforms(false);
+			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			parser.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
@@ -508,7 +516,7 @@ public class PCQUtils {
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			String peptideFilterRegexp) throws FileNotFoundException {
 		// Set parser (6 files) to peptides
-		Map<String, RemoteSSHFileReference> xmlFiles = new HashMap<String, RemoteSSHFileReference>();
+		Map<String, RemoteSSHFileReference> xmlFiles = new THashMap<String, RemoteSSHFileReference>();
 
 		for (String fileName : fileNames) {
 			final File inputXmlFile = new File(inputFilefolder.getAbsolutePath() + File.separator + fileName);
@@ -559,7 +567,7 @@ public class PCQUtils {
 		SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, labelsByConditions,
 				QuantificationLabel.LIGHT, QuantificationLabel.HEAVY);
 		try {
-			parser.setRetrieveFastaIsoforms(false);
+			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName, mongoProtDBName,
@@ -677,17 +685,30 @@ public class PCQUtils {
 		// in case of isobaric ratios, calculate a consensus ion count ratio
 		if (peptideNodes.iterator().next().getQuantifiedPeptides().iterator()
 				.next() instanceof IsobaricQuantifiedPeptide) {
-			Set<IsobaricQuantifiedPeptide> isobaricQuantPeptides = new HashSet<IsobaricQuantifiedPeptide>();
+			// when collapseBySites is TRUE we also need:
+			Set<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> isobaricPeptidesAndPositionsInPeptides = new THashSet<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>>();
+			Set<IsobaricQuantifiedPeptide> isobaricQuantPeptides = new THashSet<IsobaricQuantifiedPeptide>();
 			for (PCQPeptideNode peptideNode : peptideNodes) {
 				if (skipDiscarded && peptideNode.isDiscarded()) {
 					continue;
 				}
 				for (QuantifiedPeptideInterface peptide : peptideNode.getQuantifiedPeptides()) {
 					isobaricQuantPeptides.add((IsobaricQuantifiedPeptide) peptide);
+					Pair<IsobaricQuantifiedPeptide, PositionInPeptide> pair = new Pair<IsobaricQuantifiedPeptide, PositionInPeptide>(
+							(IsobaricQuantifiedPeptide) peptide, peptideNode.getPositionInPeptide(peptide));
+					isobaricPeptidesAndPositionsInPeptides.add(pair);
 				}
 
 			}
-			return QuantUtils.getNormalizedIonCountRatioForPeptides(isobaricQuantPeptides, cond1, cond2, replicateName);
+			if (ProteinClusterQuantParameters.getInstance().isCollapseBySites()) {
+
+				return QuantUtils.getNormalizedIonCountRatioForPeptidesForQuantifiedSites(
+						isobaricPeptidesAndPositionsInPeptides, cond1, cond2, replicateName,
+						ProteinClusterQuantParameters.getInstance().getAaQuantified());
+			} else {
+				return QuantUtils.getNormalizedIonCountRatioForPeptides(isobaricQuantPeptides, cond1, cond2,
+						replicateName);
+			}
 		} else {
 			// otherwise calculate an average over the non infinity ratios
 			final Set<QuantRatio> consensusRatios = getConsensusRatios(peptideNodes, cond1, cond2, replicateName,
@@ -713,7 +734,7 @@ public class PCQUtils {
 	private static Set<QuantRatio> getConsensusRatios(Collection<PCQPeptideNode> peptideNodes, QuantCondition cond1,
 			QuantCondition cond2, String replicateName, boolean skipDiscarded) {
 
-		Set<QuantRatio> ret = new HashSet<QuantRatio>();
+		Set<QuantRatio> ret = new THashSet<QuantRatio>();
 		if (peptideNodes.isEmpty()) {
 			return ret;
 		}
@@ -740,7 +761,7 @@ public class PCQUtils {
 			boolean onlysharedByThisToProteins, boolean skipDiscarded) {
 		Set<PCQPeptideNode> peptideNodes1 = proteinNode1.getPeptideNodes();
 		Set<PCQPeptideNode> peptideNodes2 = proteinNode2.getPeptideNodes();
-		Set<PCQPeptideNode> ret = new HashSet<PCQPeptideNode>();
+		Set<PCQPeptideNode> ret = new THashSet<PCQPeptideNode>();
 		for (PCQPeptideNode peptideNode1 : peptideNodes1) {
 			if (skipDiscarded && peptideNode1.isDiscarded()) {
 				continue;
@@ -838,10 +859,10 @@ public class PCQUtils {
 
 		Set<PCQPeptideNode> peptidesNodes1 = proteinNode1.getPeptideNodes();
 		Set<PCQPeptideNode> peptidesNodes2 = proteinNode2.getPeptideNodes();
-		Set<PCQPeptideNode> totalPeptideNodes = new HashSet<PCQPeptideNode>();
+		Set<PCQPeptideNode> totalPeptideNodes = new THashSet<PCQPeptideNode>();
 		totalPeptideNodes.addAll(peptidesNodes1);
 		totalPeptideNodes.addAll(peptidesNodes2);
-		Map<String, Set<PCQPeptideNode>> map = new HashMap<String, Set<PCQPeptideNode>>();
+		Map<String, Set<PCQPeptideNode>> map = new THashMap<String, Set<PCQPeptideNode>>();
 		for (PCQPeptideNode peptideNode : totalPeptideNodes) {
 			if (skipDiscarded && peptideNode.isDiscarded()) {
 				continue;
@@ -866,7 +887,7 @@ public class PCQUtils {
 						if (map.containsKey(proteinAccKey)) {
 							map.get(proteinAccKey).add(peptideNode);
 						} else {
-							Set<PCQPeptideNode> set = new HashSet<PCQPeptideNode>();
+							Set<PCQPeptideNode> set = new THashSet<PCQPeptideNode>();
 							set.add(peptideNode);
 							map.put(proteinAccKey, set);
 						}
@@ -899,13 +920,13 @@ public class PCQUtils {
 	public static Map<String, Set<PCQPeptideNode>> getSharedPeptideNodesMap(PCQProteinNode proteinNode1,
 			PCQProteinNode proteinNode2, boolean onlySharedByTheseTwoProteins, boolean skipDiscarded) {
 
-		Map<String, Set<PCQPeptideNode>> map = new HashMap<String, Set<PCQPeptideNode>>();
+		Map<String, Set<PCQPeptideNode>> map = new THashMap<String, Set<PCQPeptideNode>>();
 		if (proteinNode1 == null || proteinNode2 == null) {
 			return map;
 		}
 		Set<PCQPeptideNode> peptideNodes1 = proteinNode1.getPeptideNodes();
 		Set<PCQPeptideNode> peptideNodes2 = proteinNode2.getPeptideNodes();
-		Set<PCQPeptideNode> totalPeptideNodes = new HashSet<PCQPeptideNode>();
+		Set<PCQPeptideNode> totalPeptideNodes = new THashSet<PCQPeptideNode>();
 		totalPeptideNodes.addAll(peptideNodes1);
 		totalPeptideNodes.addAll(peptideNodes2);
 
@@ -929,7 +950,7 @@ public class PCQUtils {
 					if (map.containsKey(proteinAccKey)) {
 						map.get(proteinAccKey).add(peptideNode);
 					} else {
-						Set<PCQPeptideNode> set = new HashSet<PCQPeptideNode>();
+						Set<PCQPeptideNode> set = new THashSet<PCQPeptideNode>();
 						set.add(peptideNode);
 						map.put(proteinAccKey, set);
 					}
@@ -1145,7 +1166,7 @@ public class PCQUtils {
 	 */
 	public static int getIonCountFromPeptideNode(PCQPeptideNode peptideNode, QuantCondition condition) {
 
-		Set<IsobaricQuantifiedPSM> psms = new HashSet<IsobaricQuantifiedPSM>();
+		Set<IsobaricQuantifiedPSM> psms = new THashSet<IsobaricQuantifiedPSM>();
 		for (QuantifiedPSMInterface psm : peptideNode.getQuantifiedPSMs()) {
 			if (psm instanceof IsobaricQuantifiedPSM) {
 				psms.add((IsobaricQuantifiedPSM) psm);
@@ -1216,7 +1237,7 @@ public class PCQUtils {
 	 * @return
 	 */
 	public static String getAccessionString(Collection<QuantifiedProteinInterface> proteins) {
-		Set<String> set = new HashSet<String>();
+		Set<String> set = new THashSet<String>();
 		for (QuantifiedProteinInterface protein : proteins) {
 			set.add(protein.getAccession());
 		}
@@ -1241,7 +1262,7 @@ public class PCQUtils {
 	 * @return
 	 */
 	public static String getKeyString(Collection<QuantifiedProteinInterface> proteins) {
-		Set<String> set = new HashSet<String>();
+		Set<String> set = new THashSet<String>();
 		for (QuantifiedProteinInterface protein : proteins) {
 			set.add(protein.getKey());
 		}
@@ -1322,7 +1343,7 @@ public class PCQUtils {
 	public static String getDescriptionStringFromIndividualProteins(Collection<QuantifiedProteinInterface> proteins,
 			boolean avoidRedundancy) {
 		StringBuilder sb = new StringBuilder();
-		Set<String> descriptions = new HashSet<String>();
+		Set<String> descriptions = new THashSet<String>();
 		for (QuantifiedProteinInterface protein : QuantUtils.getSortedQuantifiedProteinsByAcc(proteins)) {
 			final String description = protein.getDescription();
 			if (avoidRedundancy && !descriptions.contains(description)) {
@@ -1366,7 +1387,7 @@ public class PCQUtils {
 	 * @return
 	 */
 	public static Set<PCQPeptideNode> getUniquePeptideNodes(PCQProteinNode proteinNode, boolean skipDiscarded) {
-		Set<PCQPeptideNode> ret = new HashSet<PCQPeptideNode>();
+		Set<PCQPeptideNode> ret = new THashSet<PCQPeptideNode>();
 		for (PCQPeptideNode peptideNode : proteinNode.getPeptideNodes()) {
 			if (skipDiscarded && peptideNode.isDiscarded()) {
 				continue;
@@ -1409,14 +1430,14 @@ public class PCQUtils {
 
 	private static Map<String, PCQProteinNode> getProteinMapByProteinAccession(PCQProteinNode protein,
 			boolean skipDiscarded) {
-		Set<PCQProteinNode> set = new HashSet<PCQProteinNode>();
+		Set<PCQProteinNode> set = new THashSet<PCQProteinNode>();
 		set.add(protein);
 		return getProteinMap(set, skipDiscarded);
 	}
 
 	private static Map<String, PCQProteinNode> getProteinMap(Collection<PCQProteinNode> proteinNodes,
 			boolean skipDiscarded) {
-		Map<String, PCQProteinNode> map = new HashMap<String, PCQProteinNode>();
+		Map<String, PCQProteinNode> map = new THashMap<String, PCQProteinNode>();
 		for (PCQProteinNode proteinNode : proteinNodes) {
 			if (skipDiscarded && proteinNode.isDiscarded()) {
 				continue;
@@ -1439,7 +1460,7 @@ public class PCQUtils {
 	public static String getSpeciesString(Map<String, Entry> annotatedProteins, Set<PCQProteinNode> proteinNodeSet,
 			Set<String> validTaxonomies, boolean skipDiscarded) {
 
-		Set<String> set = new HashSet<String>();
+		Set<String> set = new THashSet<String>();
 		for (PCQProteinNode proteinNode : proteinNodeSet) {
 			if (skipDiscarded && proteinNode.isDiscarded()) {
 				continue;
@@ -1499,7 +1520,7 @@ public class PCQUtils {
 	public static String getGeneNameString(Map<String, Entry> annotatedProteins,
 			Map<String, PCQProteinNode> proteinNodeMap, Set<String> validTaxonomies, boolean onlyFirst) {
 
-		Set<String> set = new HashSet<String>();
+		Set<String> set = new THashSet<String>();
 		for (String rawAcc : proteinNodeMap.keySet()) {
 
 			List<String> accs = new ArrayList<String>();
@@ -1604,7 +1625,7 @@ public class PCQUtils {
 	}
 
 	public static Map<String, QuantifiedPeptideInterface> getPeptideMapFromClusters(Set<ProteinCluster> clusterSet) {
-		Map<String, QuantifiedPeptideInterface> map = new HashMap<String, QuantifiedPeptideInterface>();
+		Map<String, QuantifiedPeptideInterface> map = new THashMap<String, QuantifiedPeptideInterface>();
 		for (ProteinCluster proteinCluster : clusterSet) {
 			final Set<QuantifiedPeptideInterface> peptideSet = proteinCluster.getPeptideSet();
 			for (QuantifiedPeptideInterface quantifiedPeptide : peptideSet) {
@@ -1652,7 +1673,7 @@ public class PCQUtils {
 	}
 
 	private static Set<String> getAccessions(Set<QuantifiedProteinInterface> proteins) {
-		Set<String> accs = new HashSet<String>();
+		Set<String> accs = new THashSet<String>();
 		for (QuantifiedProteinInterface protein : proteins) {
 			accs.add(protein.getAccession());
 		}
@@ -1663,7 +1684,7 @@ public class PCQUtils {
 		if (peptideNode.hashCode() == peptideNode2.hashCode()) {
 			return peptideNode;
 		}
-		Set<QuantifiedPeptideInterface> peptideCollection = new HashSet<QuantifiedPeptideInterface>();
+		Set<QuantifiedPeptideInterface> peptideCollection = new THashSet<QuantifiedPeptideInterface>();
 		peptideCollection.addAll(peptideNode.getQuantifiedPeptides());
 		peptideCollection.addAll(peptideNode2.getQuantifiedPeptides());
 		PCQPeptideNode ret = new PCQPeptideNode(peptideNode.getCluster(), peptideCollection);
@@ -1810,7 +1831,7 @@ public class PCQUtils {
 	}
 
 	public static Map<String, Set<QuantifiedProteinInterface>> getIndividualProteinsMap(PCQPeptideNode peptideNode) {
-		Map<String, Set<QuantifiedProteinInterface>> ret = new HashMap<String, Set<QuantifiedProteinInterface>>();
+		Map<String, Set<QuantifiedProteinInterface>> ret = new THashMap<String, Set<QuantifiedProteinInterface>>();
 		for (QuantifiedPeptideInterface peptide : peptideNode.getQuantifiedPeptides()) {
 			final Set<QuantifiedProteinInterface> quantifiedProteins = peptide.getQuantifiedProteins();
 			for (QuantifiedProteinInterface quantifiedProteinInterface : quantifiedProteins) {
@@ -1818,7 +1839,7 @@ public class PCQUtils {
 				if (ret.containsKey(accession)) {
 					ret.get(accession).add(quantifiedProteinInterface);
 				} else {
-					Set<QuantifiedProteinInterface> set = new HashSet<QuantifiedProteinInterface>();
+					Set<QuantifiedProteinInterface> set = new THashSet<QuantifiedProteinInterface>();
 					set.add(quantifiedProteinInterface);
 					ret.put(accession, set);
 				}
@@ -1844,7 +1865,7 @@ public class PCQUtils {
 	public static Set<PCQPeptideNode> getUniquePeptideNodes(PCQProteinNode proteinNode1, PCQProteinNode proteinNode2,
 			boolean uniquePepOnly, boolean skipDiscarded) {
 		Set<PCQPeptideNode> peptideNodes1 = proteinNode1.getPeptideNodes();
-		Set<PCQPeptideNode> ret = new HashSet<PCQPeptideNode>();
+		Set<PCQPeptideNode> ret = new THashSet<PCQPeptideNode>();
 
 		for (PCQPeptideNode peptideNode1 : peptideNodes1) {
 			if (skipDiscarded && peptideNode1.isDiscarded()) {
@@ -1874,11 +1895,11 @@ public class PCQUtils {
 
 	public static boolean proteinsShareAllPeptides(Collection<QuantifiedProteinInterface> proteins1,
 			Collection<QuantifiedProteinInterface> proteins2) {
-		Set<QuantifiedPeptideInterface> peptides1 = new HashSet<QuantifiedPeptideInterface>();
+		Set<QuantifiedPeptideInterface> peptides1 = new THashSet<QuantifiedPeptideInterface>();
 		for (QuantifiedProteinInterface protein1 : proteins1) {
 			peptides1.addAll(protein1.getQuantifiedPeptides());
 		}
-		Set<QuantifiedPeptideInterface> peptides2 = new HashSet<QuantifiedPeptideInterface>();
+		Set<QuantifiedPeptideInterface> peptides2 = new THashSet<QuantifiedPeptideInterface>();
 		for (QuantifiedProteinInterface protein2 : proteins2) {
 			peptides2.addAll(protein2.getQuantifiedPeptides());
 		}
@@ -1897,7 +1918,7 @@ public class PCQUtils {
 		if (peptideNode == null) {
 			return null;
 		}
-		Set<QuantRatio> ret = new HashSet<QuantRatio>();
+		Set<QuantRatio> ret = new THashSet<QuantRatio>();
 		final Set<QuantifiedPSMInterface> quantifiedPSMs = peptideNode.getQuantifiedPSMs();
 		for (QuantifiedPSMInterface quantifiedPSMInterface : quantifiedPSMs) {
 			ret.addAll(quantifiedPSMInterface.getNonInfinityRatios());
@@ -1909,7 +1930,7 @@ public class PCQUtils {
 		if (peptideNode == null) {
 			return null;
 		}
-		Set<QuantRatio> ret = new HashSet<QuantRatio>();
+		Set<QuantRatio> ret = new THashSet<QuantRatio>();
 		final Set<QuantifiedPeptideInterface> quantifiedPeptides = peptideNode.getQuantifiedPeptides();
 		for (QuantifiedPeptideInterface quantifiedPeptide : quantifiedPeptides) {
 			ret.addAll(quantifiedPeptide.getNonInfinityRatios());
@@ -1965,7 +1986,7 @@ public class PCQUtils {
 
 	public static QuantRatio getRepresentativeRatioForPeptideNode(PCQPeptideNode peptideNode, QuantCondition cond1,
 			QuantCondition cond2, boolean skipDiscarded, String replicateName) {
-		Set<PCQPeptideNode> set = new HashSet<PCQPeptideNode>();
+		Set<PCQPeptideNode> set = new THashSet<PCQPeptideNode>();
 		set.add(peptideNode);
 		return getRepresentativeRatioForPeptideNodes(set, cond1, cond2, skipDiscarded, replicateName);
 	}
@@ -2165,18 +2186,29 @@ public class PCQUtils {
 
 	public static IonCountRatio getNormalizedIonCountRatioForPeptideNode(PCQPeptideNode peptideNode,
 			QuantCondition cond1, QuantCondition cond2, String replicateName) {
-		Set<IsobaricQuantifiedPeptide> isobaricQuantifiedPeptides = new HashSet<IsobaricQuantifiedPeptide>();
+		List<IsobaricQuantifiedPeptide> isobaricPeptides = new ArrayList<IsobaricQuantifiedPeptide>();
+		// when collapseBySites is TRUE we also need:
+		Set<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> isobaricPeptidesAndPositionsInPeptides = new THashSet<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>>();
 		final Set<QuantifiedPeptideInterface> peptides = peptideNode.getQuantifiedPeptides();
-		for (QuantifiedPeptideInterface quantifiedPeptideInterface : peptides) {
-			if (quantifiedPeptideInterface instanceof IsobaricQuantifiedPeptide) {
-				isobaricQuantifiedPeptides.add((IsobaricQuantifiedPeptide) quantifiedPeptideInterface);
+		for (QuantifiedPeptideInterface peptide : peptides) {
+			if (peptide instanceof IsobaricQuantifiedPeptide) {
+				Pair<IsobaricQuantifiedPeptide, PositionInPeptide> pair = new Pair<IsobaricQuantifiedPeptide, PositionInPeptide>(
+						(IsobaricQuantifiedPeptide) peptide, peptideNode.getPositionInPeptide(peptide));
+				isobaricPeptides.add((IsobaricQuantifiedPeptide) peptide);
+				isobaricPeptidesAndPositionsInPeptides.add(pair);
 			}
 		}
-		if (isobaricQuantifiedPeptides.isEmpty()) {
+		if (isobaricPeptidesAndPositionsInPeptides.isEmpty()) {
 			return IonCountRatio.NAN_RATIO;
 		}
-		return QuantUtils.getNormalizedIonCountRatioForPeptides(isobaricQuantifiedPeptides, cond1, cond2,
-				replicateName);
+		if (ProteinClusterQuantParameters.getInstance().isCollapseBySites()) {
+
+			return QuantUtils.getNormalizedIonCountRatioForPeptidesForQuantifiedSites(
+					isobaricPeptidesAndPositionsInPeptides, cond1, cond2, replicateName,
+					ProteinClusterQuantParameters.getInstance().getAaQuantified());
+		} else {
+			return QuantUtils.getNormalizedIonCountRatioForPeptides(isobaricPeptides, cond1, cond2, replicateName);
+		}
 	}
 
 	public static String escapeInfinity(Double ratio) {
@@ -2224,7 +2256,7 @@ public class PCQUtils {
 			}
 		});
 		// to not repeat:
-		Set<Integer> positions = new HashSet<Integer>();
+		TIntHashSet positions = new TIntHashSet();
 		boolean first = true;
 		for (StringPosition ptmPositionInProtein : ptmPositionsInProtein) {
 			if (positions.contains(ptmPositionInProtein.position)) {
@@ -2250,7 +2282,7 @@ public class PCQUtils {
 
 	public static Set<QuantifiedProteinInterface> getProteinsFromPeptides(
 			Collection<QuantifiedPeptideInterface> peptides) {
-		Set<QuantifiedProteinInterface> ret = new HashSet<QuantifiedProteinInterface>();
+		Set<QuantifiedProteinInterface> ret = new THashSet<QuantifiedProteinInterface>();
 
 		for (QuantifiedPeptideInterface peptide : peptides) {
 			ret.addAll(peptide.getQuantifiedProteins());
@@ -2299,4 +2331,84 @@ public class PCQUtils {
 
 		return sb.toString();
 	}
+
+	public static boolean areEquals(Collection<PositionInProtein> col1, Collection<PositionInProtein> col2) {
+		if (col1.size() == col2.size()) {
+			for (PositionInProtein positionInProtein1 : col1) {
+				if (!col2.contains(positionInProtein1)) {
+					return false;
+				}
+			}
+			for (PositionInProtein positionInProtein2 : col2) {
+				if (!col1.contains(positionInProtein2)) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return false;
+	}
+
+	public static List<PositionInProtein> getUniqueToFirst(Collection<PositionInProtein> col1,
+			Collection<PositionInProtein> col2) {
+		List<PositionInProtein> ret = new ArrayList<PositionInProtein>();
+
+		for (PositionInProtein positionInProtein1 : col1) {
+			if (!col2.contains(positionInProtein1)) {
+				ret.add(positionInProtein1);
+			}
+		}
+
+		return ret;
+	}
+
+	public static String getStringKey(List<PositionInProtein> keys1) {
+		Collections.sort(keys1, new Comparator<PositionInProtein>() {
+
+			@Override
+			public int compare(PositionInProtein o1, PositionInProtein o2) {
+				int compareTo = o1.getKey().compareTo(o2.getKey());
+				if (compareTo == 0) {
+					return Integer.compare(o1.getPosition(), o2.getPosition());
+				}
+				return compareTo;
+			}
+		});
+		StringBuilder sb = new StringBuilder();
+		for (PositionInProtein positionInProtein : keys1) {
+			if (!"".equals(sb.toString())) {
+
+				sb.append(KEY_SEPARATOR);
+			}
+			sb.append(positionInProtein);
+		}
+		return sb.toString();
+	}
+
+	public static boolean shareAny(List<PositionInProtein> col1, List<PositionInProtein> col2) {
+		for (PositionInProtein positionInProtein1 : col1) {
+			if (col2.contains(positionInProtein1)) {
+				return true;
+			}
+		}
+		for (PositionInProtein positionInProtein : col2) {
+			if (col1.contains(positionInProtein)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static List<PositionInProtein> getInCommon(List<PositionInProtein> col1, List<PositionInProtein> col2) {
+		List<PositionInProtein> ret = new ArrayList<PositionInProtein>();
+
+		for (PositionInProtein positionInProtein1 : col1) {
+			if (col2.contains(positionInProtein1)) {
+				ret.add(positionInProtein1);
+			}
+		}
+
+		return ret;
+	}
+
 }

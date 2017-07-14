@@ -1,8 +1,6 @@
 package edu.scripps.yates.pcq.model;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -18,6 +16,10 @@ import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface
 import edu.scripps.yates.census.read.util.QuantUtils;
 import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.utilities.model.enums.AggregationLevel;
+import edu.scripps.yates.utilities.sequence.PositionInPeptide;
+import edu.scripps.yates.utilities.util.Pair;
+import gnu.trove.map.hash.THashMap;
+import gnu.trove.set.hash.THashSet;
 
 /**
  * Wrapper class for a peptide node, that could contain more than one
@@ -33,21 +35,35 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 
 	public static final String INTEGRATED_PEPTIDE_NODE_RATIO = "Integrated peptide node ratio";
 
-	private final Set<QuantifiedPeptideInterface> peptideSet = new HashSet<QuantifiedPeptideInterface>();
+	private final Set<QuantifiedPeptideInterface> peptideSet = new THashSet<QuantifiedPeptideInterface>();
 	private Double confidenceValue;
-	private final Set<QuantRatio> consensusRatios = new HashSet<QuantRatio>();
+	private final Set<QuantRatio> consensusRatios = new THashSet<QuantRatio>();
 
-	private final Set<PCQProteinNode> proteinNodes = new HashSet<PCQProteinNode>();
+	private final Set<PCQProteinNode> proteinNodes = new THashSet<PCQProteinNode>();
 
-	private final Map<String, QuantRatio> consensusRatiosByReplicateName = new HashMap<String, QuantRatio>();
+	private final Map<String, QuantRatio> consensusRatiosByReplicateName = new THashMap<String, QuantRatio>();
 
 	private final ProteinCluster proteinCluster;
 
 	private String key;
 
+	private final Map<QuantifiedPeptideInterface, PositionInPeptide> positionInPeptideByPeptide = new THashMap<QuantifiedPeptideInterface, PositionInPeptide>();
+
 	public PCQPeptideNode(ProteinCluster proteinCluster, Collection<QuantifiedPeptideInterface> peptideCollection) {
 		peptideSet.addAll(peptideCollection);
 		this.proteinCluster = proteinCluster;
+	}
+
+	public PCQPeptideNode(ProteinCluster proteinCluster, String key,
+			Pair<QuantifiedPeptideInterface, PositionInPeptide>... peptidesAndPositionInPeptides) {
+		for (Pair<QuantifiedPeptideInterface, PositionInPeptide> pair : peptidesAndPositionInPeptides) {
+			final QuantifiedPeptideInterface peptide = pair.getFirstelement();
+			peptideSet.add(peptide);
+			final PositionInPeptide positionInPeptide = pair.getSecondElement();
+			positionInPeptideByPeptide.put(peptide, positionInPeptide);
+		}
+		this.proteinCluster = proteinCluster;
+		this.key = key;
 	}
 
 	public PCQPeptideNode(ProteinCluster proteinCluster, QuantifiedPeptideInterface... peptides) {
@@ -86,7 +102,7 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	}
 
 	public Set<String> getTaxonomies() {
-		Set<String> set = new HashSet<String>();
+		Set<String> set = new THashSet<String>();
 		final Set<QuantifiedProteinInterface> quantifiedProteins = getQuantifiedProteins();
 		for (QuantifiedProteinInterface protein : quantifiedProteins) {
 			final Set<String> taxonomies = protein.getTaxonomies();
@@ -98,21 +114,13 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	@Override
 	public String getKey() {
 		if (key == null) {
-
 			key = getFullSequence();
-
 		}
 		return key;
 	}
 
-	@Override
-	public void setKey(String key) {
-		this.key = key;
-
-	}
-
 	public Set<QuantRatio> getRatios() {
-		Set<QuantRatio> ratios = new HashSet<QuantRatio>();
+		Set<QuantRatio> ratios = new THashSet<QuantRatio>();
 		for (QuantifiedPeptideInterface peptide : peptideSet) {
 			ratios.addAll(peptide.getRatios());
 			for (QuantifiedPSMInterface psm : peptide.getQuantifiedPSMs()) {
@@ -154,7 +162,7 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	}
 
 	public Set<QuantRatio> getNonInfinityRatios() {
-		Set<QuantRatio> ratios = new HashSet<QuantRatio>();
+		Set<QuantRatio> ratios = new THashSet<QuantRatio>();
 		for (QuantifiedPeptideInterface peptide : peptideSet) {
 			ratios.addAll(peptide.getNonInfinityRatios());
 			for (QuantifiedPSMInterface psm : peptide.getQuantifiedPSMs()) {
@@ -166,7 +174,7 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 
 	@Override
 	public Set<QuantifiedProteinInterface> getQuantifiedProteins() {
-		Set<QuantifiedProteinInterface> proteins = new HashSet<QuantifiedProteinInterface>();
+		Set<QuantifiedProteinInterface> proteins = new THashSet<QuantifiedProteinInterface>();
 
 		for (PCQProteinNode proteinNode : getProteinNodes()) {
 			proteins.addAll(proteinNode.getQuantifiedProteins());
@@ -176,7 +184,7 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 
 	@Override
 	public Set<QuantifiedPSMInterface> getQuantifiedPSMs() {
-		Set<QuantifiedPSMInterface> ret = new HashSet<QuantifiedPSMInterface>();
+		Set<QuantifiedPSMInterface> ret = new THashSet<QuantifiedPSMInterface>();
 		for (QuantifiedPeptideInterface peptide : getQuantifiedPeptides()) {
 			ret.addAll(peptide.getQuantifiedPSMs());
 		}
@@ -190,6 +198,13 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 
 	public boolean addQuantifiedPeptide(QuantifiedPeptideInterface peptide) {
 		return peptideSet.add(peptide);
+	}
+
+	public boolean addQuantifiedPeptide(QuantifiedPeptideInterface peptide, PositionInPeptide positionInPeptide) {
+		positionInPeptideByPeptide.put(peptide, positionInPeptide);
+
+		return peptideSet.add(peptide);
+
 	}
 
 	public void removePeptidesFromProteinsInNode() {
@@ -215,7 +230,7 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	}
 
 	public Set<QuantifiedPeptideInterface> getQuantifiedPeptidesInReplicate(String replicateName) {
-		Set<QuantifiedPeptideInterface> ret = new HashSet<QuantifiedPeptideInterface>();
+		Set<QuantifiedPeptideInterface> ret = new THashSet<QuantifiedPeptideInterface>();
 		final Set<QuantifiedPeptideInterface> quantifiedPeptides = getQuantifiedPeptides();
 		for (QuantifiedPeptideInterface quantifiedPeptideInterface : quantifiedPeptides) {
 			if (quantifiedPeptideInterface.getFileNames().contains(replicateName)) {
@@ -244,7 +259,7 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	}
 
 	public Set<QuantifiedProteinInterface> getNonDiscardedQuantifiedProteins() {
-		Set<QuantifiedProteinInterface> ret = new HashSet<QuantifiedProteinInterface>();
+		Set<QuantifiedProteinInterface> ret = new THashSet<QuantifiedProteinInterface>();
 		for (QuantifiedProteinInterface protein : getQuantifiedProteins()) {
 			if (!protein.isDiscarded()) {
 				ret.add(protein);
@@ -260,6 +275,27 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * For a given peptide, gets the {@link PositionInPeptide} for which this
+	 * node was created.<br>
+	 * Note that this only is used for experiments in which isCollapsedBySites()
+	 * is TRUE.
+	 * 
+	 * @param peptide
+	 * @return
+	 */
+	public PositionInPeptide getPositionInPeptide(QuantifiedPeptideInterface peptide) {
+		if (!this.peptideSet.contains(peptide)) {
+			throw new IllegalArgumentException(
+					"The peptide " + peptide.getSequence() + " (" + peptide.getKey() + ") is not in this peptide node");
+		}
+		if (positionInPeptideByPeptide.containsKey(peptide)) {
+			return this.positionInPeptideByPeptide.get(peptide);
+		} else {
+			return null;
+		}
 	}
 
 }

@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -13,12 +12,13 @@ import org.apache.log4j.Logger;
 
 import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
-import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.cases.Classification1Case;
 import edu.scripps.yates.pcq.cases.Classification2Case;
+import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.pcq.util.ProteinPairPValue;
 import edu.scripps.yates.utilities.maths.Maths;
+import gnu.trove.map.hash.THashMap;
 
 public class ProteinPair {
 	private static final Logger log = Logger.getLogger(ProteinPair.class);
@@ -28,8 +28,8 @@ public class ProteinPair {
 	private boolean uniquePeptidesProt2Inconsistent = false;
 	private boolean sharedPeptidesInconsistent = false;
 	private final boolean containsDiscardedProteinNode;
-	private final Map<String, Classification2Case> classification2Cases = new HashMap<String, Classification2Case>();
-	private final Map<String, Classification1Case> classification1Cases = new HashMap<String, Classification1Case>();
+	private final Map<String, Classification2Case> classification2Cases = new THashMap<String, Classification2Case>();
+	private final Map<String, Classification1Case> classification1Cases = new THashMap<String, Classification1Case>();
 	ProteinPairPValue firstCase;
 	ProteinPairPValue secondCase;
 	private final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
@@ -696,7 +696,8 @@ public class ProteinPair {
 
 			// show a flag if we have case 6, that is, shared peptide node is
 			// significantly different
-			if (classification1Case == Classification1Case.CASE6 && Double.isNaN(value2)) {
+			if (classification1Case != null && classification1Case == Classification1Case.CASE6
+					&& Double.isNaN(value2)) {
 				if (Math.abs(valueShared - value1) >= params.getThresholdForSignificance()) {
 					sb.append("\tX");
 				}

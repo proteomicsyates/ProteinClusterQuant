@@ -1,6 +1,5 @@
 package edu.scripps.yates.pcq.model;
 
-import java.util.HashSet;
 import java.util.Set;
 
 import edu.scripps.yates.census.read.model.interfaces.HasKey;
@@ -8,6 +7,7 @@ import edu.scripps.yates.census.read.model.interfaces.QuantifiedItem;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
+import gnu.trove.set.hash.THashSet;
 
 public abstract class AbstractNode<T extends QuantifiedItem> implements QuantifiedItem, HasKey {
 	private boolean discarded;
@@ -39,7 +39,7 @@ public abstract class AbstractNode<T extends QuantifiedItem> implements Quantifi
 
 	@Override
 	public Set<String> getFileNames() {
-		Set<String> ret = new HashSet<String>();
+		Set<String> ret = new THashSet<String>();
 		for (T t : getItemsInNode()) {
 			ret.addAll(t.getFileNames());
 		}
@@ -48,7 +48,7 @@ public abstract class AbstractNode<T extends QuantifiedItem> implements Quantifi
 
 	@Override
 	public Set<String> getRawFileNames() {
-		Set<String> rawFileNames = new HashSet<String>();
+		Set<String> rawFileNames = new THashSet<String>();
 		for (T t : getItemsInNode()) {
 			rawFileNames.addAll(t.getRawFileNames());
 		}
@@ -56,7 +56,7 @@ public abstract class AbstractNode<T extends QuantifiedItem> implements Quantifi
 	}
 
 	public Set<T> getNonDiscardedItems() {
-		Set<T> ret = new HashSet<T>();
+		Set<T> ret = new THashSet<T>();
 		for (T t : getItemsInNode()) {
 			if (!t.isDiscarded()) {
 				ret.add(t);

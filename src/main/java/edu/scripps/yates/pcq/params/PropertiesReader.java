@@ -1,4 +1,4 @@
-package edu.scripps.yates.pcq.util;
+package edu.scripps.yates.pcq.params;
 
 import java.awt.Color;
 import java.io.File;
@@ -13,8 +13,8 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
-import edu.scripps.yates.pcq.ProteinClusterQuantProperties;
+import edu.scripps.yates.pcq.util.AnalysisInputType;
+import edu.scripps.yates.pcq.util.ExperimentFiles;
 import edu.scripps.yates.pcq.xgmml.util.ColorManager;
 import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
 import edu.scripps.yates.pcq.xgmml.util.Shape;
@@ -156,9 +156,9 @@ public class PropertiesReader {
 				.valueOf(properties.getProperty("collapseIndistinguishablePeptides", "true"));
 		params.setCollapseIndistinguishablePeptides(collapseIndistinguishablePeptides);
 
-		if (params.isCollapseBySites() && params.isCollapseIndistinguishablePeptides()) {
+		if (params.isCollapseBySites() && !params.isCollapseIndistinguishablePeptides()) {
 			throw new IllegalArgumentException(
-					"collapsePeptidesBySites and collapseIndistinguishablePeptides cannot be used at the same time");
+					"collapsePeptidesBySites can only be used when collapseIndistinguishablePeptides is TRUE");
 		}
 
 		// determines if we align the peptides or not

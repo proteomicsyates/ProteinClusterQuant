@@ -1,6 +1,5 @@
 package edu.scripps.yates.pcq.filter;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -9,20 +8,21 @@ import org.apache.log4j.Logger;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
-import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.model.PCQPeptideNode;
 import edu.scripps.yates.pcq.model.PCQProteinNode;
 import edu.scripps.yates.pcq.model.ProteinCluster;
+import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
+import gnu.trove.set.hash.THashSet;
 
 public abstract class PCQFilter {
 	protected final static Logger log = Logger.getLogger(PCQFilter.class);
-	private static Set<PCQPeptideNode> staticDiscardedPeptideNodesForStatistics = new HashSet<PCQPeptideNode>();
-	private static Set<PCQProteinNode> staticDiscardedProteinNodesForStatistics = new HashSet<PCQProteinNode>();
+	private static Set<PCQPeptideNode> staticDiscardedPeptideNodesForStatistics = new THashSet<PCQPeptideNode>();
+	private static Set<PCQProteinNode> staticDiscardedProteinNodesForStatistics = new THashSet<PCQProteinNode>();
 
 	public void filter(ProteinCluster cluster) {
 		final Set<PCQProteinNode> proteinNodes = cluster.getProteinNodes();
 		final Iterator<PCQProteinNode> proteinNodesIterator = proteinNodes.iterator();
-		Set<PCQProteinNode> discardedProteinNodes = new HashSet<PCQProteinNode>();
+		Set<PCQProteinNode> discardedProteinNodes = new THashSet<PCQProteinNode>();
 		// final int originalSize = cluster.getProteinNodes().size();
 		// log.debug("Filtering " + originalSize + " protein nodes");
 		while (proteinNodesIterator.hasNext()) {
@@ -55,7 +55,7 @@ public abstract class PCQFilter {
 		// log.info(originalSize - cluster.getProteinNodes().size() + " protein
 		// nodes where discarded");
 		// }
-		Set<PCQPeptideNode> discardedPeptideNodes = new HashSet<PCQPeptideNode>();
+		Set<PCQPeptideNode> discardedPeptideNodes = new THashSet<PCQPeptideNode>();
 		final Iterator<PCQPeptideNode> peptideNodesIterator = cluster.getPeptideNodes().iterator();
 		// final int originalSize2 = cluster.getPeptideNodes().size();
 		// log.debug("Filtering " + originalSize2 + " peptide nodes");

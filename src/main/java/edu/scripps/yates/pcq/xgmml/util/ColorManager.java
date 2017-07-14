@@ -1,14 +1,14 @@
 package edu.scripps.yates.pcq.xgmml.util;
 
 import java.awt.Color;
-import java.util.HashMap;
 import java.util.Map;
 
-import edu.scripps.yates.pcq.ProteinClusterQuantParameters;
+import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.utilities.colors.ColorGenerator;
+import gnu.trove.map.hash.THashMap;
 
 public class ColorManager {
-	private final Map<String, Color> colorsByTaxonomies = new HashMap<String, Color>();
+	private final Map<String, Color> colorsByTaxonomies = new THashMap<String, Color>();
 	// private final Map<Classification1Case, Color> colorsByCases1 = new
 	// HashMap<Classification1Case, Color>();
 	// private final Map<Classification2Case, Color> colorsByCases2 = new

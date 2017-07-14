@@ -1,4 +1,4 @@
-package edu.scripps.yates.pcq;
+package edu.scripps.yates.pcq.params;
 
 import java.util.Properties;
 

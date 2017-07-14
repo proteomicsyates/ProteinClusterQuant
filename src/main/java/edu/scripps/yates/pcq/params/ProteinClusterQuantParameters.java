@@ -1,10 +1,9 @@
-package edu.scripps.yates.pcq;
+package edu.scripps.yates.pcq.params;
 
 import java.awt.Color;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +20,7 @@ import edu.scripps.yates.pcq.xgmml.util.ColorManager;
 import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
 import edu.scripps.yates.pcq.xgmml.util.Shape;
 import edu.scripps.yates.pcq.xgmml.util.UniprotAnnotationColumn;
+import gnu.trove.map.hash.THashMap;
 
 public class ProteinClusterQuantParameters {
 
@@ -224,7 +224,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	public Map<String, List<String>> getReplicateNamesByExperimentNameMap() {
-		Map<String, List<String>> map = new HashMap<String, List<String>>();
+		Map<String, List<String>> map = new THashMap<String, List<String>>();
 		for (ExperimentFiles experimentFiles : getInputQuantificationFileNames()) {
 			List<String> replicateNames = new ArrayList<String>();
 			replicateNames.addAll(experimentFiles.getRelicateFileNames());
