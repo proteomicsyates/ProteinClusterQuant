@@ -1,7 +1,10 @@
 package edu.scripps.yates.pcq.model;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -9,6 +12,7 @@ import org.apache.log4j.Logger;
 
 import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.read.model.CensusRatio;
+import edu.scripps.yates.census.read.model.IsobaricQuantifiedPeptide;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
@@ -296,6 +300,29 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 		} else {
 			return null;
 		}
+	}
+
+	public List<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> getPeptidesWithPositionsInPeptide() {
+		List<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> isobaricPeptidesAndPositionsInPeptides = new ArrayList<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>>();
+		final Set<QuantifiedPeptideInterface> peptides = getQuantifiedPeptides();
+		for (QuantifiedPeptideInterface peptide : peptides) {
+			if (peptide instanceof IsobaricQuantifiedPeptide) {
+				Pair<IsobaricQuantifiedPeptide, PositionInPeptide> pair = new Pair<IsobaricQuantifiedPeptide, PositionInPeptide>(
+						(IsobaricQuantifiedPeptide) peptide, getPositionInPeptide(peptide));
+				isobaricPeptidesAndPositionsInPeptides.add(pair);
+			}
+		}
+		Collections.sort(isobaricPeptidesAndPositionsInPeptides,
+				new java.util.Comparator<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>>() {
+
+					@Override
+					public int compare(Pair<IsobaricQuantifiedPeptide, PositionInPeptide> arg0,
+							Pair<IsobaricQuantifiedPeptide, PositionInPeptide> arg1) {
+						return arg0.getFirstelement().getFullSequence()
+								.compareTo(arg1.getFirstelement().getFullSequence());
+					}
+				});
+		return isobaricPeptidesAndPositionsInPeptides;
 	}
 
 }

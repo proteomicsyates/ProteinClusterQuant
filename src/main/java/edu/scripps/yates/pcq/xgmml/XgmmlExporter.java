@@ -56,6 +56,8 @@ import edu.scripps.yates.pcq.xgmml.util.UniprotAnnotationColumn;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.colors.ColorGenerator;
 import edu.scripps.yates.utilities.proteomicsmodel.Score;
+import edu.scripps.yates.utilities.sequence.PositionInPeptide;
+import edu.scripps.yates.utilities.util.Pair;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.hash.THashSet;
 
@@ -819,7 +821,7 @@ public class XgmmlExporter {
 		if (!peptideNode.getKey().contentEquals(peptideNode.getFullSequence())) {
 			sb.append(peptideNode.getKey() + "\n");
 		}
-		sb.append(peptideNode.getFullSequence() + "\n");
+		sb.append(getSequenceAnnotated(peptideNode) + "\n");
 
 		sb.append(quantifiedPeptides.size() + " Peptide sequences\n" + peptideNode.getQuantifiedPSMs().size()
 				+ " PSMs\n" + "Shared by " + peptideNode.getProteinNodes().size() + " protein Nodes\n" + "Shared by "
@@ -876,6 +878,46 @@ public class XgmmlExporter {
 			sb.append("\n<b>TAX:</b> " + PCQUtils.getSpeciesString(peptideNode.getTaxonomies()));
 		}
 		return sb.toString();
+	}
+
+	private String getSequenceAnnotated(PCQPeptideNode peptideNode) {
+		if (ProteinClusterQuantParameters.getInstance().isCollapseBySites()) {
+			StringBuilder sb = new StringBuilder();
+			final List<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> peptidesWithPositionsInPeptide = peptideNode
+					.getPeptidesWithPositionsInPeptide();
+			for (Pair<IsobaricQuantifiedPeptide, PositionInPeptide> pair : peptidesWithPositionsInPeptide) {
+				if (!"".equals(sb.toString())) {
+					sb.append("-");
+				}
+				final String fullSequence = pair.getFirstelement().getFullSequence();
+				int position = pair.getSecondElement().getPosition();
+				int currentposition = 0;
+				boolean isPTM = false;
+				for (int i = 0; i < fullSequence.length(); i++) {
+
+					final char charAt = fullSequence.charAt(i);
+					if (charAt == '(' || charAt == '[') {
+						isPTM = true;
+						continue;
+					}
+					if (charAt == ')' || charAt == ']') {
+						isPTM = false;
+						continue;
+					}
+					if (!isPTM) {
+						currentposition++;
+						if (currentposition == position) {
+							sb.append("<b>" + charAt + "</b>");
+						} else {
+							sb.append(charAt);
+						}
+					}
+				}
+			}
+			return sb.toString();
+		} else {
+			return peptideNode.getFullSequence();
+		}
 	}
 
 	/**

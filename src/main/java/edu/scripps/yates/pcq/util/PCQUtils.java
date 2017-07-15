@@ -2188,15 +2188,10 @@ public class PCQUtils {
 			QuantCondition cond1, QuantCondition cond2, String replicateName) {
 		List<IsobaricQuantifiedPeptide> isobaricPeptides = new ArrayList<IsobaricQuantifiedPeptide>();
 		// when collapseBySites is TRUE we also need:
-		Set<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> isobaricPeptidesAndPositionsInPeptides = new THashSet<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>>();
-		final Set<QuantifiedPeptideInterface> peptides = peptideNode.getQuantifiedPeptides();
-		for (QuantifiedPeptideInterface peptide : peptides) {
-			if (peptide instanceof IsobaricQuantifiedPeptide) {
-				Pair<IsobaricQuantifiedPeptide, PositionInPeptide> pair = new Pair<IsobaricQuantifiedPeptide, PositionInPeptide>(
-						(IsobaricQuantifiedPeptide) peptide, peptideNode.getPositionInPeptide(peptide));
-				isobaricPeptides.add((IsobaricQuantifiedPeptide) peptide);
-				isobaricPeptidesAndPositionsInPeptides.add(pair);
-			}
+		List<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> isobaricPeptidesAndPositionsInPeptides = peptideNode
+				.getPeptidesWithPositionsInPeptide();
+		for (Pair<IsobaricQuantifiedPeptide, PositionInPeptide> pair : isobaricPeptidesAndPositionsInPeptides) {
+			isobaricPeptides.add(pair.getFirstelement());
 		}
 		if (isobaricPeptidesAndPositionsInPeptides.isEmpty()) {
 			return IonCountRatio.NAN_RATIO;
