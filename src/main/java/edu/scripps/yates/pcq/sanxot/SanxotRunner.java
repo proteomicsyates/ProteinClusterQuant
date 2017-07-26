@@ -39,10 +39,12 @@ public class SanxotRunner {
 	public SanxotRunner(ProteinClusterQuant pcq, QuantificationType quantType, File workingFolder,
 			QuantCondition condition1, QuantCondition condition2, File fastaFile, QuantParameters quantParameters)
 			throws FileNotFoundException {
+		ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+
 		quantAnalysis = new QuantAnalysis(quantType, workingFolder, condition1, condition2,
 				ANALYSIS_LEVEL_OUTCOME.PEPTIDE);
 		quantAnalysis.setQuantParameters(quantParameters);
-		for (ExperimentFiles experimentFiles : ProteinClusterQuantParameters.getInstance().getInputQuantificationFileNames()) {
+		for (ExperimentFiles experimentFiles : params.getInputQuantificationFileNames()) {
 			QuantExperiment quantExperiment = new QuantExperiment(experimentFiles.getExperimentName());
 			for (String replicateFileName : experimentFiles.getRelicateFileNames()) {
 				Map<QuantCondition, QuantificationLabel> labelsByConditions = pcq
