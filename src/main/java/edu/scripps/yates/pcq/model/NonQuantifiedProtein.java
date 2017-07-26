@@ -9,6 +9,7 @@ import edu.scripps.yates.census.read.model.QuantifiedProtein;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.dtaselectparser.util.DTASelectProtein;
 import edu.scripps.yates.utilities.fasta.FastaParser;
+import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.proteomicsmodel.Amount;
 
 public class NonQuantifiedProtein extends QuantifiedProtein {
@@ -27,13 +28,16 @@ public class NonQuantifiedProtein extends QuantifiedProtein {
 	@Override
 	public QuantRatio getConsensusRatio(QuantCondition quantConditionNumerator,
 			QuantCondition quantConditionDenominator) {
-		return CensusRatio.NAN_RATIO;
+		return CensusRatio.getNaNRatio(quantConditionNumerator, quantConditionDenominator, AggregationLevel.PROTEIN,
+				"RATIO");
+
 	}
 
 	@Override
 	public QuantRatio getConsensusRatio(QuantCondition quantConditionNumerator,
 			QuantCondition quantConditionDenominator, String replicateName) {
-		return CensusRatio.NAN_RATIO;
+		return CensusRatio.getNaNRatio(quantConditionNumerator, quantConditionDenominator, AggregationLevel.PROTEIN,
+				"RATIO");
 	}
 
 	@Override
@@ -82,6 +86,7 @@ public class NonQuantifiedProtein extends QuantifiedProtein {
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see edu.scripps.yates.census.read.model.interfaces.QuantifiedItem#
 	 * isQuantified()
 	 */

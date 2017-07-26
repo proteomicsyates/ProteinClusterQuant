@@ -221,7 +221,7 @@ public class ProteinCluster {
 		Set<String> set = new THashSet<String>();
 		for (QuantifiedPeptideInterface pep : peptides) {
 			if (set.contains(pep.getKey())) {
-				log.info("Inconsistency error. 2 peptides with the same key cannot exist!");
+				log.warn("Inconsistency error. 2 peptides with the same key cannot exist!");
 			} else {
 				set.add(pep.getKey());
 			}
@@ -229,6 +229,9 @@ public class ProteinCluster {
 		if (peptides.size() > 1) {
 			for (int i = 0; i < peptides.size(); i++) {
 				QuantifiedPeptideInterface peptide1 = peptides.get(i);
+				if (!containsAny(peptide1.getSequence(), quantifiedAAs)) {
+					continue;
+				}
 				// get the keys from the peptide.
 				// not that the peptide could have more than one key because 2
 				// reasons:
@@ -239,18 +242,21 @@ public class ProteinCluster {
 						.getProteinKeysByPeptideKeysForQuantifiedAAs(quantifiedAAs, uplr);
 				if (proteinKeysByPeptide1Keys.isEmpty()) {
 					// peptides without a site mapped to a protein are discarded
-					// TODO remove it from individualQuantifiedPeptideSet ?
+					log.warn("Peptide '" + peptide1.getSequence() + "' cannot be mapped to any protein sequence");
 					individualQuantifiedPeptideSet.remove(peptide1);
 					continue;
 				}
 				for (int j = i + 1; j < peptides.size(); j++) {
 					QuantifiedPeptideInterface peptide2 = peptides.get(j);
+					if (!containsAny(peptide2.getSequence(), quantifiedAAs)) {
+						continue;
+					}
 					Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = peptide2
 							.getProteinKeysByPeptideKeysForQuantifiedAAs(quantifiedAAs, uplr);
 					if (proteinKeysByPeptide2Keys.isEmpty()) {
 						// peptides without a site mapped to a protein are
 						// discarded
-						// TODO remove it from individualQuantifiedPeptideSet ?
+						log.warn("Peptide '" + peptide2.getSequence() + "' cannot be mapped to any protein sequence");
 						individualQuantifiedPeptideSet.remove(peptide2);
 						continue;
 					}
@@ -418,6 +424,15 @@ public class ProteinCluster {
 			}
 		}
 
+	}
+
+	private boolean containsAny(String sequence, char[] quantifiedAAs) {
+		for (char c : quantifiedAAs) {
+			if (sequence.contains(String.valueOf(c))) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private void createProteinNodes() {

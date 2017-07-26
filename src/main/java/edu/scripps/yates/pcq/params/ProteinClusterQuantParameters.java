@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import edu.scripps.yates.census.analysis.QuantParameters;
+import edu.scripps.yates.census.read.util.QuantificationLabel;
 import edu.scripps.yates.pcq.compare.ComparisonInput;
 import edu.scripps.yates.pcq.filter.PCQFilter;
 import edu.scripps.yates.pcq.filter.PCQFilterByIonCount;
@@ -96,6 +97,8 @@ public class ProteinClusterQuantParameters {
 	private String peptideFilterRegexp;
 	private List<UniprotAnnotationColumn> uniprotAnnotationColumns = new ArrayList<UniprotAnnotationColumn>();
 	private char[] aaQuantified;
+	private QuantificationLabel numeratorLabel;
+	private QuantificationLabel denominatorLabel;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -1130,5 +1133,21 @@ public class ProteinClusterQuantParameters {
 
 	public boolean isCollapseBySites() {
 		return this.aaQuantified != null && this.aaQuantified.length > 0;
+	}
+
+	public QuantificationLabel getNumeratorLabel() {
+		return numeratorLabel;
+	}
+
+	public void setNumeratorLabel(QuantificationLabel numerator) {
+		this.numeratorLabel = numerator;
+	}
+
+	public QuantificationLabel getDenominatorLabel() {
+		return denominatorLabel;
+	}
+
+	public void setDenominatorLabel(QuantificationLabel denominator) {
+		this.denominatorLabel = denominator;
 	}
 }

@@ -193,7 +193,8 @@ public class ProteinClusterQuant {
 		Set<ProteinCluster> clusterSet = new THashSet<ProteinCluster>();
 
 		try {
-			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList();
+			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
+					params.getNumeratorLabel(), params.getDenominatorLabel());
 			// try to get an quantParser
 			quantParser = PCQUtils.getQuantParser(params, labelsByConditionsList);
 			// try to get an dtaSelectParser
@@ -1266,7 +1267,8 @@ public class ProteinClusterQuant {
 
 	public Map<QuantCondition, QuantificationLabel> getLabelsByConditions(String replicateName) {
 
-		List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList();
+		List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
+				params.getNumeratorLabel(), params.getDenominatorLabel());
 		final List<ExperimentFiles> inputFileNames = ProteinClusterQuantParameters.getInstance()
 				.getInputQuantificationFileNames();
 		int j = 0;
@@ -1281,14 +1283,15 @@ public class ProteinClusterQuant {
 		return null;
 	}
 
-	private List<Map<QuantCondition, QuantificationLabel>> getLabelsByconditionsList() {
+	private List<Map<QuantCondition, QuantificationLabel>> getLabelsByconditionsList(QuantificationLabel labelNumerator,
+			QuantificationLabel labelDenominator) {
 		List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
 
 		// per L/H xml file
 		Map<QuantCondition, QuantificationLabel> labelsByConditions = new THashMap<QuantCondition, QuantificationLabel>();
 		// TODO
-		labelsByConditions.put(cond1, QuantificationLabel.LIGHT);
-		labelsByConditions.put(cond2, QuantificationLabel.HEAVY);
+		labelsByConditions.put(cond1, labelNumerator);
+		labelsByConditions.put(cond2, labelDenominator);
 
 		int max = getParams().getQuantInputFileNamesArray().length;
 		if (getParams().getExperimentNames().size() < 2 && getParams().isLabelSwap()) {
@@ -1309,8 +1312,8 @@ public class ProteinClusterQuant {
 		// per H/L xml file
 		if (getParams().isLabelSwap()) {
 			Map<QuantCondition, QuantificationLabel> labelsByConditions2 = new THashMap<QuantCondition, QuantificationLabel>();
-			labelsByConditions2.put(cond1, QuantificationLabel.HEAVY);
-			labelsByConditions2.put(cond2, QuantificationLabel.LIGHT);
+			labelsByConditions2.put(cond1, labelDenominator);
+			labelsByConditions2.put(cond2, labelNumerator);
 			for (int i = 0; i < max; i++) {
 				labelsByConditionsList.add(labelsByConditions2);
 			}

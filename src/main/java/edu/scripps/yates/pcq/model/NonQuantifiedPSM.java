@@ -12,6 +12,7 @@ import edu.scripps.yates.census.read.model.QuantifiedPSM;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.dtaselectparser.util.DTASelectModification;
 import edu.scripps.yates.dtaselectparser.util.DTASelectPSM;
+import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.proteomicsmodel.Amount;
 import edu.scripps.yates.utilities.util.StringPosition;
 
@@ -61,13 +62,15 @@ public class NonQuantifiedPSM extends QuantifiedPSM {
 	@Override
 	public QuantRatio getConsensusRatio(QuantCondition quantConditionNumerator,
 			QuantCondition quantConditionDenominator) {
-		return CensusRatio.NAN_RATIO;
+		return CensusRatio.getNaNRatio(quantConditionNumerator, quantConditionDenominator, AggregationLevel.PSM,
+				"RATIO");
 	}
 
 	@Override
 	public QuantRatio getConsensusRatio(QuantCondition quantConditionNumerator,
 			QuantCondition quantConditionDenominator, String replicateName) {
-		return CensusRatio.NAN_RATIO;
+		return CensusRatio.getNaNRatio(quantConditionNumerator, quantConditionDenominator, AggregationLevel.PSM,
+				"RATIO");
 	}
 
 	@Override
@@ -129,6 +132,7 @@ public class NonQuantifiedPSM extends QuantifiedPSM {
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see edu.scripps.yates.census.read.model.interfaces.QuantifiedItem#
 	 * isQuantified()
 	 */

@@ -814,6 +814,9 @@ public class XgmmlExporter {
 	 */
 	private String getPeptideNodeTooltip(String prefix, PCQPeptideNode peptideNode) {
 		StringBuilder sb = new StringBuilder();
+		if (peptideNode.getKey().equals("P04406#219")) {
+			log.info(peptideNode);
+		}
 		if (peptideNode.isDiscarded()) {
 			sb.append("<b>Peptide node discarded by applied filters</b>\n");
 		}
@@ -844,8 +847,11 @@ public class XgmmlExporter {
 					sb.append(ionCountRatioTooltip + "\n");
 				}
 			} else {
-				sb.append(finalRatio.getDescription() + " = " + formatNumber(finalRatio.getLog2Ratio(cond1, cond2))
-						+ "\n");
+				String ratioDescription = finalRatio.getDescription();
+				if (ratioDescription == null) {
+					ratioDescription = "RATIO";
+				}
+				sb.append(ratioDescription + " = " + formatNumber(finalRatio.getLog2Ratio(cond1, cond2)) + "\n");
 
 				final IonCountRatio ionCountRatio = PCQUtils.getNormalizedIonCountRatioForPeptideNode(peptideNode,
 						cond1, cond2, null);
@@ -865,7 +871,7 @@ public class XgmmlExporter {
 		} else {
 			sb.append("No ratio calculated\n");
 		}
-		sb.append("Individual peptides in the node:\n");
+		sb.append("Individual peptides in the node: \n");
 		for (QuantifiedPeptideInterface peptide : PCQUtils.getSortedPeptidesBySequence(quantifiedPeptides)) {
 			final QuantRatio individualPeptideRatio = peptide.getConsensusRatio(cond1, cond2);
 			sb.append(peptide.getFullSequence() + ", " + peptide.getQuantifiedPSMs().size() + " PSMs, " + "Shared by "

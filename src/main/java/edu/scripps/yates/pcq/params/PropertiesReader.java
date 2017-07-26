@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import edu.scripps.yates.census.read.util.QuantificationLabel;
 import edu.scripps.yates.pcq.util.AnalysisInputType;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
 import edu.scripps.yates.pcq.xgmml.util.ColorManager;
@@ -72,6 +73,42 @@ public class PropertiesReader {
 			} catch (Exception e) {
 				throw new IllegalArgumentException("'inputType' parameter can only have the following values: "
 						+ AnalysisInputType.getPossibleValues());
+			}
+		} else {
+			log.info("inputType not present");
+		}
+
+		if (properties.containsKey("quantChannels")) {
+			try {
+				String inputType = properties.getProperty("quantChannels", false);
+				if (inputType != null && !"".equals(inputType)) {
+					if (inputType.contains("/")) {
+						String[] split = inputType.split("/");
+						QuantificationLabel numeratorLabel = QuantificationLabel.getByName(split[0]);
+						if (numeratorLabel == null) {
+							throw new IllegalArgumentException(
+									"'quantChannels' label '" + split[0] + "' is not recognized. Possible values are "
+											+ QuantificationLabel.getValuesString());
+						}
+						params.setNumeratorLabel(numeratorLabel);
+						QuantificationLabel denominatorLabel = QuantificationLabel.getByName(split[1]);
+						if (denominatorLabel == null) {
+							throw new IllegalArgumentException(
+									"'quantChannels' label '" + split[1] + "' is not recognized. Possible values are "
+											+ QuantificationLabel.getValuesString());
+						}
+						params.setDenominatorLabel(denominatorLabel);
+					} else {
+						throw new IllegalArgumentException(
+								"'quantChannels' parameter is not well formed. Format LABEL1/LABEL2 where a LABEL can be "
+										+ QuantificationLabel.getValuesString());
+					}
+				} else {
+					params.setNumeratorLabel(QuantificationLabel.LIGHT);
+					params.setDenominatorLabel(QuantificationLabel.HEAVY);
+				}
+			} catch (Exception e) {
+				throw new IllegalArgumentException("'quantChannels' parameter error");
 			}
 		} else {
 			log.info("inputType not present");
