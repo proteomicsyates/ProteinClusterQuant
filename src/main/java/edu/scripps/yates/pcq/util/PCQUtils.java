@@ -35,6 +35,7 @@ import edu.scripps.yates.census.read.model.IsobaricQuantifiedPSM;
 import edu.scripps.yates.census.read.model.IsobaricQuantifiedPeptide;
 import edu.scripps.yates.census.read.model.QuantifiedPSM;
 import edu.scripps.yates.census.read.model.QuantifiedPeptide;
+import edu.scripps.yates.census.read.model.RatioScore;
 import edu.scripps.yates.census.read.model.interfaces.QuantParser;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
@@ -687,24 +688,26 @@ public class PCQUtils {
 		if (peptideNodes.iterator().next().getQuantifiedPeptides().iterator()
 				.next() instanceof IsobaricQuantifiedPeptide) {
 			// when collapseBySites is TRUE we also need:
-			Set<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> isobaricPeptidesAndPositionsInPeptides = new THashSet<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>>();
+			Set<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> peptidesAndPositionsInPeptides = new THashSet<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>>();
 			Set<IsobaricQuantifiedPeptide> isobaricQuantPeptides = new THashSet<IsobaricQuantifiedPeptide>();
 			for (PCQPeptideNode peptideNode : peptideNodes) {
 				if (skipDiscarded && peptideNode.isDiscarded()) {
 					continue;
 				}
 				for (QuantifiedPeptideInterface peptide : peptideNode.getQuantifiedPeptides()) {
-					isobaricQuantPeptides.add((IsobaricQuantifiedPeptide) peptide);
-					Pair<IsobaricQuantifiedPeptide, PositionInPeptide> pair = new Pair<IsobaricQuantifiedPeptide, PositionInPeptide>(
-							(IsobaricQuantifiedPeptide) peptide, peptideNode.getPositionInPeptide(peptide));
-					isobaricPeptidesAndPositionsInPeptides.add(pair);
+					if (peptide instanceof IsobaricQuantifiedPeptide) {
+						isobaricQuantPeptides.add((IsobaricQuantifiedPeptide) peptide);
+						Pair<IsobaricQuantifiedPeptide, PositionInPeptide> pair = new Pair<IsobaricQuantifiedPeptide, PositionInPeptide>(
+								(IsobaricQuantifiedPeptide) peptide, peptideNode.getPositionInPeptide(peptide));
+						peptidesAndPositionsInPeptides.add(pair);
+					}
 				}
 
 			}
 			if (ProteinClusterQuantParameters.getInstance().isCollapseBySites()) {
 
 				return QuantUtils.getNormalizedIonCountRatioForPeptidesForQuantifiedSites(
-						isobaricPeptidesAndPositionsInPeptides, cond1, cond2, replicateName,
+						peptidesAndPositionsInPeptides, cond1, cond2, replicateName,
 						ProteinClusterQuantParameters.getInstance().getAaQuantified());
 			} else {
 				return QuantUtils.getNormalizedIonCountRatioForPeptides(isobaricQuantPeptides, cond1, cond2,
@@ -1976,6 +1979,40 @@ public class PCQUtils {
 		}
 	}
 
+	public static Double stdevOfRatiosTakingIntoAccountInfinitiesAndNans(Collection<QuantRatio> ratios,
+			QuantCondition cond1, QuantCondition cond2) {
+		List<Double> ratioValues = new ArrayList<Double>();
+		for (QuantRatio ratio : ratios) {
+			if (ratio != null) {
+				ratioValues.add(ratio.getLog2Ratio(cond1, cond2));
+			}
+		}
+		if (ratioValues.isEmpty()) {
+			return null;
+		}
+		// check if there are all INFINITIES
+		boolean areInfinities = areAll(Double.POSITIVE_INFINITY, ratioValues)
+				|| areAll(Double.NEGATIVE_INFINITY, ratioValues);
+		if (areInfinities) {
+			// return it (we assume is only one sign of the infinities here
+			return ratioValues.iterator().next();
+		} else {
+			// if they are all Nan,return nan
+			if (areAll(Double.NaN, ratioValues)) {
+				return Double.NaN;
+			}
+			// return an average of the non infinities
+			List<Double> nonInfinityNonNanValues = new ArrayList<Double>();
+			for (Double ratioValue : ratioValues) {
+				if (!ratioValue.isInfinite() && !ratioValue.isNaN()) {
+					nonInfinityNonNanValues.add(ratioValue);
+				}
+			}
+			// report the stdev
+			return Maths.stddev(nonInfinityNonNanValues.toArray(new Double[0]));
+		}
+	}
+
 	private static boolean areAll(double value, Collection<Double> values) {
 		if (values.isEmpty()) {
 			return false;
@@ -2081,7 +2118,7 @@ public class PCQUtils {
 							continue;
 						}
 						if (psm instanceof QuantifiedPSM) {
-							QuantRatio validRatio = QuantUtils.getRatioValidForAnalysis((QuantifiedPSM) psm);
+							QuantRatio validRatio = QuantUtils.getRatioValidForAnalysis(psm);
 							if (validRatio != null) {
 								toAverage.add(validRatio);
 							}
@@ -2101,7 +2138,15 @@ public class PCQUtils {
 		}
 		final Double finalValue = PCQUtils.averageOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
 		if (finalValue != null) {
-			return new CensusRatio(finalValue, true, cond1, cond2, AggregationLevel.PEPTIDE_NODE, "AVG_RATIO");
+			CensusRatio censusRatio = new CensusRatio(finalValue, true, cond1, cond2, AggregationLevel.PEPTIDE_NODE,
+					"Average of ratios");
+			final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
+			if (stdev != null) {
+				censusRatio.setRatioScore(new RatioScore(String.valueOf(stdev), "STDEV", "Standard deviation of ratios",
+						"Standard deviation of the ratios averaged"));
+			}
+
+			return censusRatio;
 		}
 		return CensusRatio.getNaNRatio(cond1, cond2, AggregationLevel.PEPTIDE_NODE, "RATIO");
 
@@ -2173,7 +2218,7 @@ public class PCQUtils {
 				final Set<QuantifiedPSMInterface> quantifiedPSMs = peptideNode.getQuantifiedPSMs();
 				for (QuantifiedPSMInterface psm : quantifiedPSMs) {
 					if (psm instanceof QuantifiedPSM) {
-						QuantRatio validRatio = QuantUtils.getRatioValidForAnalysis((QuantifiedPSM) psm);
+						QuantRatio validRatio = QuantUtils.getRatioValidForAnalysis(psm);
 						if (validRatio != null) {
 							toAverage.add(validRatio.getLog2Ratio(cond1, cond2));
 						}
@@ -2214,12 +2259,17 @@ public class PCQUtils {
 		}
 
 		// when collapseBySites is TRUE we also need:
-		List<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> isobaricPeptidesAndPositionsInPeptides = peptideNode
+		List<Pair<QuantifiedPeptideInterface, PositionInPeptide>> peptidesAndPositionsInPeptides = peptideNode
 				.getPeptidesWithPositionsInPeptide();
-		for (Pair<IsobaricQuantifiedPeptide, PositionInPeptide> pair : isobaricPeptidesAndPositionsInPeptides) {
-			isobaricPeptides.add(pair.getFirstelement());
+		List<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> isobaricPeptidesAndPositionsInPeptides = new ArrayList<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>>();
+		for (Pair<QuantifiedPeptideInterface, PositionInPeptide> pair : peptidesAndPositionsInPeptides) {
+			if (pair.getFirstelement() instanceof IsobaricQuantifiedPeptide) {
+				isobaricPeptides.add((IsobaricQuantifiedPeptide) pair.getFirstelement());
+				isobaricPeptidesAndPositionsInPeptides.add(new Pair<IsobaricQuantifiedPeptide, PositionInPeptide>(
+						(IsobaricQuantifiedPeptide) pair.getFirstelement(), pair.getSecondElement()));
+			}
 		}
-		if (isobaricPeptidesAndPositionsInPeptides.isEmpty()) {
+		if (peptidesAndPositionsInPeptides.isEmpty()) {
 			return IonCountRatio.NAN_RATIO;
 		}
 		if (ProteinClusterQuantParameters.getInstance().isCollapseBySites()) {
