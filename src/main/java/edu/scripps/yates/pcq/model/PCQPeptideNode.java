@@ -12,7 +12,6 @@ import org.apache.log4j.Logger;
 
 import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.read.model.CensusRatio;
-import edu.scripps.yates.census.read.model.IsobaricQuantifiedPeptide;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
@@ -302,27 +301,27 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 		}
 	}
 
-	public List<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> getPeptidesWithPositionsInPeptide() {
-		List<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> isobaricPeptidesAndPositionsInPeptides = new ArrayList<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>>();
+	public List<Pair<QuantifiedPeptideInterface, PositionInPeptide>> getPeptidesWithPositionsInPeptide() {
+		List<Pair<QuantifiedPeptideInterface, PositionInPeptide>> peptidesAndPositionsInPeptides = new ArrayList<Pair<QuantifiedPeptideInterface, PositionInPeptide>>();
 		final Set<QuantifiedPeptideInterface> peptides = getQuantifiedPeptides();
 		for (QuantifiedPeptideInterface peptide : peptides) {
-			if (peptide instanceof IsobaricQuantifiedPeptide) {
-				Pair<IsobaricQuantifiedPeptide, PositionInPeptide> pair = new Pair<IsobaricQuantifiedPeptide, PositionInPeptide>(
-						(IsobaricQuantifiedPeptide) peptide, getPositionInPeptide(peptide));
-				isobaricPeptidesAndPositionsInPeptides.add(pair);
-			}
+
+			Pair<QuantifiedPeptideInterface, PositionInPeptide> pair = new Pair<QuantifiedPeptideInterface, PositionInPeptide>(
+					peptide, getPositionInPeptide(peptide));
+			peptidesAndPositionsInPeptides.add(pair);
+
 		}
-		Collections.sort(isobaricPeptidesAndPositionsInPeptides,
-				new java.util.Comparator<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>>() {
+		Collections.sort(peptidesAndPositionsInPeptides,
+				new java.util.Comparator<Pair<QuantifiedPeptideInterface, PositionInPeptide>>() {
 
 					@Override
-					public int compare(Pair<IsobaricQuantifiedPeptide, PositionInPeptide> arg0,
-							Pair<IsobaricQuantifiedPeptide, PositionInPeptide> arg1) {
+					public int compare(Pair<QuantifiedPeptideInterface, PositionInPeptide> arg0,
+							Pair<QuantifiedPeptideInterface, PositionInPeptide> arg1) {
 						return arg0.getFirstelement().getFullSequence()
 								.compareTo(arg1.getFirstelement().getFullSequence());
 					}
 				});
-		return isobaricPeptidesAndPositionsInPeptides;
+		return peptidesAndPositionsInPeptides;
 	}
 
 }
