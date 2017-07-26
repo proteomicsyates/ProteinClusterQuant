@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import edu.scripps.yates.annotations.uniprot.UniprotProteinLocalRetriever;
+import edu.scripps.yates.census.read.model.IsobaricQuantifiedPeptide;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
@@ -24,6 +26,7 @@ import edu.scripps.yates.utilities.alignment.nwalign.NWAlign;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import edu.scripps.yates.utilities.sequence.PositionInProtein;
+import edu.scripps.yates.utilities.strings.StringUtils;
 import edu.scripps.yates.utilities.util.Pair;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.hash.THashSet;
@@ -226,12 +229,31 @@ public class ProteinCluster {
 				set.add(pep.getKey());
 			}
 		}
+		Set<String> peptideSequencesDiscarded = new HashSet<String>();
 		if (peptides.size() > 1) {
 			for (int i = 0; i < peptides.size(); i++) {
 				QuantifiedPeptideInterface peptide1 = peptides.get(i);
+
 				if (!containsAny(peptide1.getSequence(), quantifiedAAs)) {
+					if (!peptideSequencesDiscarded.contains(peptide1.getSequence())) {
+						peptideSequencesDiscarded.add(peptide1.getSequence());
+						log.info(peptide1.getSequence() + " discarded for not having one quantitation sites from '"
+								+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
+					}
+					individualQuantifiedPeptideSet.remove(peptide1);
 					continue;
 				}
+				if (!(peptide1 instanceof IsobaricQuantifiedPeptide)
+						&& howManyContains(peptide1.getSequence(), quantifiedAAs) > 1) {
+					if (!peptideSequencesDiscarded.contains(peptide1.getSequence())) {
+						peptideSequencesDiscarded.add(peptide1.getSequence());
+						log.info(peptide1.getSequence() + " discarded for having ambiguous quantitation sites from "
+								+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
+					}
+					individualQuantifiedPeptideSet.remove(peptide1);
+					continue;
+				}
+
 				// get the keys from the peptide.
 				// not that the peptide could have more than one key because 2
 				// reasons:
@@ -242,21 +264,47 @@ public class ProteinCluster {
 						.getProteinKeysByPeptideKeysForQuantifiedAAs(quantifiedAAs, uplr);
 				if (proteinKeysByPeptide1Keys.isEmpty()) {
 					// peptides without a site mapped to a protein are discarded
-					log.warn("Peptide '" + peptide1.getSequence() + "' cannot be mapped to any protein sequence");
+					if (!peptideSequencesDiscarded.contains(peptide1.getSequence())) {
+						peptideSequencesDiscarded.add(peptide1.getSequence());
+						log.warn("Peptide '" + peptide1.getSequence() + "' cannot be mapped to any protein sequence");
+
+					}
 					individualQuantifiedPeptideSet.remove(peptide1);
 					continue;
 				}
 				for (int j = i + 1; j < peptides.size(); j++) {
 					QuantifiedPeptideInterface peptide2 = peptides.get(j);
+
 					if (!containsAny(peptide2.getSequence(), quantifiedAAs)) {
+						if (!peptideSequencesDiscarded.contains(peptide2.getSequence())) {
+							peptideSequencesDiscarded.add(peptide2.getSequence());
+							log.info(peptide2.getSequence() + " discarded for not having one quantitation sites from '"
+									+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
+						}
+						individualQuantifiedPeptideSet.remove(peptide2);
+						continue;
+					}
+					if (!(peptide2 instanceof IsobaricQuantifiedPeptide)
+							&& howManyContains(peptide2.getSequence(), quantifiedAAs) > 1) {
+						if (!peptideSequencesDiscarded.contains(peptide2.getSequence())) {
+							peptideSequencesDiscarded.add(peptide2.getSequence());
+							log.info(
+									peptide2.getSequence() + " discarded for having ambiguous quantitation sites from '"
+											+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
+						}
+						individualQuantifiedPeptideSet.remove(peptide2);
 						continue;
 					}
 					Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = peptide2
 							.getProteinKeysByPeptideKeysForQuantifiedAAs(quantifiedAAs, uplr);
 					if (proteinKeysByPeptide2Keys.isEmpty()) {
-						// peptides without a site mapped to a protein are
-						// discarded
-						log.warn("Peptide '" + peptide2.getSequence() + "' cannot be mapped to any protein sequence");
+						if (!peptideSequencesDiscarded.contains(peptide2.getSequence())) {
+							peptideSequencesDiscarded.add(peptide2.getSequence());
+							// peptides without a site mapped to a protein are
+							// discarded
+							log.warn("Peptide '" + peptide2.getSequence()
+									+ "' cannot be mapped to any protein sequence");
+						}
 						individualQuantifiedPeptideSet.remove(peptide2);
 						continue;
 					}
@@ -433,6 +481,14 @@ public class ProteinCluster {
 			}
 		}
 		return false;
+	}
+
+	private int howManyContains(String sequence, char[] quantifiedAAs) {
+		int ret = 0;
+		for (char c : quantifiedAAs) {
+			ret += StringUtils.allPositionsOf(sequence, c).size();
+		}
+		return ret;
 	}
 
 	private void createProteinNodes() {
