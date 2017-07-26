@@ -32,6 +32,7 @@ import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.read.model.IonCountRatio;
 import edu.scripps.yates.census.read.model.IsobaricQuantifiedPeptide;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
+import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 import edu.scripps.yates.pcq.cases.Classification1Case;
@@ -865,7 +866,7 @@ public class XgmmlExporter {
 
 			if (finalRatio.getAssociatedConfidenceScore() != null) {
 				sb.append(finalRatio.getAssociatedConfidenceScore().getScoreName() + " = "
-						+ finalRatio.getAssociatedConfidenceScore().getValue() + "\n");
+						+ formatNumberMoreDecimals(finalRatio.getAssociatedConfidenceScore().getValue()) + "\n");
 			}
 
 		} else {
@@ -874,11 +875,42 @@ public class XgmmlExporter {
 		sb.append("Individual peptides in the node: \n");
 		for (QuantifiedPeptideInterface peptide : PCQUtils.getSortedPeptidesBySequence(quantifiedPeptides)) {
 			final QuantRatio individualPeptideRatio = peptide.getConsensusRatio(cond1, cond2);
-			sb.append(peptide.getFullSequence() + ", " + peptide.getQuantifiedPSMs().size() + " PSMs, " + "Shared by "
+			sb.append(getSequenceAnnotated(peptide, peptideNode.getPositionInPeptide(peptide)) + ", "
+					+ peptide.getQuantifiedPSMs().size() + " PSMs, " + "Shared by "
 					+ peptide.getQuantifiedProteins().size() + " proteins, " + "Detected in "
 					+ peptide.getRawFileNames().size() + " MS Runs, " + "Detected in " + peptide.getFileNames().size()
 					+ " replicates, " + individualPeptideRatio.getDescription() + " = "
-					+ individualPeptideRatio.getLog2Ratio(cond1, cond2) + "\n");
+					+ formatNumberMoreDecimals(individualPeptideRatio.getLog2Ratio(cond1, cond2)));
+			// include ratio score if any (usually is going to be a standard
+			// deviation)
+			if (individualPeptideRatio.getAssociatedConfidenceScore() != null) {
+				sb.append(", " + individualPeptideRatio.getAssociatedConfidenceScore().getScoreName() + " = "
+						+ formatNumberMoreDecimals(individualPeptideRatio.getAssociatedConfidenceScore().getValue()));
+			}
+			// singletons
+			int numSingletons = 0;
+			int numNonSingletons = 0;
+			for (QuantifiedPSMInterface psm : peptide.getQuantifiedPSMs()) {
+				if (psm.isSingleton()) {
+					numSingletons++;
+				} else {
+					numNonSingletons++;
+				}
+			}
+			if (numSingletons > 0) {
+				sb.append(" ,<b>" + numSingletons + " singleton");
+				if (numSingletons > 1) {
+					sb.append("s");
+				}
+				if (numNonSingletons > 0) {
+					sb.append(" and " + numNonSingletons + " non singleton");
+					if (numNonSingletons > 1) {
+						sb.append("s");
+					}
+				}
+				sb.append("</b>");
+			}
+			sb.append("\n");
 		}
 		if (peptideNode.getTaxonomies() != null && !peptideNode.getTaxonomies().isEmpty()) {
 			sb.append("\n<b>TAX:</b> " + PCQUtils.getSpeciesString(peptideNode.getTaxonomies()));
@@ -889,40 +921,52 @@ public class XgmmlExporter {
 	private String getSequenceAnnotated(PCQPeptideNode peptideNode) {
 		if (ProteinClusterQuantParameters.getInstance().isCollapseBySites()) {
 			StringBuilder sb = new StringBuilder();
-			final List<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> peptidesWithPositionsInPeptide = peptideNode
+			final List<Pair<QuantifiedPeptideInterface, PositionInPeptide>> peptidesWithPositionsInPeptide = peptideNode
 					.getPeptidesWithPositionsInPeptide();
-			for (Pair<IsobaricQuantifiedPeptide, PositionInPeptide> pair : peptidesWithPositionsInPeptide) {
+			for (Pair<QuantifiedPeptideInterface, PositionInPeptide> pair : peptidesWithPositionsInPeptide) {
 				if (!"".equals(sb.toString())) {
 					sb.append("-");
 				}
-				final String fullSequence = pair.getFirstelement().getFullSequence();
-				int position = pair.getSecondElement().getPosition();
-				int currentposition = 0;
-				boolean isPTM = false;
-				for (int i = 0; i < fullSequence.length(); i++) {
-
-					final char charAt = fullSequence.charAt(i);
-					if (charAt == '(' || charAt == '[') {
-						isPTM = true;
-						continue;
-					}
-					if (charAt == ')' || charAt == ']') {
-						isPTM = false;
-						continue;
-					}
-					if (!isPTM) {
-						currentposition++;
-						if (currentposition == position) {
-							sb.append("<b>" + charAt + "</b>");
-						} else {
-							sb.append(charAt);
-						}
-					}
-				}
+				sb.append(getSequenceAnnotated(pair.getFirstelement(), pair.getSecondElement()));
 			}
 			return sb.toString();
 		} else {
 			return peptideNode.getFullSequence();
+		}
+	}
+
+	private String getSequenceAnnotated(QuantifiedPeptideInterface peptide, PositionInPeptide positionInPeptide) {
+		if (ProteinClusterQuantParameters.getInstance().isCollapseBySites()) {
+			StringBuilder sb = new StringBuilder();
+
+			final String fullSequence = peptide.getFullSequence();
+			int position = positionInPeptide.getPosition();
+			int currentposition = 0;
+			boolean isPTM = false;
+			for (int i = 0; i < fullSequence.length(); i++) {
+
+				final char charAt = fullSequence.charAt(i);
+				if (charAt == '(' || charAt == '[') {
+					isPTM = true;
+					continue;
+				}
+				if (charAt == ')' || charAt == ']') {
+					isPTM = false;
+					continue;
+				}
+				if (!isPTM) {
+					currentposition++;
+					if (currentposition == position) {
+						sb.append("<b>" + charAt + "</b>");
+					} else {
+						sb.append(charAt);
+					}
+				}
+			}
+
+			return sb.toString();
+		} else {
+			return peptide.getFullSequence();
 		}
 	}
 
@@ -976,7 +1020,7 @@ public class XgmmlExporter {
 	private String getIonCountRatioTooltip(IonCountRatio ionCountRatio, Set<QuantifiedPeptideInterface> peptides) {
 		final Double log2Ratio = ionCountRatio.getLog2Ratio(cond1, cond2);
 		if (log2Ratio != null) {
-			return getIsobaricPeptidesTooltip(formatNumber(log2Ratio), peptides);
+			return getIsobaricPeptidesTooltip(formatNumberMoreDecimals(log2Ratio), peptides);
 		}
 		return null;
 	}
@@ -997,6 +1041,18 @@ public class XgmmlExporter {
 		}
 		return formatter.format(number);
 
+	}
+
+	private String formatNumberMoreDecimals(String number) {
+		if (number == null) {
+			return null;
+		}
+		try {
+			return formatNumberMoreDecimals(Double.valueOf(number));
+		} catch (NumberFormatException e) {
+
+		}
+		return null;
 	}
 
 	private String formatNumberMoreDecimals(Double number) {
