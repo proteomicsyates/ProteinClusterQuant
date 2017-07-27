@@ -62,6 +62,7 @@ import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.remote.RemoteSSHFileReference;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import edu.scripps.yates.utilities.sequence.PositionInProtein;
+import edu.scripps.yates.utilities.strings.StringUtils;
 import edu.scripps.yates.utilities.util.Pair;
 import edu.scripps.yates.utilities.util.StringPosition;
 import gnu.trove.map.hash.THashMap;
@@ -308,7 +309,8 @@ public class PCQUtils {
 			QuantificationLabel denominatorLabel, char[] enzymeArray, int missedCleavages, boolean semiCleavage,
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep, boolean skipSingletons,
-			boolean distinguishModifiedPeptides, String peptideFilterRegexp) throws FileNotFoundException {
+			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs)
+			throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -336,6 +338,11 @@ public class PCQUtils {
 			parser.setDbIndex(fastaDBIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
+			if (quantifiedAAs != null) {
+				for (char quantifiedAA : quantifiedAAs) {
+					parser.addQuantifiedAA(quantifiedAA);
+				}
+			}
 			return parser;
 		} finally {
 			addQuantParserToStaticMap(fileNamesKey, parser);
@@ -348,7 +355,7 @@ public class PCQUtils {
 			QuantificationLabel numeratorLabel, QuantificationLabel denominatorLabel, char[] enzymeArray,
 			int missedCleavages, boolean semiCleavage, File uniprotReleasesFolder, String uniprotVersion,
 			String decoyRegexp, boolean ignoreNotFoundPeptidesInDB, boolean distinguishModifiedPeptides,
-			String peptideFilterRegexp) throws FileNotFoundException {
+			String peptideFilterRegexp, char[] quantifiedAAs) throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -374,6 +381,11 @@ public class PCQUtils {
 			parser.setDbIndex(fastaDBIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
+			if (quantifiedAAs != null) {
+				for (char quantifiedAA : quantifiedAAs) {
+					parser.addQuantifiedAA(quantifiedAA);
+				}
+			}
 			return parser;
 		} finally {
 			addQuantParserToStaticMap(fileNamesKey, parser);
@@ -476,8 +488,8 @@ public class PCQUtils {
 			List<Map<QuantCondition, QuantificationLabel>> labelsByConditions, QuantificationLabel numeratorLabel,
 			QuantificationLabel denominatorLabel, File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp,
 			boolean ignoreNotFoundPeptidesInDB, boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep,
-			boolean skipSingletons, boolean distinguishModifiedPeptides, String peptideFilterRegexp)
-			throws FileNotFoundException {
+			boolean skipSingletons, boolean distinguishModifiedPeptides, String peptideFilterRegexp,
+			char[] quantifiedAAs) throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -505,6 +517,11 @@ public class PCQUtils {
 			parser.setDbIndex(dbIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
+			if (quantifiedAAs != null) {
+				for (char quantifiedAA : quantifiedAAs) {
+					parser.addQuantifiedAA(quantifiedAA);
+				}
+			}
 			return parser;
 		} finally {
 			addQuantParserToStaticMap(fileNamesKey, parser);
@@ -551,7 +568,8 @@ public class PCQUtils {
 			String[] fileNames, String separator, List<Map<QuantCondition, QuantificationLabel>> labelsByConditions,
 			QuantificationLabel numeratorLabel, QuantificationLabel denominatorLabel, File uniprotReleasesFolder,
 			String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
-			boolean distinguishModifiedPeptides, String peptideFilterRegexp) throws FileNotFoundException {
+			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs)
+			throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -577,7 +595,11 @@ public class PCQUtils {
 			parser.setDbIndex(dbIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
-
+			if (quantifiedAAs != null) {
+				for (char quantifiedAA : quantifiedAAs) {
+					parser.addQuantifiedAA(quantifiedAA);
+				}
+			}
 			return parser;
 		} finally {
 			addQuantParserToStaticMap(fileNamesKey, parser);
@@ -1738,7 +1760,7 @@ public class PCQUtils {
 						params.getNumeratorLabel(), params.getDenominatorLabel(), params.getUniprotReleasesFolder(),
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
 						params.isOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(), params.isSkipSingletons(),
-						!params.isIgnorePTMs(), params.getPeptideFilterRegexp());
+						!params.isIgnorePTMs(), params.getPeptideFilterRegexp(), params.getAaQuantified());
 
 				return parser;
 			} else {
@@ -1748,7 +1770,7 @@ public class PCQUtils {
 						params.getMissedCleavages(), params.isSemiCleavage(), params.getUniprotReleasesFolder(),
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
 						params.isOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(), params.isSkipSingletons(),
-						!params.isIgnorePTMs(), params.getPeptideFilterRegexp());
+						!params.isIgnorePTMs(), params.getPeptideFilterRegexp(), params.getAaQuantified());
 
 				return parser;
 			}
@@ -1760,7 +1782,7 @@ public class PCQUtils {
 						params.getSeparator(), labelsByConditionsList, params.getNumeratorLabel(),
 						params.getDenominatorLabel(), params.getUniprotReleasesFolder(), params.getUniprotVersion(),
 						params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(), !params.isIgnorePTMs(),
-						params.getPeptideFilterRegexp());
+						params.getPeptideFilterRegexp(), params.getAaQuantified());
 
 				return parser;
 			} else {
@@ -1769,7 +1791,7 @@ public class PCQUtils {
 						params.getNumeratorLabel(), params.getDenominatorLabel(), params.getEnzymeArray(),
 						params.getMissedCleavages(), params.isSemiCleavage(), params.getUniprotReleasesFolder(),
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
-						!params.isIgnorePTMs(), params.getPeptideFilterRegexp());
+						!params.isIgnorePTMs(), params.getPeptideFilterRegexp(), params.getAaQuantified());
 
 				return parser;
 			}
@@ -2433,7 +2455,7 @@ public class PCQUtils {
 		return ret;
 	}
 
-	public static String getStringKey(List<PositionInProtein> keys1) {
+	public static String getPositionsInProteinsKey(List<PositionInProtein> keys1) {
 		Collections.sort(keys1, new Comparator<PositionInProtein>() {
 
 			@Override
@@ -2482,4 +2504,20 @@ public class PCQUtils {
 		return ret;
 	}
 
+	public static boolean containsAny(String sequence, char[] quantifiedAAs) {
+		for (char c : quantifiedAAs) {
+			if (sequence.contains(String.valueOf(c))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static int howManyContains(String sequence, char[] quantifiedAAs) {
+		int ret = 0;
+		for (char c : quantifiedAAs) {
+			ret += StringUtils.allPositionsOf(sequence, c).size();
+		}
+		return ret;
+	}
 }
