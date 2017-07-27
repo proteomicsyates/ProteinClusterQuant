@@ -377,7 +377,7 @@ public class ProteinClusterQuant {
 
 			// header
 			out.write("Raw file " + "\t" + "PSM id" + "\t" + "Sequence" + "\t" + "Protein(s)" + "\t" + "Ratio Name"
-					+ "\t" + "Log2Ratio" + "\t" + "singleton ratio");
+					+ "\t" + "Log2Ratio" + "\t" + "Ratio STDV" + "\t" + "singleton ratio");
 			if (params.isCollapseBySites()) {
 				out.write("\t" + "QuantSitePositionInPeptide" + "\t" + "QuantSitePositionInProtein(s)" + "\t"
 						+ "Quant site");
@@ -408,16 +408,24 @@ public class ProteinClusterQuant {
 
 					out.write(psm.getRawFileNames().iterator().next() + "\t" + psm.getKey() + "\t" + psm.getSequence()
 							+ "\t" + accessionString + "\t" + quantRatio.getDescription() + "\t"
-							+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)) + "\t"
-							+ psm.isSingleton());
+							+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)));
+					if (quantRatio.getAssociatedConfidenceScore() != null) {
+						out.write("\t" + quantRatio.getAssociatedConfidenceScore().getScoreName() + "\t"
+								+ quantRatio.getAssociatedConfidenceScore().getValue());
+					} else {
+						out.write("\t\t");
+					}
+					out.write("\t" + psm.isSingleton());
 					if (params.isCollapseBySites()) {
 						Integer quantifiedSitePositionInPeptide = quantRatio.getQuantifiedSitePositionInPeptide();
 						Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = psm
 								.getQuantifiedPeptide()
 								.getProteinKeysByPeptideKeysForQuantifiedAAs(params.getAaQuantified(), uplr);
 						StringBuilder quantifiedSitepositionInProtein = new StringBuilder();
-						if (quantifiedSitePositionInPeptide != null) {
-							for (PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
+
+						for (PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
+
+							if (quantifiedSitePositionInPeptide != null) {
 								if (positionInPeptide.getPosition() == quantifiedSitePositionInPeptide) {
 									if (!"".equals(quantifiedSitepositionInProtein.toString())) {
 										quantifiedSitepositionInProtein.append(",");
@@ -425,14 +433,21 @@ public class ProteinClusterQuant {
 									quantifiedSitepositionInProtein.append(PCQUtils.getPositionsInProteinsKey(
 											proteinKeysByPeptide2Keys.get(positionInPeptide)));
 								}
+							} else {
+								if (!"".equals(quantifiedSitepositionInProtein.toString())) {
+									quantifiedSitepositionInProtein.append(",");
+								}
+								quantifiedSitepositionInProtein.append(PCQUtils
+										.getPositionsInProteinsKey(proteinKeysByPeptide2Keys.get(positionInPeptide)));
 							}
 						}
+
 						if (quantifiedSitePositionInPeptide == null) {
 							out.write("\t");
 							if (!PCQUtils.containsAny(psm.getSequence(), params.getAaQuantified())) {
 								out.write("not found\tnot found");
 							} else {
-								out.write("ambiguous\tambiguous");
+								out.write("ambiguous\t" + quantifiedSitepositionInProtein.toString());
 							}
 							out.write(
 									"\t" + StringUtils.getSeparatedValueStringFromChars(params.getAaQuantified(), ","));
