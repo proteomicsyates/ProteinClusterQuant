@@ -334,7 +334,10 @@ public class ProteinClusterQuant {
 			// }
 
 			// print PSM with the ratios that were used
-			printPSMRatiosFile(clusterSet);
+			printPSMRatiosFile();
+
+			// print Peptide with the ratios that were used
+			printPeptideRatiosFile();
 
 			// print PSEA QUANT files
 			printPSEAQuantFiles(clusterSet);
@@ -359,7 +362,7 @@ public class ProteinClusterQuant {
 
 	}
 
-	private void printPSMRatiosFile(Set<ProteinCluster> clusterSet) {
+	private void printPSMRatiosFile() {
 		FileWriter out = null;
 
 		try {
@@ -377,7 +380,8 @@ public class ProteinClusterQuant {
 
 			// header
 			out.write("Raw file " + "\t" + "PSM id" + "\t" + "Sequence" + "\t" + "Protein(s)" + "\t" + "Ratio Name"
-					+ "\t" + "Log2Ratio" + "\t" + "Ratio STDV" + "\t" + "singleton ratio");
+					+ "\t" + "Log2Ratio" + "\t" + "Ratio Score name" + "\t" + "Ratio Score value" + "\t"
+					+ "singleton ratio");
 			if (params.isCollapseBySites()) {
 				out.write("\t" + "QuantSitePositionInPeptide" + "\t" + "QuantSitePositionInProtein(s)" + "\t"
 						+ "Quant site");
@@ -445,6 +449,116 @@ public class ProteinClusterQuant {
 						if (quantifiedSitePositionInPeptide == null) {
 							out.write("\t");
 							if (!PCQUtils.containsAny(psm.getSequence(), params.getAaQuantified())) {
+								out.write("not found\tnot found");
+							} else {
+								out.write("ambiguous\t" + quantifiedSitepositionInProtein.toString());
+							}
+							out.write(
+									"\t" + StringUtils.getSeparatedValueStringFromChars(params.getAaQuantified(), ","));
+						} else {
+							out.write("\t" + quantifiedSitePositionInPeptide + "\t"
+									+ quantifiedSitepositionInProtein.toString() + "\t" + quantRatio.getQuantifiedAA());
+						}
+					}
+
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (out != null) {
+				try {
+					out.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+	}
+
+	private void printPeptideRatiosFile() {
+		FileWriter out = null;
+
+		try {
+			UniprotProteinLocalRetriever uplr = PCQUtils
+					.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
+
+			final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+			final File outputFileFolder = params.getTemporalOutputFolder();
+			final String outputPrefix = params.getOutputPrefix();
+			final String outputSuffix = params.getOutputSuffix();
+			String fileName = outputPrefix + "_peptideTable_" + outputSuffix + ".txt";
+
+			log.info("Printing Peptide ratios at file : '" + fileName + "'");
+			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName);
+
+			// header
+			out.write("Raw file " + "\t" + "Num PSMs" + "\t" + "Sequence" + "\t" + "Protein(s)" + "\t" + "Ratio Name"
+					+ "\t" + "Log2Ratio" + "\t" + "Ratio Score Name" + "\t" + "Ratio Score Value");
+			if (params.isCollapseBySites()) {
+				out.write("\t" + "QuantSitePositionInPeptide" + "\t" + "QuantSitePositionInProtein(s)" + "\t"
+						+ "Quant site");
+			}
+			if (quantParser != null) {
+				List<QuantifiedPeptideInterface> peptideList = new ArrayList<QuantifiedPeptideInterface>();
+				peptideList.addAll(quantParser.getPeptideMap().values());
+				// sort list by Peptide sequence and then by psm id
+				Collections.sort(peptideList, new Comparator<QuantifiedPeptideInterface>() {
+
+					@Override
+					public int compare(QuantifiedPeptideInterface o1, QuantifiedPeptideInterface o2) {
+						String sequence = o1.getSequence();
+						String sequence2 = o2.getSequence();
+						return sequence.compareTo(sequence2);
+
+					}
+				});
+				for (QuantifiedPeptideInterface peptide : peptideList) {
+
+					out.write("\n");
+
+					String accessionString = PCQUtils.getAccessionString(peptide.getQuantifiedProteins());
+					final QuantRatio quantRatio = peptide.getConsensusRatio(cond1, cond2);
+
+					out.write(peptide.getRawFileNames().iterator().next() + "\t" + peptide.getQuantifiedPSMs().size()
+							+ "\t" + peptide.getFullSequence() + "\t" + accessionString + "\t"
+							+ quantRatio.getDescription() + "\t"
+							+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)));
+					if (quantRatio.getAssociatedConfidenceScore() != null) {
+						out.write("\t" + quantRatio.getAssociatedConfidenceScore().getScoreName() + "\t"
+								+ quantRatio.getAssociatedConfidenceScore().getValue());
+					} else {
+						out.write("\t\t");
+					}
+					if (params.isCollapseBySites()) {
+						Integer quantifiedSitePositionInPeptide = quantRatio.getQuantifiedSitePositionInPeptide();
+						Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = peptide
+								.getProteinKeysByPeptideKeysForQuantifiedAAs(params.getAaQuantified(), uplr);
+						StringBuilder quantifiedSitepositionInProtein = new StringBuilder();
+
+						for (PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
+
+							if (quantifiedSitePositionInPeptide != null) {
+								if (positionInPeptide.getPosition() == quantifiedSitePositionInPeptide) {
+									if (!"".equals(quantifiedSitepositionInProtein.toString())) {
+										quantifiedSitepositionInProtein.append(",");
+									}
+									quantifiedSitepositionInProtein.append(PCQUtils.getPositionsInProteinsKey(
+											proteinKeysByPeptide2Keys.get(positionInPeptide)));
+								}
+							} else {
+								if (!"".equals(quantifiedSitepositionInProtein.toString())) {
+									quantifiedSitepositionInProtein.append(",");
+								}
+								quantifiedSitepositionInProtein.append(PCQUtils
+										.getPositionsInProteinsKey(proteinKeysByPeptide2Keys.get(positionInPeptide)));
+							}
+						}
+
+						if (quantifiedSitePositionInPeptide == null) {
+							out.write("\t");
+							if (!PCQUtils.containsAny(peptide.getSequence(), params.getAaQuantified())) {
 								out.write("not found\tnot found");
 							} else {
 								out.write("ambiguous\t" + quantifiedSitepositionInProtein.toString());
