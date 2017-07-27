@@ -23,6 +23,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 import org.apache.log4j.Logger;
@@ -41,7 +42,6 @@ import edu.scripps.yates.census.analysis.wrappers.SanxotQuantResult;
 import edu.scripps.yates.census.read.AbstractQuantParser;
 import edu.scripps.yates.census.read.model.CensusRatio;
 import edu.scripps.yates.census.read.model.IonCountRatio;
-import edu.scripps.yates.census.read.model.IsoRatio;
 import edu.scripps.yates.census.read.model.QuantifiedProtein;
 import edu.scripps.yates.census.read.model.RatioScore;
 import edu.scripps.yates.census.read.model.interfaces.QuantParser;
@@ -49,6 +49,7 @@ import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
+import edu.scripps.yates.census.read.util.QuantUtils;
 import edu.scripps.yates.census.read.util.QuantificationLabel;
 import edu.scripps.yates.dtaselectparser.DTASelectParser;
 import edu.scripps.yates.pcq.cases.Classification2Case;
@@ -77,6 +78,9 @@ import edu.scripps.yates.utilities.maths.Maths;
 import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.model.enums.CombinationType;
 import edu.scripps.yates.utilities.proteomicsmodel.Score;
+import edu.scripps.yates.utilities.sequence.PositionInPeptide;
+import edu.scripps.yates.utilities.sequence.PositionInProtein;
+import edu.scripps.yates.utilities.strings.StringUtils;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.hash.THashSet;
 
@@ -95,6 +99,7 @@ public class ProteinClusterQuant {
 	private Map<String, Entry> annotatedProteins;
 	private final Map<String, Set<String>> nonModifiedToModifiedMap = new THashMap<String, Set<String>>();
 	private DTASelectParser idParser;
+	private Set<ProteinCluster> clusterSet;
 
 	public ProteinClusterQuant(File setupPropertiesFile) {
 		this(ProteinClusterQuantParameters.getInstance(), setupPropertiesFile);
@@ -190,7 +195,7 @@ public class ProteinClusterQuant {
 
 	private void runAnalysis() throws IOException {
 
-		Set<ProteinCluster> clusterSet = new THashSet<ProteinCluster>();
+		clusterSet = new THashSet<ProteinCluster>();
 
 		try {
 			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
@@ -205,8 +210,6 @@ public class ProteinClusterQuant {
 			if (quantParser != null) {
 				pepMap.putAll(quantParser.getPeptideMap());
 			}
-
-			printPSMRatios();
 
 			if (idParser != null) {
 				NonQuantParser nonQuantParser = new NonQuantParser(idParser);
@@ -330,6 +333,9 @@ public class ProteinClusterQuant {
 			printFinalFile(clusterSet, ratioStatsByPeptideNodeKey);
 			// }
 
+			// print PSM with the ratios that were used
+			printPSMRatiosFile(clusterSet);
+
 			// print PSEA QUANT files
 			printPSEAQuantFiles(clusterSet);
 
@@ -353,47 +359,89 @@ public class ProteinClusterQuant {
 
 	}
 
-	private void printPSMRatios() {
+	private void printPSMRatiosFile(Set<ProteinCluster> clusterSet) {
 		FileWriter out = null;
-		log.info("Printing PSM ratios");
+
 		try {
+			UniprotProteinLocalRetriever uplr = PCQUtils
+					.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
+
 			final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 			final File outputFileFolder = params.getTemporalOutputFolder();
 			final String outputPrefix = params.getOutputPrefix();
 			final String outputSuffix = params.getOutputSuffix();
-			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix + "_psmTable_"
-					+ outputSuffix + ".txt");
+			String fileName = outputPrefix + "_psmTable_" + outputSuffix + ".txt";
+
+			log.info("Printing PSM ratios at file : '" + fileName + "'");
+			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName);
+
+			// header
+			out.write("Raw file " + "\t" + "PSM id" + "\t" + "Sequence" + "\t" + "Protein(s)" + "\t" + "Ratio Name"
+					+ "\t" + "Log2Ratio" + "\t" + "singleton ratio");
+			if (params.isCollapseBySites()) {
+				out.write("\t" + "QuantSitePositionInPeptide" + "\t" + "QuantSitePositionInProtein(s)" + "\t"
+						+ "Quant site");
+			}
 			if (quantParser != null) {
-				Collection<QuantifiedPSMInterface> psms = quantParser.getPSMMap().values();
 				List<QuantifiedPSMInterface> psmList = new ArrayList<QuantifiedPSMInterface>();
-				psmList.addAll(psms);
+				psmList.addAll(quantParser.getPSMMap().values());
+				// sort list by Peptide sequence and then by psm id
 				Collections.sort(psmList, new Comparator<QuantifiedPSMInterface>() {
 
 					@Override
 					public int compare(QuantifiedPSMInterface o1, QuantifiedPSMInterface o2) {
-						return o1.getPSMIdentifier().compareTo(o2.getPSMIdentifier());
+						String sequence = o1.getSequence();
+						String sequence2 = o2.getSequence();
+						if (!sequence.equals(sequence2)) {
+							return sequence.compareTo(sequence2);
+						} else {
+							return o1.getPSMIdentifier().compareTo(o2.getPSMIdentifier());
+						}
 					}
 				});
-				// header
-				out.write("Raw file " + "\t" + "PSM id" + "\t" + "Sequence" + "\t" + "Proteins" + "\t" + "Log2Ratio");
-				if (params.isCollapseBySites()) {
-					out.write("\t" + "QuantSitePositionInPeptide" + "\t" + "Quant site");
-				}
-				out.write("\n");
 				for (QuantifiedPSMInterface psm : psmList) {
+
+					out.write("\n");
+
 					String accessionString = PCQUtils.getAccessionString(psm.getQuantifiedProteins());
-					Set<QuantRatio> ratios = psm.getRatios();
-					for (QuantRatio quantRatio : ratios) {
-						out.write(psm.getRawFileNames().iterator().next() + "\t" + psm.getKey() + "\t"
-								+ psm.getSequence() + "\t" + accessionString + "\t"
-								+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)));
-						if (quantRatio instanceof IsoRatio && params.isCollapseBySites()) {
-							IsoRatio isoRatio = (IsoRatio) quantRatio;
-							out.write("\t" + isoRatio.getQuantifiedSitePositionInPeptide() + "\t"
-									+ isoRatio.getQuantifiedAA());
+					QuantRatio quantRatio = QuantUtils.getRatioValidForAnalysis(psm);
+
+					out.write(psm.getRawFileNames().iterator().next() + "\t" + psm.getKey() + "\t" + psm.getSequence()
+							+ "\t" + accessionString + "\t" + quantRatio.getDescription() + "\t"
+							+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)) + "\t"
+							+ psm.isSingleton());
+					if (params.isCollapseBySites()) {
+						Integer quantifiedSitePositionInPeptide = quantRatio.getQuantifiedSitePositionInPeptide();
+						Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = psm
+								.getQuantifiedPeptide()
+								.getProteinKeysByPeptideKeysForQuantifiedAAs(params.getAaQuantified(), uplr);
+						StringBuilder quantifiedSitepositionInProtein = new StringBuilder();
+						if (quantifiedSitePositionInPeptide != null) {
+							for (PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
+								if (positionInPeptide.getPosition() == quantifiedSitePositionInPeptide) {
+									if (!"".equals(quantifiedSitepositionInProtein.toString())) {
+										quantifiedSitepositionInProtein.append(",");
+									}
+									quantifiedSitepositionInProtein.append(PCQUtils.getPositionsInProteinsKey(
+											proteinKeysByPeptide2Keys.get(positionInPeptide)));
+								}
+							}
 						}
-						out.write("\n");
+						if (quantifiedSitePositionInPeptide == null) {
+							out.write("\t");
+							if (!PCQUtils.containsAny(psm.getSequence(), params.getAaQuantified())) {
+								out.write("not found\tnot found");
+							} else {
+								out.write("ambiguous\tambiguous");
+							}
+							out.write(
+									"\t" + StringUtils.getSeparatedValueStringFromChars(params.getAaQuantified(), ","));
+						} else {
+							out.write("\t" + quantifiedSitePositionInPeptide + "\t"
+									+ quantifiedSitepositionInProtein.toString() + "\t" + quantRatio.getQuantifiedAA());
+						}
 					}
+
 				}
 			}
 		} catch (IOException e) {
@@ -459,14 +507,15 @@ public class ProteinClusterQuant {
 		Map<String, Entry> annotatedProteins = getAnnotatedProteins();
 
 		FileWriter outputIntegrationFinalFile = null;
-		log.info("Printing final data table in file");
+
 		try {
 			final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 			final File outputFileFolder = params.getTemporalOutputFolder();
 			final String outputPrefix = params.getOutputPrefix();
 			final String outputSuffix = params.getOutputSuffix();
-			outputIntegrationFinalFile = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator
-					+ outputPrefix + "_finalTable_" + outputSuffix + ".txt");
+			String fileName = outputPrefix + "_finalTable_" + outputSuffix + ".txt";
+			log.info("Printing final data table in file at '" + fileName + "'");
+			outputIntegrationFinalFile = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName);
 
 			outputIntegrationFinalFile.write(getPeptideNodeHeaderLine() + "\n");
 			// sort peptide Nodes by FDR
@@ -1230,9 +1279,11 @@ public class ProteinClusterQuant {
 	}
 
 	private void moveResultsToFinalFolder() throws IOException {
-		log.info("Moving results to final output folder...");
+		log.info("Moving results to final output folder '"
+				+ FilenameUtils.getName(getParams().getOutputFileFolder().getAbsolutePath()) + "'...");
 		FileUtils.copyDirectory(getParams().getTemporalOutputFolder(), getParams().getOutputFileFolder());
-		log.info("Deleting TEMP folder...");
+		log.info("Deleting TEMP folder '"
+				+ FilenameUtils.getName(getParams().getTemporalOutputFolder().getAbsolutePath()) + "'...");
 		FileUtils.deleteDirectory(getParams().getTemporalOutputFolder());
 		log.info("TEMP folder deleted.");
 	}
@@ -1617,16 +1668,17 @@ public class ProteinClusterQuant {
 
 			FileWriter outputPSEAQuant = null;
 			FileWriter outputPSEAQuant_inv = null;
-			log.info("Printing PSEA-Quant input files");
+
 			try {
 				final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 				final File outputFileFolder = params.getTemporalOutputFolder();
 				final String outputPrefix = params.getOutputPrefix();
 				final String outputSuffix = params.getOutputSuffix();
-				outputPSEAQuant = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix
-						+ "_pseaQuant_" + outputSuffix + ".txt");
-				outputPSEAQuant_inv = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix
-						+ "_pseaQuant_inv_" + outputSuffix + ".txt");
+				String fileName1 = outputPrefix + "_pseaQuant_" + outputSuffix + ".txt";
+				outputPSEAQuant = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName1);
+				String fileName2 = outputPrefix + "_pseaQuant_inv_" + outputSuffix + ".txt";
+				outputPSEAQuant_inv = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName2);
+				log.info("Printing PSEA-Quant input files at '" + fileName1 + "' and '" + fileName2 + "'");
 				final Mean meanCalculator = new Mean();
 				List<String> replicateNameList = new ArrayList<String>();
 				Set<String> replicateNames = new THashSet<String>();
