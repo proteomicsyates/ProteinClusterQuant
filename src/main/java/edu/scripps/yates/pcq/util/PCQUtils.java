@@ -2081,6 +2081,7 @@ public class PCQUtils {
 		if (peptideNodes.isEmpty()) {
 			return CensusRatio.getNaNRatio(cond1, cond2, AggregationLevel.PEPTIDE_NODE, "RATIO");
 		}
+		List<Integer> quantifiedSitePositionInPeptideList = new ArrayList<Integer>();
 		List<QuantRatio> toAverage = new ArrayList<QuantRatio>();
 		// ISOTOPOLOGUES
 		if (ProteinClusterQuantParameters.getInstance().getInputType() == AnalysisInputType.CENSUS_CHRO) {
@@ -2095,6 +2096,10 @@ public class PCQUtils {
 					final QuantRatio consensusRatio = peptideNode.getConsensusRatio(cond1, cond2, replicateName);
 					if (consensusRatio != null) {
 						toAverage.add(consensusRatio);
+						if (consensusRatio.getQuantifiedSitePositionInPeptide() != null) {
+							quantifiedSitePositionInPeptideList
+									.add(consensusRatio.getQuantifiedSitePositionInPeptide());
+						}
 					}
 				}
 			} else {
@@ -2109,6 +2114,10 @@ public class PCQUtils {
 							peptideNode, cond1, cond2, replicateName);
 					if (normalizedIonCountRatioForPeptideNode != null) {
 						toAverage.add(normalizedIonCountRatioForPeptideNode);
+						if (normalizedIonCountRatioForPeptideNode.getQuantifiedSitePositionInPeptide() != null) {
+							quantifiedSitePositionInPeptideList
+									.add(normalizedIonCountRatioForPeptideNode.getQuantifiedSitePositionInPeptide());
+						}
 					}
 				}
 			}
@@ -2125,6 +2134,10 @@ public class PCQUtils {
 					final QuantRatio consensusRatio = peptideNode.getConsensusRatio(cond1, cond2, replicateName);
 					if (consensusRatio != null) {
 						toAverage.add(consensusRatio);
+						if (consensusRatio.getQuantifiedSitePositionInPeptide() != null) {
+							quantifiedSitePositionInPeptideList
+									.add(consensusRatio.getQuantifiedSitePositionInPeptide());
+						}
 					}
 				}
 			} else {
@@ -2143,6 +2156,10 @@ public class PCQUtils {
 							QuantRatio validRatio = QuantUtils.getRatioValidForAnalysis(psm);
 							if (validRatio != null) {
 								toAverage.add(validRatio);
+								if (validRatio.getQuantifiedSitePositionInPeptide() != null) {
+									quantifiedSitePositionInPeptideList
+											.add(validRatio.getQuantifiedSitePositionInPeptide());
+								}
 							}
 						} else {
 							throw new IllegalArgumentException(
@@ -2162,6 +2179,9 @@ public class PCQUtils {
 		if (finalValue != null) {
 			CensusRatio censusRatio = new CensusRatio(finalValue, true, cond1, cond2, AggregationLevel.PEPTIDE_NODE,
 					"Average of ratios");
+			if (quantifiedSitePositionInPeptideList.size() == 1) {
+				censusRatio.setQuantifiedSitePositionInPeptide(quantifiedSitePositionInPeptideList.get(0));
+			}
 			final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
 			if (stdev != null) {
 				censusRatio.setRatioScore(new RatioScore(String.valueOf(stdev), "STDEV", "Standard deviation of ratios",
