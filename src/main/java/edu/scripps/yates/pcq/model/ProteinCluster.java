@@ -45,7 +45,6 @@ public class ProteinCluster {
 	// proteinPairs with discarded proteins
 	private final Set<ProteinPair> discardedProteinPairs = new THashSet<ProteinPair>();
 	private final AlignmentSet alignmentSet = new AlignmentSet();
-	private Map<String, QuantifiedPeptideInterface> peptideMap;
 
 	private final Map<String, PCQProteinNode> proteinNodesByProteinKey = new THashMap<String, PCQProteinNode>();
 	private final Map<String, PCQPeptideNode> peptideNodesByPeptideNodeKey = new THashMap<String, PCQPeptideNode>();
@@ -234,7 +233,7 @@ public class ProteinCluster {
 			for (int i = 0; i < peptides.size(); i++) {
 				QuantifiedPeptideInterface peptide1 = peptides.get(i);
 
-				if (!containsAny(peptide1.getSequence(), quantifiedAAs)) {
+				if (!PCQUtils.containsAny(peptide1.getSequence(), quantifiedAAs)) {
 					if (!peptideSequencesDiscarded.contains(peptide1.getSequence())) {
 						peptideSequencesDiscarded.add(peptide1.getSequence());
 						log.info(peptide1.getSequence() + " discarded for not having one quantitation sites from '"
@@ -244,7 +243,7 @@ public class ProteinCluster {
 					continue;
 				}
 				if (!(peptide1 instanceof IsobaricQuantifiedPeptide)
-						&& howManyContains(peptide1.getSequence(), quantifiedAAs) > 1) {
+						&& PCQUtils.howManyContains(peptide1.getSequence(), quantifiedAAs) > 1) {
 					if (!peptideSequencesDiscarded.contains(peptide1.getSequence())) {
 						peptideSequencesDiscarded.add(peptide1.getSequence());
 						log.info(peptide1.getSequence() + " discarded for having ambiguous quantitation sites from "
@@ -275,7 +274,7 @@ public class ProteinCluster {
 				for (int j = i + 1; j < peptides.size(); j++) {
 					QuantifiedPeptideInterface peptide2 = peptides.get(j);
 
-					if (!containsAny(peptide2.getSequence(), quantifiedAAs)) {
+					if (!PCQUtils.containsAny(peptide2.getSequence(), quantifiedAAs)) {
 						if (!peptideSequencesDiscarded.contains(peptide2.getSequence())) {
 							peptideSequencesDiscarded.add(peptide2.getSequence());
 							log.info(peptide2.getSequence() + " discarded for not having one quantitation sites from '"
@@ -285,7 +284,7 @@ public class ProteinCluster {
 						continue;
 					}
 					if (!(peptide2 instanceof IsobaricQuantifiedPeptide)
-							&& howManyContains(peptide2.getSequence(), quantifiedAAs) > 1) {
+							&& PCQUtils.howManyContains(peptide2.getSequence(), quantifiedAAs) > 1) {
 						if (!peptideSequencesDiscarded.contains(peptide2.getSequence())) {
 							peptideSequencesDiscarded.add(peptide2.getSequence());
 							log.info(
@@ -320,7 +319,7 @@ public class ProteinCluster {
 							// now I compare the two list of keys
 							if (PCQUtils.areEquals(proteinKeysFromPeptide1, proteinKeysFromPeptide2)) {
 
-								String key = PCQUtils.getStringKey(proteinKeysFromPeptide1);
+								String key = PCQUtils.getPositionsInProteinsKey(proteinKeysFromPeptide1);
 
 								// collapsed in the same peptide node
 								PCQPeptideNode peptideNode = null;
@@ -351,7 +350,7 @@ public class ProteinCluster {
 										.getUniqueToFirst(proteinKeysFromPeptide1, proteinKeysFromPeptide2);
 								if (!uniqueKeysForPeptide1.isEmpty()) {
 
-									String key1 = PCQUtils.getStringKey(uniqueKeysForPeptide1);
+									String key1 = PCQUtils.getPositionsInProteinsKey(uniqueKeysForPeptide1);
 									PCQPeptideNode peptideNode = null;
 									if (peptideNodesByPeptideNodeKey.containsKey(key1)) {
 										peptideNode = peptideNodesByPeptideNodeKey.get(key1);
@@ -372,7 +371,7 @@ public class ProteinCluster {
 								List<PositionInProtein> uniqueKeysForPeptide2 = PCQUtils
 										.getUniqueToFirst(proteinKeysFromPeptide2, proteinKeysFromPeptide1);
 								if (!uniqueKeysForPeptide2.isEmpty()) {
-									String key2 = PCQUtils.getStringKey(uniqueKeysForPeptide2);
+									String key2 = PCQUtils.getPositionsInProteinsKey(uniqueKeysForPeptide2);
 									PCQPeptideNode peptideNode = null;
 									if (peptideNodesByPeptideNodeKey.containsKey(key2)) {
 										peptideNode = peptideNodesByPeptideNodeKey.get(key2);
@@ -393,7 +392,7 @@ public class ProteinCluster {
 								List<PositionInProtein> sharedKeys = PCQUtils.getInCommon(proteinKeysFromPeptide2,
 										proteinKeysFromPeptide1);
 								if (!sharedKeys.isEmpty()) {
-									String sharedKey = PCQUtils.getStringKey(sharedKeys);
+									String sharedKey = PCQUtils.getPositionsInProteinsKey(sharedKeys);
 									PCQPeptideNode peptideNode = null;
 									if (peptideNodesByPeptideNodeKey.containsKey(sharedKey)) {
 										peptideNode = peptideNodesByPeptideNodeKey.get(sharedKey);
@@ -416,7 +415,7 @@ public class ProteinCluster {
 								// they dont share any key create a peptide node
 								// for each peptide separated peptide node for
 								// psm1
-								String key1 = PCQUtils.getStringKey(proteinKeysFromPeptide1);
+								String key1 = PCQUtils.getPositionsInProteinsKey(proteinKeysFromPeptide1);
 								PCQPeptideNode peptideNode = null;
 								if (peptideNodesByPeptideNodeKey.containsKey(key1)) {
 									peptideNode = peptideNodesByPeptideNodeKey.get(key1);
@@ -431,7 +430,7 @@ public class ProteinCluster {
 								peptideNodesByPeptideNodeKey.put(key1, peptideNode);
 
 								// protein node for protein2
-								String key2 = PCQUtils.getStringKey(proteinKeysFromPeptide2);
+								String key2 = PCQUtils.getPositionsInProteinsKey(proteinKeysFromPeptide2);
 								PCQPeptideNode peptideNode2 = null;
 								if (peptideNodesByPeptideNodeKey.containsKey(key2)) {
 									peptideNode2 = peptideNodesByPeptideNodeKey.get(key2);
@@ -458,7 +457,7 @@ public class ProteinCluster {
 			for (PositionInPeptide positionInPeptide : proteinKeysByPeptideKeys.keySet()) {
 				List<PositionInProtein> positionsInProtein = proteinKeysByPeptideKeys.get(positionInPeptide);
 
-				String key = PCQUtils.getStringKey(positionsInProtein);
+				String key = PCQUtils.getPositionsInProteinsKey(positionsInProtein);
 				PCQPeptideNode peptideNode = null;
 				if (peptideNodesByPeptideNodeKey.containsKey(key)) {
 					peptideNode = peptideNodesByPeptideNodeKey.get(key);
@@ -472,23 +471,6 @@ public class ProteinCluster {
 			}
 		}
 
-	}
-
-	private boolean containsAny(String sequence, char[] quantifiedAAs) {
-		for (char c : quantifiedAAs) {
-			if (sequence.contains(String.valueOf(c))) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	private int howManyContains(String sequence, char[] quantifiedAAs) {
-		int ret = 0;
-		for (char c : quantifiedAAs) {
-			ret += StringUtils.allPositionsOf(sequence, c).size();
-		}
-		return ret;
 	}
 
 	private void createProteinNodes() {
