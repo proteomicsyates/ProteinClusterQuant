@@ -407,7 +407,12 @@ public class ProteinClusterQuant {
 					}
 				});
 				for (QuantifiedPSMInterface psm : psmList) {
-
+					// check if we should ignore the ptm psms
+					if (params.isIgnorePTMs()) {
+						if (psm.getPtms() != null && !psm.getPtms().isEmpty()) {
+							continue;
+						}
+					}
 					out.write("\n");
 
 					String accessionString = PCQUtils.getAccessionString(psm.getQuantifiedProteins());
@@ -425,8 +430,8 @@ public class ProteinClusterQuant {
 					out.write("\t" + psm.isSingleton());
 					if (params.isCollapseBySites()) {
 						Integer quantifiedSitePositionInPeptide = quantRatio.getQuantifiedSitePositionInPeptide();
-						Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = psm
-								.getQuantifiedPeptide()
+						final QuantifiedPeptideInterface quantifiedPeptide = psm.getQuantifiedPeptide();
+						Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = quantifiedPeptide
 								.getProteinKeysByPeptideKeysForQuantifiedAAs(params.getAaQuantified(), uplr);
 						StringBuilder quantifiedSitepositionInProtein = new StringBuilder();
 
@@ -597,7 +602,12 @@ public class ProteinClusterQuant {
 					}
 				});
 				for (QuantifiedPeptideInterface peptide : peptideList) {
-
+					// check if we should ignore the ptm psms
+					if (params.isIgnorePTMs()) {
+						if (peptide.getPtms() != null && !peptide.getPtms().isEmpty()) {
+							continue;
+						}
+					}
 					out.write("\n");
 
 					String accessionString = PCQUtils.getAccessionString(peptide.getQuantifiedProteins());
