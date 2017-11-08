@@ -727,7 +727,6 @@ public class PCQUtils {
 
 			}
 			if (ProteinClusterQuantParameters.getInstance().isCollapseBySites()) {
-
 				return QuantUtils.getNormalizedIonCountRatioForPeptidesForQuantifiedSites(
 						peptidesAndPositionsInPeptides, cond1, cond2, replicateName,
 						ProteinClusterQuantParameters.getInstance().getAaQuantified());
@@ -2214,7 +2213,7 @@ public class PCQUtils {
 	 * @param skipDiscarded
 	 * @return
 	 **/
-	public static List<Double> getIndividualRepresentativeLog2ValuesForEachPeptide(
+	public static List<Double> getIndividualRepresentativeLog2ValuesForEachPeptideForProteinPairAnalysis(
 			Collection<PCQPeptideNode> peptideNodes, QuantCondition cond1, QuantCondition cond2,
 			boolean skipDiscarded) {
 

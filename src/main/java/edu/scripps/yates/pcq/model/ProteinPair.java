@@ -90,7 +90,7 @@ public class ProteinPair {
 				.getLog2Ratio(cond1, cond2);
 		threeCombined[0] = ratioValueUniqueTo1;
 
-		List<Double> pepRatProt1 = PCQUtils.getIndividualRepresentativeLog2ValuesForEachPeptide(uniqueTo1PeptideNodes,
+		List<Double> pepRatProt1 = PCQUtils.getIndividualRepresentativeLog2ValuesForEachPeptideForProteinPairAnalysis(uniqueTo1PeptideNodes,
 				cond1, cond2, true);
 
 		// protein 2's peptides
@@ -100,7 +100,7 @@ public class ProteinPair {
 				.getRepresentativeRatioForPeptideNodes(uniqueTo2PeptideNodes, cond1, cond2, true, null)
 				.getLog2Ratio(cond1, cond2);
 		threeCombined[2] = ratioValueUniqueTo2;
-		List<Double> pepRatProt2 = PCQUtils.getIndividualRepresentativeLog2ValuesForEachPeptide(uniqueTo2PeptideNodes,
+		List<Double> pepRatProt2 = PCQUtils.getIndividualRepresentativeLog2ValuesForEachPeptideForProteinPairAnalysis(uniqueTo2PeptideNodes,
 				cond1, cond2, true);
 
 		final Map<String, Set<PCQPeptideNode>> sharedPeptidesMap = PCQUtils.getSharedPeptideNodesMap(proteinNode1,
@@ -115,7 +115,7 @@ public class ProteinPair {
 			}
 			Double ratioValueShared = representativeRatioForPeptideNodes.getLog2Ratio(cond1, cond2);
 			threeCombined[1] = ratioValueShared;
-			List<Double> pepRatShared = PCQUtils.getIndividualRepresentativeLog2ValuesForEachPeptide(sharedPeptideNodes,
+			List<Double> pepRatShared = PCQUtils.getIndividualRepresentativeLog2ValuesForEachPeptideForProteinPairAnalysis(sharedPeptideNodes,
 					cond1, cond2, true);
 
 			classifyPairByClassification2(params.getThresholdForSignificance(), Arrays.asList(threeCombined),
