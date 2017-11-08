@@ -562,6 +562,11 @@ public class PropertiesReader {
 			throw new IllegalArgumentException(
 					params.getQuantParameters().getSanxotScriptsFolder().getAbsolutePath() + " does not exist");
 		}
+		if (params.getAaQuantified() != null && params.getAaQuantified().length > 0
+				&& params.isApplyClassificationsByProteinPair()) {
+			throw new IllegalArgumentException(
+					"ERROR in input parameters: It is not possible to perform a protein pair analysis on site specific quantification results");
+		}
 	}
 
 }
