@@ -244,6 +244,8 @@ public class ProteinCluster {
 				}
 				if (!(peptide1 instanceof IsobaricQuantifiedPeptide)
 						&& PCQUtils.howManyContains(peptide1.getSequence(), quantifiedAAs) > 1) {
+					// TODO: take into account peptides with multiple
+					// quantifiedAAs
 					if (!peptideSequencesDiscarded.contains(peptide1.getSequence())) {
 						peptideSequencesDiscarded.add(peptide1.getSequence());
 						log.info(peptide1.getSequence() + " discarded for having ambiguous quantitation sites from "
