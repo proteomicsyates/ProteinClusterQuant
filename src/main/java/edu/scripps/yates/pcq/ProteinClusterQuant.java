@@ -40,6 +40,7 @@ import edu.scripps.yates.census.analysis.wrappers.OutlierRemovalResultWrapper;
 import edu.scripps.yates.census.analysis.wrappers.SanXotAnalysisResult;
 import edu.scripps.yates.census.analysis.wrappers.SanxotQuantResult;
 import edu.scripps.yates.census.read.AbstractQuantParser;
+import edu.scripps.yates.census.read.CensusChroParser;
 import edu.scripps.yates.census.read.model.CensusRatio;
 import edu.scripps.yates.census.read.model.IonCountRatio;
 import edu.scripps.yates.census.read.model.QuantifiedProtein;
@@ -416,8 +417,27 @@ public class ProteinClusterQuant {
 					out.write("\n");
 
 					String accessionString = PCQUtils.getAccessionString(psm.getQuantifiedProteins());
-					QuantRatio quantRatio = QuantUtils.getRatioValidForAnalysis(psm);
+					QuantRatio quantRatio = null;
+					if (params.getInputType() == AnalysisInputType.CENSUS_CHRO) {
+						if (params.isCollapseBySites()) {
+							// isobaric isotopologues and site specific
+							quantRatio = QuantUtils.getRatioByName(psm, CensusChroParser.ISOBARIC_INTENSITY_RATIO);
 
+						} else {
+							// isobaric isotopologues and no site specific
+							if (params.isPerformRatioIntegration()) {
+								// isobaric isotopologues and no site specific
+								// and sanxot
+								quantRatio = QuantUtils.getRatioByName(psm, CensusChroParser.ISOBARIC_INTENSITY_RATIO);
+							} else {
+								// isobaric isotopologues and no site specific
+								// and no sanxot
+								quantRatio = QuantUtils.getRatioByName(psm, CensusChroParser.ISOBARIC_COUNT_RATIO);
+							}
+						}
+					} else {
+						quantRatio = QuantUtils.getRatioValidForAnalysis(psm);
+					}
 					out.write(psm.getRawFileNames().iterator().next() + "\t" + psm.getKey() + "\t" + psm.getSequence()
 							+ "\t" + accessionString + "\t" + quantRatio.getDescription() + "\t"
 							+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)));
