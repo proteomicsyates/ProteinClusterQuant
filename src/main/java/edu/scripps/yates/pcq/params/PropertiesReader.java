@@ -111,7 +111,9 @@ public class PropertiesReader {
 				throw new IllegalArgumentException("'quantChannels' parameter error");
 			}
 		} else {
-			log.info("inputType not present");
+			log.info("quantChannels not present. setting default values: L/H");
+			params.setNumeratorLabel(QuantificationLabel.LIGHT);
+			params.setDenominatorLabel(QuantificationLabel.HEAVY);
 		}
 
 		if (properties.containsKey("onlyOneSpectrumPerChromatographicPeakAndPerSaltStep")) {
