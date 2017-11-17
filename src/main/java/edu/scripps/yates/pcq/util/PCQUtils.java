@@ -1875,7 +1875,8 @@ public class PCQUtils {
 		}
 		// check if there are all INFINITIES
 		boolean areInfinities = areAll(Double.POSITIVE_INFINITY, ratioValues)
-				|| areAll(Double.NEGATIVE_INFINITY, ratioValues);
+				|| areAll(Double.NEGATIVE_INFINITY, ratioValues) || areAll(Double.MAX_VALUE, ratioValues)
+				|| areAll(-Double.MAX_VALUE, ratioValues);
 		if (areInfinities) {
 			// return it (we assume is only one sign of the infinities here
 			return ratioValues.iterator().next();
@@ -1909,7 +1910,8 @@ public class PCQUtils {
 		}
 		// check if there are all INFINITIES
 		boolean areInfinities = areAll(Double.POSITIVE_INFINITY, ratioValues)
-				|| areAll(Double.NEGATIVE_INFINITY, ratioValues);
+				|| areAll(Double.NEGATIVE_INFINITY, ratioValues) || areAll(Double.MAX_VALUE, ratioValues)
+				|| areAll(-Double.MAX_VALUE, ratioValues);
 		if (areInfinities) {
 			// return it (we assume is only one sign of the infinities here
 			return ratioValues.iterator().next();
@@ -2198,6 +2200,7 @@ public class PCQUtils {
 	private static QuantRatio getAverageIsobaricRatioForSiteSpecificPeptideNode(PCQPeptideNode peptideNode,
 			QuantCondition cond1, QuantCondition cond2) {
 		List<QuantRatio> toAverage = new ArrayList<QuantRatio>();
+
 		final List<Pair<QuantifiedPeptideInterface, PositionInPeptide>> peptidesWithPositionsInPeptide = peptideNode
 				.getPeptidesWithPositionsInPeptide();
 		for (Pair<QuantifiedPeptideInterface, PositionInPeptide> pair : peptidesWithPositionsInPeptide) {
