@@ -34,13 +34,6 @@ public class NonQuantifiedProtein extends QuantifiedProtein {
 	}
 
 	@Override
-	public QuantRatio getConsensusRatio(QuantCondition quantConditionNumerator,
-			QuantCondition quantConditionDenominator, String replicateName) {
-		return CensusRatio.getNaNRatio(quantConditionNumerator, quantConditionDenominator, AggregationLevel.PROTEIN,
-				"RATIO");
-	}
-
-	@Override
 	public Set<QuantRatio> getNonInfinityRatios() {
 		return Collections.emptySet();
 	}

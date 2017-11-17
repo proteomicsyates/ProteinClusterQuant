@@ -67,13 +67,6 @@ public class NonQuantifiedPSM extends QuantifiedPSM {
 	}
 
 	@Override
-	public QuantRatio getConsensusRatio(QuantCondition quantConditionNumerator,
-			QuantCondition quantConditionDenominator, String replicateName) {
-		return CensusRatio.getNaNRatio(quantConditionNumerator, quantConditionDenominator, AggregationLevel.PSM,
-				"RATIO");
-	}
-
-	@Override
 	public Set<QuantRatio> getNonInfinityRatios() {
 		return Collections.emptySet();
 	}
