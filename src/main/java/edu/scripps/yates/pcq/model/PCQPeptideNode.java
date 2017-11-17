@@ -40,11 +40,11 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 
 	private final Set<QuantifiedPeptideInterface> peptideSet = new THashSet<QuantifiedPeptideInterface>();
 	private Double confidenceValue;
-	private final Set<QuantRatio> consensusRatios = new THashSet<QuantRatio>();
+	private final Set<QuantRatio> sanXotRatios = new THashSet<QuantRatio>();
 
 	private final Set<PCQProteinNode> proteinNodes = new THashSet<PCQProteinNode>();
 
-	private final Map<String, QuantRatio> consensusRatiosByReplicateName = new THashMap<String, QuantRatio>();
+	private final Map<String, QuantRatio> sanXotRatiosByReplicateName = new THashMap<String, QuantRatio>();
 
 	private final ProteinCluster proteinCluster;
 
@@ -133,10 +133,10 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 		return ratios;
 	}
 
-	public QuantRatio getConsensusRatio(QuantCondition cond1, QuantCondition cond2) {
+	public QuantRatio getSanXotRatio(QuantCondition cond1, QuantCondition cond2) {
 		// first look if there is an externally set consensus ratio that can be
 		// come from the ratio integration analysis
-		for (QuantRatio ratio : consensusRatios) {
+		for (QuantRatio ratio : sanXotRatios) {
 			if (ratio.getCondition1().equals(cond1) && ratio.getCondition2().equals(cond2)) {
 				return ratio;
 			}
@@ -151,28 +151,31 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 
 	}
 
-	public boolean addConsensusRatio(QuantRatio ratio) {
-		return consensusRatios.add(ratio);
+	/**
+	 * Called by ProteinClusterQuant.setIntegrationResultsIntoPeptideNodes
+	 * 
+	 * @param ratio
+	 * @return
+	 */
+	public boolean addSanXotRatio(QuantRatio ratio) {
+		return sanXotRatios.add(ratio);
 	}
 
-	public boolean addConsensusRatio(QuantRatio ratio, String replicateName) {
+	/**
+	 * Called by
+	 * ProteinClusterQuant.setIntegrationResultsPerReplicateIntoPeptideNodes
+	 * 
+	 * @param ratio
+	 * @param replicateName
+	 * @return
+	 */
+	public boolean addSanXotRatio(QuantRatio ratio, String replicateName) {
 		if (replicateName != null) {
 
-			return consensusRatiosByReplicateName.put(replicateName, ratio) != null;
+			return sanXotRatiosByReplicateName.put(replicateName, ratio) != null;
 		} else {
-			return addConsensusRatio(ratio);
+			return addSanXotRatio(ratio);
 		}
-	}
-
-	public Set<QuantRatio> getNonInfinityRatios() {
-		Set<QuantRatio> ratios = new THashSet<QuantRatio>();
-		for (QuantifiedPeptideInterface peptide : peptideSet) {
-			ratios.addAll(peptide.getNonInfinityRatios());
-			for (QuantifiedPSMInterface psm : peptide.getQuantifiedPSMs()) {
-				ratios.addAll(psm.getNonInfinityRatios());
-			}
-		}
-		return ratios;
 	}
 
 	@Override
@@ -243,12 +246,12 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 		return ret;
 	}
 
-	public QuantRatio getConsensusRatio(QuantCondition quantConditionNumerator,
+	public QuantRatio getSanXotRatio(QuantCondition quantConditionNumerator,
 			QuantCondition quantConditionDenominator, String replicateName) {
 		if (replicateName != null) {
-			return consensusRatiosByReplicateName.get(replicateName);
+			return sanXotRatiosByReplicateName.get(replicateName);
 		} else {
-			return getConsensusRatio(quantConditionNumerator, quantConditionDenominator);
+			return getSanXotRatio(quantConditionNumerator, quantConditionDenominator);
 		}
 	}
 
