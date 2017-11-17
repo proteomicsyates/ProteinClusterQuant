@@ -14,6 +14,7 @@ import edu.scripps.yates.pcq.filter.PCQFilter;
 import edu.scripps.yates.pcq.filter.PCQFilterByIonCount;
 import edu.scripps.yates.pcq.filter.PCQFilterByPSMCount;
 import edu.scripps.yates.pcq.filter.PCQFilterByReplicateCount;
+import edu.scripps.yates.pcq.model.IsobaricRatioType;
 import edu.scripps.yates.pcq.sanxot.SanxotRunner;
 import edu.scripps.yates.pcq.util.AnalysisInputType;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
@@ -99,6 +100,7 @@ public class ProteinClusterQuantParameters {
 	private char[] aaQuantified;
 	private QuantificationLabel numeratorLabel;
 	private QuantificationLabel denominatorLabel;
+	private IsobaricRatioType isobaricRatioType;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -1149,5 +1151,13 @@ public class ProteinClusterQuantParameters {
 
 	public void setDenominatorLabel(QuantificationLabel denominator) {
 		this.denominatorLabel = denominator;
+	}
+
+	public IsobaricRatioType getIsobaricRatioType() {
+		return isobaricRatioType;
+	}
+
+	public void setIsobaricRatioType(IsobaricRatioType isobaricRatioType) {
+		this.isobaricRatioType = isobaricRatioType;
 	}
 }
