@@ -49,6 +49,7 @@ import edu.scripps.yates.dbindex.io.DBIndexSearchParamsImpl;
 import edu.scripps.yates.dbindex.util.IndexUtil;
 import edu.scripps.yates.dbindex.util.PeptideFilterBySequence;
 import edu.scripps.yates.dtaselectparser.DTASelectParser;
+import edu.scripps.yates.pcq.model.IsobaricRatioType;
 import edu.scripps.yates.pcq.model.PCQPeptideNode;
 import edu.scripps.yates.pcq.model.PCQProteinNode;
 import edu.scripps.yates.pcq.model.ProteinCluster;
@@ -675,111 +676,6 @@ public class PCQUtils {
 			}
 		}
 		return false;
-	}
-
-	/**
-	 * Gets a consensus {@link QuantRatio} from a set of {@link PCQPeptideNode}.
-	 * If the sets contains only one {@link PCQPeptideNode}, the consensus
-	 * {@link QuantRatio} will be the one from that peptide. If there is more
-	 * than one {@link PCQPeptideNode}, then an average {@link QuantRatio} will
-	 * be returned.
-	 *
-	 * @param peptideNodes
-	 * @param cond1
-	 * @param cond2
-	 * @param replicateName
-	 *            if not null, get the consensus ratio calling to
-	 *            {@link #getConsensusRatio(Collection, QuantCondition, QuantCondition, replicateName)}
-	 * @return
-	 */
-	public static QuantRatio getConsensusRatio(Collection<PCQPeptideNode> peptideNodes, QuantCondition cond1,
-			QuantCondition cond2, String replicateName, boolean skipDiscarded) {
-		if (peptideNodes.isEmpty()) {
-			return null;
-		}
-		// if there is only one peptide, get the consensus ratio from it
-		if (peptideNodes.size() == 1) {
-			final PCQPeptideNode peptideNode = peptideNodes.iterator().next();
-			if (skipDiscarded && !peptideNode.isDiscarded()) {
-				return getRepresentativeRatioForPeptideNode(peptideNode, cond1, cond2, true, replicateName);
-			}
-			return null;
-		}
-
-		// in case of isobaric ratios, calculate a consensus ion count ratio
-		if (peptideNodes.iterator().next().getQuantifiedPeptides().iterator()
-				.next() instanceof IsobaricQuantifiedPeptide) {
-			// when collapseBySites is TRUE we also need:
-			Set<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> peptidesAndPositionsInPeptides = new THashSet<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>>();
-			Set<IsobaricQuantifiedPeptide> isobaricQuantPeptides = new THashSet<IsobaricQuantifiedPeptide>();
-			for (PCQPeptideNode peptideNode : peptideNodes) {
-				if (skipDiscarded && peptideNode.isDiscarded()) {
-					continue;
-				}
-				for (QuantifiedPeptideInterface peptide : peptideNode.getQuantifiedPeptides()) {
-					if (peptide instanceof IsobaricQuantifiedPeptide) {
-						isobaricQuantPeptides.add((IsobaricQuantifiedPeptide) peptide);
-						Pair<IsobaricQuantifiedPeptide, PositionInPeptide> pair = new Pair<IsobaricQuantifiedPeptide, PositionInPeptide>(
-								(IsobaricQuantifiedPeptide) peptide, peptideNode.getPositionInPeptide(peptide));
-						peptidesAndPositionsInPeptides.add(pair);
-					}
-				}
-
-			}
-			if (ProteinClusterQuantParameters.getInstance().isCollapseBySites()) {
-				return QuantUtils.getNormalizedIonCountRatioForPeptidesForQuantifiedSites(
-						peptidesAndPositionsInPeptides, cond1, cond2, replicateName,
-						ProteinClusterQuantParameters.getInstance().getAaQuantified());
-			} else {
-				return QuantUtils.getNormalizedIonCountRatioForPeptides(isobaricQuantPeptides, cond1, cond2,
-						replicateName);
-			}
-		} else {
-			// otherwise calculate an average over the non infinity ratios
-			final Set<QuantRatio> consensusRatios = getConsensusRatios(peptideNodes, cond1, cond2, replicateName,
-					skipDiscarded);
-			Set<QuantRatio> nonInfinityRatios = QuantUtils.getNonInfinityRatios(consensusRatios);
-			return QuantUtils.getAverageRatio(nonInfinityRatios, AggregationLevel.PEPTIDE);
-		}
-	}
-
-	/**
-	 * Gets a {@link Set} of individual {@link QuantRatio} as consensus ratios
-	 * for each of the {@link PCQPeptideNode} in the {@link Collection}, calling
-	 * to getConsensusRatio() in each {@link PCQPeptideNode}
-	 *
-	 * @param peptideNodes
-	 * @param cond1
-	 * @param cond2
-	 * @param replicateName
-	 *            if not null, get only the consensus {@link QuantRatio} for
-	 *            that replicate
-	 * @return
-	 */
-	private static Set<QuantRatio> getConsensusRatios(Collection<PCQPeptideNode> peptideNodes, QuantCondition cond1,
-			QuantCondition cond2, String replicateName, boolean skipDiscarded) {
-
-		Set<QuantRatio> ret = new THashSet<QuantRatio>();
-		if (peptideNodes.isEmpty()) {
-			return ret;
-		}
-		for (PCQPeptideNode peptideNode : peptideNodes) {
-			if (skipDiscarded && peptideNode.isDiscarded()) {
-				continue;
-			}
-			if (replicateName != null) {
-				final QuantRatio consensusRatio = peptideNode.getConsensusRatio(cond1, cond2, replicateName);
-				if (consensusRatio != null) {
-					ret.add(consensusRatio);
-				}
-			} else {
-				final QuantRatio consensusRatio = peptideNode.getConsensusRatio(cond1, cond2);
-				if (consensusRatio != null) {
-					ret.add(consensusRatio);
-				}
-			}
-		}
-		return ret;
 	}
 
 	public static Set<PCQPeptideNode> getSharedPeptideNodeSet(PCQProteinNode proteinNode1, PCQProteinNode proteinNode2,
@@ -2047,10 +1943,10 @@ public class PCQUtils {
 	}
 
 	public static QuantRatio getRepresentativeRatioForPeptideNode(PCQPeptideNode peptideNode, QuantCondition cond1,
-			QuantCondition cond2, boolean skipDiscarded, String replicateName) {
+			QuantCondition cond2, String replicateName, boolean skipDiscarded) {
 		Set<PCQPeptideNode> set = new THashSet<PCQPeptideNode>();
 		set.add(peptideNode);
-		return getRepresentativeRatioForPeptideNodes(set, cond1, cond2, skipDiscarded, replicateName);
+		return getRepresentativeRatioForPeptideNodes(set, cond1, cond2, replicateName, skipDiscarded);
 	}
 
 	/**
@@ -2058,12 +1954,13 @@ public class PCQUtils {
 	 * protein pairs, which is:<br>
 	 * - in case of being isobaric isotopologues (analysisInputType=
 	 * {@link AnalysisInputType}=CENSUS_CHRO) and SanXot is enabled, the average
-	 * of the peptideNode Ri ratios comming from SanXot<br>
-	 * - in case of being isobaric isotopolofues and SanXot is not enabled, the
-	 * average of the peptideNode average Rc ratios of the individual peptides
-	 * in the node<br>
+	 * of the peptideNode Ri ratios coming from SanXot<br>
+	 * - in case of being isobaric isotopologues and SanXot is not enabled,
+	 * depending on the parameter isobaricRatioType, it will be the average of
+	 * the peptideNode average Rc or Ri ratios of the individual peptides in the
+	 * node <br>
 	 * - in case of other quantification techniques, if SanXot is enabled, it is
-	 * the average of the consensus ratios of the peptide nodes comming from
+	 * the average of the SanXot ratios of the peptide nodes coming from
 	 * SanXot.<br>
 	 * - in case of other quantification techniques and SanXot is not enabled,
 	 * it is the average of the PSM ratios.<br>
@@ -2076,99 +1973,151 @@ public class PCQUtils {
 	 * @return
 	 */
 	public static QuantRatio getRepresentativeRatioForPeptideNodes(Collection<PCQPeptideNode> peptideNodes,
-			QuantCondition cond1, QuantCondition cond2, boolean skipDiscarded, String replicateName) {
+			QuantCondition cond1, QuantCondition cond2, String replicateName, boolean skipDiscarded) {
 		if (peptideNodes.isEmpty()) {
 			return CensusRatio.getNaNRatio(cond1, cond2, AggregationLevel.PEPTIDE_NODE, "RATIO");
 		}
 		List<Integer> quantifiedSitePositionInPeptideList = new ArrayList<Integer>();
 		List<QuantRatio> toAverage = new ArrayList<QuantRatio>();
-		// ISOTOPOLOGUES
-		if (ProteinClusterQuantParameters.getInstance().getInputType() == AnalysisInputType.CENSUS_CHRO) {
-
-			if (ProteinClusterQuantParameters.getInstance().isPerformRatioIntegration()) {
-				// SANXOT ENABLED
-				// get the average of the sanxot Ri
-				for (PCQPeptideNode peptideNode : peptideNodes) {
-					if (skipDiscarded && peptideNode.isDiscarded()) {
-						continue;
-					}
-					final QuantRatio consensusRatio = peptideNode.getConsensusRatio(cond1, cond2, replicateName);
-					if (consensusRatio != null) {
-						toAverage.add(consensusRatio);
-						if (consensusRatio.getQuantifiedSitePositionInPeptide() != null) {
-							quantifiedSitePositionInPeptideList
-									.add(consensusRatio.getQuantifiedSitePositionInPeptide());
-						}
+		String avgRatioDescription = "";
+		// SANXOT
+		// it doesn't matter from what is coming from.
+		// we use an average of the sanxot ratios
+		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+		if (params.isPerformRatioIntegration()) {
+			avgRatioDescription = peptideNodes.size() < 2 ? "Integrated ratios" : "Avg of integrated ratios";
+			// SANXOT ENABLED or use of Ri ratios
+			// get the average of the sanxot ratios
+			for (PCQPeptideNode peptideNode : peptideNodes) {
+				if (skipDiscarded && peptideNode.isDiscarded()) {
+					continue;
+				}
+				final QuantRatio consensusRatio = peptideNode.getSanXotRatio(cond1, cond2, replicateName);
+				if (consensusRatio != null) {
+					toAverage.add(consensusRatio);
+					if (consensusRatio.getQuantifiedSitePositionInPeptide() != null) {
+						quantifiedSitePositionInPeptideList.add(consensusRatio.getQuantifiedSitePositionInPeptide());
 					}
 				}
-			} else {
-				// SANXOT DISABLED
-				// get the average of the normalized Rc ratios for each peptide
-				// node
+			}
+		} else {
+			// only for collapseBySites=TRUE
+			Set<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> isobaricpeptidesAndPositionsInPeptides = new THashSet<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>>();
+			Set<Pair<QuantifiedPeptideInterface, PositionInPeptide>> peptidesAndPositionsInPeptides = new THashSet<Pair<QuantifiedPeptideInterface, PositionInPeptide>>();
+			//
+			if (params.isCollapseBySites()) {
 				for (PCQPeptideNode peptideNode : peptideNodes) {
 					if (skipDiscarded && peptideNode.isDiscarded()) {
 						continue;
 					}
-					final IonCountRatio normalizedIonCountRatioForPeptideNode = getNormalizedIonCountRatioForPeptideNode(
-							peptideNode, cond1, cond2, replicateName);
-					if (normalizedIonCountRatioForPeptideNode != null) {
-						toAverage.add(normalizedIonCountRatioForPeptideNode);
-						if (normalizedIonCountRatioForPeptideNode.getQuantifiedSitePositionInPeptide() != null) {
-							quantifiedSitePositionInPeptideList
-									.add(normalizedIonCountRatioForPeptideNode.getQuantifiedSitePositionInPeptide());
+					for (QuantifiedPeptideInterface peptide : peptideNode.getQuantifiedPeptides()) {
+						if (peptide instanceof IsobaricQuantifiedPeptide) {
+							Pair<IsobaricQuantifiedPeptide, PositionInPeptide> pair = new Pair<IsobaricQuantifiedPeptide, PositionInPeptide>(
+									(IsobaricQuantifiedPeptide) peptide, peptideNode.getPositionInPeptide(peptide));
+							isobaricpeptidesAndPositionsInPeptides.add(pair);
+						} else {
+							Pair<QuantifiedPeptideInterface, PositionInPeptide> pair = new Pair<QuantifiedPeptideInterface, PositionInPeptide>(
+									peptide, peptideNode.getPositionInPeptide(peptide));
+							peptidesAndPositionsInPeptides.add(pair);
 						}
 					}
 				}
 			}
+			if (params.getInputType() == AnalysisInputType.CENSUS_CHRO) {
 
-		} else {
-			// SILAC or others,
-			if (ProteinClusterQuantParameters.getInstance().isPerformRatioIntegration()) {
-				// SANXOT ENABLED
-				// get the average of the sanxot ratios
-				for (PCQPeptideNode peptideNode : peptideNodes) {
-					if (skipDiscarded && peptideNode.isDiscarded()) {
-						continue;
-					}
-					final QuantRatio consensusRatio = peptideNode.getConsensusRatio(cond1, cond2, replicateName);
-					if (consensusRatio != null) {
-						toAverage.add(consensusRatio);
-						if (consensusRatio.getQuantifiedSitePositionInPeptide() != null) {
-							quantifiedSitePositionInPeptideList
-									.add(consensusRatio.getQuantifiedSitePositionInPeptide());
-						}
-					}
-				}
-			} else {
-				// SANXOT DISABLED
-				// get the average of the individual psm ratios
-				for (PCQPeptideNode peptideNode : peptideNodes) {
-					if (skipDiscarded && peptideNode.isDiscarded()) {
-						continue;
-					}
-					final Set<QuantifiedPSMInterface> quantifiedPSMs = peptideNode.getQuantifiedPSMs();
-					for (QuantifiedPSMInterface psm : quantifiedPSMs) {
-						if (replicateName != null && !psm.getFileNames().contains(replicateName)) {
+				if (params.getIsobaricRatioType() == IsobaricRatioType.Ri) {
+
+					avgRatioDescription = peptideNodes.size() < 2 ? "Ri ratio" : "Avg of Ri ratios";
+					for (PCQPeptideNode peptideNode : peptideNodes) {
+						if (skipDiscarded && peptideNode.isDiscarded()) {
 							continue;
 						}
-						if (psm instanceof QuantifiedPSM) {
-							QuantRatio validRatio = QuantUtils.getRatioValidForAnalysis(psm);
-							if (validRatio != null) {
-								toAverage.add(validRatio);
-								if (validRatio.getQuantifiedSitePositionInPeptide() != null) {
-									quantifiedSitePositionInPeptideList
-											.add(validRatio.getQuantifiedSitePositionInPeptide());
-								}
+						if (params.isCollapseBySites()) {
+							final QuantRatio isobaricRatiosForSiteSpecificPeptideNode = getAverageIsobaricRatioForSiteSpecificPeptideNode(
+									peptideNode, cond1, cond2);
+							if (isobaricRatiosForSiteSpecificPeptideNode != null) {
+								toAverage.add(isobaricRatiosForSiteSpecificPeptideNode);
 							}
 						} else {
-							throw new IllegalArgumentException(
-									"In case of SILAC,  it has to be a QuantifiedPSMFromCensusOut");
+							final QuantRatio averageRatio = QuantUtils.getAverageRatio(
+									QuantUtils.getNonInfinityRatios(peptideNode.getRatios()),
+									AggregationLevel.PEPTIDE_NODE);
+							if (averageRatio != null) {
+								toAverage.add(averageRatio);
+							}
+						}
+
+					}
+				} else if (params.getIsobaricRatioType() == IsobaricRatioType.Rc) {
+					// use of Rc ratios get the average of the normalized Rc
+					// ratios for each peptide node
+					avgRatioDescription = peptideNodes.size() < 2 ? "Normalized Rc ratio"
+							: "Avg of normalized Rc ratios";
+					for (PCQPeptideNode peptideNode : peptideNodes) {
+						if (skipDiscarded && peptideNode.isDiscarded()) {
+							continue;
+						}
+						if (params.isCollapseBySites()) {
+							final IonCountRatio normalizedIonCountRatioForPeptidesForQuantifiedSites = QuantUtils
+									.getNormalizedIonCountRatioForPeptidesForQuantifiedSites(
+											isobaricpeptidesAndPositionsInPeptides, cond1, cond2, replicateName,
+											params.getAaQuantified());
+							if (normalizedIonCountRatioForPeptidesForQuantifiedSites != null) {
+								toAverage.add(normalizedIonCountRatioForPeptidesForQuantifiedSites);
+							}
+						} else {
+							final IonCountRatio normalizedIonCountRatioForPeptideNode = getNormalizedIonCountRatioForPeptideNode(
+									peptideNode, cond1, cond2, replicateName);
+							if (normalizedIonCountRatioForPeptideNode != null) {
+								toAverage.add(normalizedIonCountRatioForPeptideNode);
+							}
+						}
+					}
+				} else {
+					throw new IllegalArgumentException("Option not possible");
+				}
+
+			} else {
+				// no census chro
+				// SILAC or others,
+
+				// get the average of the individual psm ratios
+				avgRatioDescription = "Avg of individual PSM ratios";
+				for (PCQPeptideNode peptideNode : peptideNodes) {
+					if (skipDiscarded && peptideNode.isDiscarded()) {
+						continue;
+					}
+					if (params.isCollapseBySites()) {
+						final QuantRatio ratioForSiteSpecificPeptideNode = getAverageRatioForSiteSpecificPeptideNode(
+								peptideNode, cond1, cond2);
+						if (ratioForSiteSpecificPeptideNode != null) {
+							toAverage.add(ratioForSiteSpecificPeptideNode);
+						}
+					} else {
+						final Set<QuantifiedPSMInterface> quantifiedPSMs = peptideNode.getQuantifiedPSMs();
+						for (QuantifiedPSMInterface psm : quantifiedPSMs) {
+							if (replicateName != null && !psm.getFileNames().contains(replicateName)) {
+								continue;
+							}
+							if (psm instanceof QuantifiedPSM) {
+								QuantRatio validRatio = QuantUtils.getRepresentativeRatio(psm);
+								if (validRatio != null) {
+									toAverage.add(validRatio);
+									if (validRatio.getQuantifiedSitePositionInPeptide() != null) {
+										quantifiedSitePositionInPeptideList
+												.add(validRatio.getQuantifiedSitePositionInPeptide());
+									}
+								}
+							} else {
+								throw new IllegalArgumentException(
+										"In case of SILAC,  it has to be a QuantifiedPSMFromCensusOut");
+							}
 						}
 					}
 				}
 			}
-		}
 
+		}
 		// if there is only one, return it in order to not loose the extended
 		// class and description of the ratio
 		if (toAverage.size() == 1) {
@@ -2177,7 +2126,7 @@ public class PCQUtils {
 		final Double finalValue = PCQUtils.averageOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
 		if (finalValue != null) {
 			CensusRatio censusRatio = new CensusRatio(finalValue, true, cond1, cond2, AggregationLevel.PEPTIDE_NODE,
-					"Average of ratios");
+					avgRatioDescription);
 			if (quantifiedSitePositionInPeptideList.size() == 1) {
 				censusRatio.setQuantifiedSitePositionInPeptide(quantifiedSitePositionInPeptideList.get(0));
 			}
@@ -2191,6 +2140,87 @@ public class PCQUtils {
 		}
 		return CensusRatio.getNaNRatio(cond1, cond2, AggregationLevel.PEPTIDE_NODE, "RATIO");
 
+	}
+
+	/**
+	 * The peptide node MUST have been created as a site specific peptide
+	 * node.<br>
+	 * It retrieves an average of all the non-infinity isobaric ratios per
+	 * peptide that are valid for the site that is quantified.
+	 * 
+	 * @param peptideNode
+	 * @param cond1
+	 * @param cond2
+	 * @return
+	 */
+	private static QuantRatio getAverageRatioForSiteSpecificPeptideNode(PCQPeptideNode peptideNode,
+			QuantCondition cond1, QuantCondition cond2) {
+		List<QuantRatio> toAverage = new ArrayList<QuantRatio>();
+		final List<Pair<QuantifiedPeptideInterface, PositionInPeptide>> peptidesWithPositionsInPeptide = peptideNode
+				.getPeptidesWithPositionsInPeptide();
+		for (Pair<QuantifiedPeptideInterface, PositionInPeptide> pair : peptidesWithPositionsInPeptide) {
+			final QuantifiedPeptideInterface peptide = pair.getFirstelement();
+			final int positionInPeptide = pair.getSecondElement().getPosition();
+			final Set<QuantRatio> nonInfinityRatios = peptide.getNonInfinityRatios();
+			for (QuantRatio quantRatio : nonInfinityRatios) {
+				final Integer quantifiedSitePositionInPeptide = quantRatio.getQuantifiedSitePositionInPeptide();
+				if (quantifiedSitePositionInPeptide != null
+						&& quantifiedSitePositionInPeptide.equals(positionInPeptide)) {
+					toAverage.add(quantRatio);
+				}
+			}
+		}
+		final Double finalValue = PCQUtils.averageOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
+		if (finalValue != null) {
+			CensusRatio censusRatio = new CensusRatio(finalValue, true, cond1, cond2, AggregationLevel.PEPTIDE_NODE,
+					"Avg ratios for site");
+			final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
+			if (stdev != null) {
+				censusRatio.setRatioScore(new RatioScore(String.valueOf(stdev), "STDEV", "Standard deviation of ratios",
+						"Standard deviation of the ratios averaged"));
+			}
+			return censusRatio;
+		}
+		return CensusRatio.getNaNRatio(cond1, cond2, AggregationLevel.PEPTIDE_NODE, "RATIO");
+	}
+
+	/**
+	 * The peptide node MUST have been created as a site specific peptide
+	 * node.<br>
+	 * It retrieves an average of all the non-infinity isobaric ratios per
+	 * peptide that are valid for the site that is quantified.
+	 * 
+	 * @param peptideNode
+	 * @param cond1
+	 * @param cond2
+	 * @return
+	 */
+	private static QuantRatio getAverageIsobaricRatioForSiteSpecificPeptideNode(PCQPeptideNode peptideNode,
+			QuantCondition cond1, QuantCondition cond2) {
+		List<QuantRatio> toAverage = new ArrayList<QuantRatio>();
+		final List<Pair<QuantifiedPeptideInterface, PositionInPeptide>> peptidesWithPositionsInPeptide = peptideNode
+				.getPeptidesWithPositionsInPeptide();
+		for (Pair<QuantifiedPeptideInterface, PositionInPeptide> pair : peptidesWithPositionsInPeptide) {
+			final QuantifiedPeptideInterface peptide = pair.getFirstelement();
+			if (peptide instanceof IsobaricQuantifiedPeptide) {
+				final int positionInPeptide = pair.getSecondElement().getPosition();
+				Set<IsoRatio> isoRatios = QuantUtils
+						.getIsobaricRatiosForSiteFromPeptide((IsobaricQuantifiedPeptide) peptide, positionInPeptide);
+				toAverage.addAll(isoRatios);
+			}
+		}
+		final Double finalValue = PCQUtils.averageOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
+		if (finalValue != null) {
+			CensusRatio censusRatio = new CensusRatio(finalValue, true, cond1, cond2, AggregationLevel.PEPTIDE_NODE,
+					"Avg Ri ratios for site");
+			final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
+			if (stdev != null) {
+				censusRatio.setRatioScore(new RatioScore(String.valueOf(stdev), "STDEV", "Standard deviation of ratios",
+						"Standard deviation of the ratios averaged"));
+			}
+			return censusRatio;
+		}
+		return CensusRatio.getNaNRatio(cond1, cond2, AggregationLevel.PEPTIDE_NODE, "RATIO");
 	}
 
 	/**
@@ -2259,7 +2289,7 @@ public class PCQUtils {
 				final Set<QuantifiedPSMInterface> quantifiedPSMs = peptideNode.getQuantifiedPSMs();
 				for (QuantifiedPSMInterface psm : quantifiedPSMs) {
 					if (psm instanceof QuantifiedPSM) {
-						QuantRatio validRatio = QuantUtils.getRatioValidForAnalysis(psm);
+						QuantRatio validRatio = QuantUtils.getRepresentativeRatio(psm);
 						if (validRatio != null) {
 							toAverage.add(validRatio.getLog2Ratio(cond1, cond2));
 						}
@@ -2474,6 +2504,13 @@ public class PCQUtils {
 		return ret;
 	}
 
+	/**
+	 * Get a string such as: P12345#12#P23456#456 from, in this example, two
+	 * proteins with position 12 and 456 respectively
+	 * 
+	 * @param keys1
+	 * @return
+	 */
 	public static String getPositionsInProteinsKey(List<PositionInProtein> keys1) {
 		Collections.sort(keys1, new Comparator<PositionInProtein>() {
 
