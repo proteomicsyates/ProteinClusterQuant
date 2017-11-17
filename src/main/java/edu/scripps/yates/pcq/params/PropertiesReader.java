@@ -298,8 +298,12 @@ public class PropertiesReader {
 					params.addQuantificationInputFileNames(experimentFiles);
 				}
 			} else {
-				ExperimentFiles experimentFiles = parseExperimentFileNames(fileNamesString);
-				params.addQuantificationInputFileNames(experimentFiles);
+				if (!"".equals(fileNamesString)) {
+					ExperimentFiles experimentFiles = parseExperimentFileNames(fileNamesString);
+					params.addQuantificationInputFileNames(experimentFiles);
+				} else {
+					log.info("Parameter 'inputFiles' not found. PCQ will not process quantitative values.");
+				}
 			}
 		} else {
 			log.info("Parameter 'inputFiles' not found. PCQ will not process quantitative values.");
@@ -315,8 +319,10 @@ public class PropertiesReader {
 					params.addIdentificationInputFileNames(experimentFiles);
 				}
 			} else {
-				ExperimentFiles experimentFiles = parseExperimentFileNames(fileNamesString);
-				params.addIdentificationInputFileNames(experimentFiles);
+				if (!"".equals(fileNamesString)) {
+					ExperimentFiles experimentFiles = parseExperimentFileNames(fileNamesString);
+					params.addIdentificationInputFileNames(experimentFiles);
+				}
 			}
 		}
 		if (params.getInputQuantificationFileNames().isEmpty()) {
