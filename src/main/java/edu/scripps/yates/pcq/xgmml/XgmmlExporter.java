@@ -471,7 +471,7 @@ public class XgmmlExporter {
 					final String nodeID = uniquePeptideNode_U1.getKey();
 					final String label = formatNumber(
 							PCQUtils.getLog2RatioValue(PCQUtils.getRepresentativeRatioForPeptideNode(
-									uniquePeptideNode_U1, cond1, cond2, true, null), cond1, cond2));
+									uniquePeptideNode_U1, cond1, cond2, null, true), cond1, cond2));
 					Node node = createNodeFromPeptideNode(nodeID, label,
 							getPeptideNodeTooltip(label, uniquePeptideNode_U1), uniquePeptideNode_U1, outlineColorU1);
 					graph.getNode().add(node);
@@ -501,7 +501,7 @@ public class XgmmlExporter {
 
 				String edgeID2 = getUniqueID(proteinNode1) + uniquePeptideNode_U1.getKey();
 				if (!edgesIDs.containsKey(edgeID) && !edgesIDs.containsKey(edgeID2)) {
-					final QuantRatio uniquePepRatio3 = uniquePeptideNode_U1.getConsensusRatio(cond1, cond2);
+					final QuantRatio uniquePepRatio3 = uniquePeptideNode_U1.getSanXotRatio(cond1, cond2);
 					String edgeName3 = getUniqueID(proteinNode1) + "-" + uniquePeptideNode_U1.getKey();
 					Map<String, AttributeValueType> attributes3 = getAttributesForEdge(edgeName3, uniquePepRatio3, null,
 							classification2Cases);
@@ -528,7 +528,7 @@ public class XgmmlExporter {
 					final String nodeID = sharedPeptideNode_S12.getKey();
 					final String label = formatNumber(
 							PCQUtils.getLog2RatioValue(PCQUtils.getRepresentativeRatioForPeptideNode(
-									sharedPeptideNode_S12, cond1, cond2, true, null), cond1, cond2));
+									sharedPeptideNode_S12, cond1, cond2, null, true), cond1, cond2));
 					Node node = createNodeFromPeptideNode(nodeID, label,
 							getPeptideNodeTooltip(label, sharedPeptideNode_S12), sharedPeptideNode_S12,
 							outlineColorS12);
@@ -544,7 +544,7 @@ public class XgmmlExporter {
 				// P1S12
 				String edgeID = getUniqueID(proteinNode1) + sharedPeptideNode_S12.getKey();
 				String edgeID2 = sharedPeptideNode_S12.getKey() + getUniqueID(proteinNode1);
-				final QuantRatio sharedPepRatio = sharedPeptideNode_S12.getConsensusRatio(cond1, cond2);
+				final QuantRatio sharedPepRatio = sharedPeptideNode_S12.getSanXotRatio(cond1, cond2);
 				if (!edgesIDs.containsKey(edgeID) && !edgesIDs.containsKey(edgeID2)) {
 					String edgeName = getUniqueID(proteinNode1) + "-" + sharedPeptideNode_S12.getKey();
 					Map<String, AttributeValueType> attributes = getAttributesForEdge(edgeName, sharedPepRatio, null,
@@ -599,7 +599,7 @@ public class XgmmlExporter {
 				if (!visitedPeptideKeys.containsKey(peptidesSequenceString_U2)) {
 					final String nodeID = uniquePeptides_U2.getKey();
 					final String label = formatNumber(PCQUtils.getLog2RatioValue(
-							PCQUtils.getRepresentativeRatioForPeptideNode(uniquePeptides_U2, cond1, cond2, true, null),
+							PCQUtils.getRepresentativeRatioForPeptideNode(uniquePeptides_U2, cond1, cond2, null, true),
 							cond1, cond2));
 					Node node = createNodeFromPeptideNode(nodeID, label,
 							getPeptideNodeTooltip(label, uniquePeptides_U2), uniquePeptides_U2, outlineColorU2);
@@ -618,7 +618,7 @@ public class XgmmlExporter {
 				String edgeID = getUniqueID(proteinNode2) + uniquePeptides_U2.getKey();
 				String edgeID2 = uniquePeptides_U2.getKey() + getUniqueID(proteinNode2);
 				if (!edgesIDs.containsKey(edgeID) && !edgesIDs.containsKey(edgeID2)) {
-					final QuantRatio uniquePepRatio4 = uniquePeptides_U2.getConsensusRatio(cond1, cond2);
+					final QuantRatio uniquePepRatio4 = uniquePeptides_U2.getSanXotRatio(cond1, cond2);
 					String edgeName4 = getUniqueID(proteinNode2) + "-" + uniquePeptides_U2.getKey();
 					Map<String, AttributeValueType> attributes4 = getAttributesForEdge(edgeName4, uniquePepRatio4, null,
 							classification2Cases);
@@ -838,7 +838,7 @@ public class XgmmlExporter {
 
 			sb.append(VARIANCE + " = " + formatNumberMoreDecimals(1.0 / confidenceValue) + "\n");
 		}
-		QuantRatio finalRatio = PCQUtils.getRepresentativeRatioForPeptideNode(peptideNode, cond1, cond2, true, null);
+		QuantRatio finalRatio = PCQUtils.getRepresentativeRatioForPeptideNode(peptideNode, cond1, cond2, null, true);
 
 		if (finalRatio != null) {
 			if (finalRatio instanceof IonCountRatio) {
@@ -1144,15 +1144,15 @@ public class XgmmlExporter {
 		attributes.put(IS_FILTERED, new AttributeValueType(getNumFromBoolean(discarded)));
 		attributes.put("isProtein", new AttributeValueType(getNumFromBoolean(false)));
 		attributes.put("containsPTMs", new AttributeValueType(getNumFromBoolean(peptideNode.containsPTMs())));
-		final QuantRatio pepRatio = PCQUtils.getRepresentativeRatioForPeptideNode(peptideNode, cond1, cond2, true,
-				null);
+		final QuantRatio pepRatio = PCQUtils.getRepresentativeRatioForPeptideNode(peptideNode, cond1, cond2, null,
+				true);
 		final Double finalRatioValue = PCQUtils.getLog2RatioValue(pepRatio, cond1, cond2);
 		attributes.put(FINAL_RATIO, new AttributeValueType(finalRatioValue));
 
 		// in case of isotopologues
 		if (ProteinClusterQuantParameters.getInstance().getInputType() == AnalysisInputType.CENSUS_CHRO) {
 			// distinguish between Ri and Rc
-			final Double log2RiRatio = peptideNode.getConsensusRatio(cond1, cond2).getLog2Ratio(cond1, cond2);
+			final Double log2RiRatio = peptideNode.getSanXotRatio(cond1, cond2).getLog2Ratio(cond1, cond2);
 			attributes.put("Ri", new AttributeValueType(log2RiRatio));
 			attributes.put("Rc",
 					new AttributeValueType(
@@ -1817,7 +1817,7 @@ public class XgmmlExporter {
 		for (ProteinCluster proteinCluster : clusters) {
 			final Set<PCQPeptideNode> peptideNodes = proteinCluster.getPeptideNodes();
 			for (PCQPeptideNode peptideNode : peptideNodes) {
-				final QuantRatio consensusRatio = peptideNode.getConsensusRatio(cond1, cond2);
+				final QuantRatio consensusRatio = peptideNode.getSanXotRatio(cond1, cond2);
 				if (consensusRatio != null) {
 					final Score score = consensusRatio.getAssociatedConfidenceScore();
 					if (score != null) {
