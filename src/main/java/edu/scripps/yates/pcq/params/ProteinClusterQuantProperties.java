@@ -11,8 +11,13 @@ public class ProteinClusterQuantProperties extends Properties {
 	private static final long serialVersionUID = -3860309523271704035L;
 	private final static Logger log = Logger.getLogger(ProteinClusterQuantProperties.class);
 
+	public ProteinClusterQuantProperties() {
+		super();
+	}
+
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.util.Properties#getProperty(java.lang.String, java.lang.String)
 	 */
 	@Override
