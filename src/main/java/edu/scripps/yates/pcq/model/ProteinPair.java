@@ -86,22 +86,22 @@ public class ProteinPair {
 		Set<PCQPeptideNode> uniqueTo1PeptideNodes = PCQUtils.getUniquePeptideNodes(proteinNode1, proteinNode2,
 				params.isUniquePepOnly(), true);
 		Double ratioValueUniqueTo1 = PCQUtils
-				.getRepresentativeRatioForPeptideNodes(uniqueTo1PeptideNodes, cond1, cond2, true, null)
+				.getRepresentativeRatioForPeptideNodes(uniqueTo1PeptideNodes, cond1, cond2, null, true)
 				.getLog2Ratio(cond1, cond2);
 		threeCombined[0] = ratioValueUniqueTo1;
 
-		List<Double> pepRatProt1 = PCQUtils.getIndividualRepresentativeLog2ValuesForEachPeptideForProteinPairAnalysis(uniqueTo1PeptideNodes,
-				cond1, cond2, true);
+		List<Double> pepRatProt1 = PCQUtils.getIndividualRepresentativeLog2ValuesForEachPeptideForProteinPairAnalysis(
+				uniqueTo1PeptideNodes, cond1, cond2, true);
 
 		// protein 2's peptides
 		Set<PCQPeptideNode> uniqueTo2PeptideNodes = PCQUtils.getUniquePeptideNodes(proteinNode2, proteinNode1,
 				params.isUniquePepOnly(), true);
 		Double ratioValueUniqueTo2 = PCQUtils
-				.getRepresentativeRatioForPeptideNodes(uniqueTo2PeptideNodes, cond1, cond2, true, null)
+				.getRepresentativeRatioForPeptideNodes(uniqueTo2PeptideNodes, cond1, cond2, null, true)
 				.getLog2Ratio(cond1, cond2);
 		threeCombined[2] = ratioValueUniqueTo2;
-		List<Double> pepRatProt2 = PCQUtils.getIndividualRepresentativeLog2ValuesForEachPeptideForProteinPairAnalysis(uniqueTo2PeptideNodes,
-				cond1, cond2, true);
+		List<Double> pepRatProt2 = PCQUtils.getIndividualRepresentativeLog2ValuesForEachPeptideForProteinPairAnalysis(
+				uniqueTo2PeptideNodes, cond1, cond2, true);
 
 		final Map<String, Set<PCQPeptideNode>> sharedPeptidesMap = PCQUtils.getSharedPeptideNodesMap(proteinNode1,
 				proteinNode2, false, true);
@@ -109,14 +109,12 @@ public class ProteinPair {
 			final Set<PCQPeptideNode> sharedPeptideNodes = sharedPeptidesMap.get(sharedPeptidesProteinKey);
 
 			final QuantRatio representativeRatioForPeptideNodes = PCQUtils
-					.getRepresentativeRatioForPeptideNodes(sharedPeptideNodes, cond1, cond2, true, null);
-			if (representativeRatioForPeptideNodes == null) {
-				log.info(PCQUtils.getRepresentativeRatioForPeptideNodes(sharedPeptideNodes, cond1, cond2, true, null));
-			}
+					.getRepresentativeRatioForPeptideNodes(sharedPeptideNodes, cond1, cond2, null, true);
 			Double ratioValueShared = representativeRatioForPeptideNodes.getLog2Ratio(cond1, cond2);
 			threeCombined[1] = ratioValueShared;
-			List<Double> pepRatShared = PCQUtils.getIndividualRepresentativeLog2ValuesForEachPeptideForProteinPairAnalysis(sharedPeptideNodes,
-					cond1, cond2, true);
+			List<Double> pepRatShared = PCQUtils
+					.getIndividualRepresentativeLog2ValuesForEachPeptideForProteinPairAnalysis(sharedPeptideNodes,
+							cond1, cond2, true);
 
 			classifyPairByClassification2(params.getThresholdForSignificance(), Arrays.asList(threeCombined),
 					sharedPeptidesProteinKey, cond1, cond2, pepRatProt1, pepRatShared, pepRatProt2);
@@ -638,7 +636,7 @@ public class ProteinPair {
 			// RatioU1
 			Double value1 = Double.NaN;
 			final QuantRatio consensusRatio1 = PCQUtils.getRepresentativeRatioForPeptideNodes(uniquePeptideNodes1,
-					cond1, cond2, true, null);
+					cond1, cond2, null, true);
 			if (consensusRatio1 != null) {
 				Double log2Ratio = consensusRatio1.getLog2Ratio(cond1, cond2);
 				if (log2Ratio != null) {
@@ -655,7 +653,7 @@ public class ProteinPair {
 			// shared peptide ratio
 			Double valueShared = Double.NaN;
 			final QuantRatio consensusRatioShared = PCQUtils.getRepresentativeRatioForPeptideNodes(sharedPeptideNodes,
-					cond1, cond2, true, null);
+					cond1, cond2, null, true);
 			if (consensusRatioShared != null) {
 				Double log2Ratio = consensusRatioShared.getLog2Ratio(cond1, cond2);
 				if (log2Ratio != null) {
@@ -674,7 +672,7 @@ public class ProteinPair {
 			// RatioU2
 			Double value2 = Double.NaN;
 			final QuantRatio consensusRatio2 = PCQUtils.getRepresentativeRatioForPeptideNodes(uniquePeptideNodes2,
-					cond1, cond2, true, null);
+					cond1, cond2, null, true);
 			if (consensusRatio2 != null) {
 				final Double log2Ratio = consensusRatio2.getLog2Ratio(cond1, cond2);
 				if (log2Ratio != null) {
