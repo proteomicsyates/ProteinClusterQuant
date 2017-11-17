@@ -438,10 +438,17 @@ public class ProteinClusterQuant {
 					} else {
 						quantRatio = QuantUtils.getRepresentativeRatio(psm);
 					}
+					String ratioDescription = "";
+					if (quantRatio != null) {
+						ratioDescription = quantRatio.getDescription();
+					}
+					String ratioValue = "";
+					if (quantRatio != null) {
+						ratioValue = PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2));
+					}
 					out.write(psm.getRawFileNames().iterator().next() + "\t" + psm.getKey() + "\t" + psm.getSequence()
-							+ "\t" + accessionString + "\t" + quantRatio.getDescription() + "\t"
-							+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)));
-					if (quantRatio.getAssociatedConfidenceScore() != null) {
+							+ "\t" + accessionString + "\t" + ratioDescription + "\t" + ratioValue);
+					if (quantRatio != null && quantRatio.getAssociatedConfidenceScore() != null) {
 						out.write("\t" + quantRatio.getAssociatedConfidenceScore().getScoreName() + "\t"
 								+ quantRatio.getAssociatedConfidenceScore().getValue());
 					} else {
@@ -449,7 +456,10 @@ public class ProteinClusterQuant {
 					}
 					out.write("\t" + psm.isSingleton());
 					if (params.isCollapseBySites()) {
-						Integer quantifiedSitePositionInPeptide = quantRatio.getQuantifiedSitePositionInPeptide();
+						Integer quantifiedSitePositionInPeptide = null;
+						if (quantRatio != null) {
+							quantifiedSitePositionInPeptide = quantRatio.getQuantifiedSitePositionInPeptide();
+						}
 						final QuantifiedPeptideInterface quantifiedPeptide = psm.getQuantifiedPeptide();
 						Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = quantifiedPeptide
 								.getProteinKeysByPeptideKeysForQuantifiedAAs(params.getAaQuantified(), uplr);
@@ -491,7 +501,9 @@ public class ProteinClusterQuant {
 
 				}
 			}
-		} catch (IOException e) {
+		} catch (
+
+		IOException e) {
 			e.printStackTrace();
 		} finally {
 			if (out != null) {
@@ -509,8 +521,6 @@ public class ProteinClusterQuant {
 		FileWriter out = null;
 
 		try {
-			UniprotProteinLocalRetriever uplr = PCQUtils
-					.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
 
 			final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 			final File outputFileFolder = params.getTemporalOutputFolder();
