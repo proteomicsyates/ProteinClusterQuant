@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import edu.scripps.yates.census.read.util.QuantificationLabel;
+import edu.scripps.yates.pcq.model.IsobaricRatioType;
 import edu.scripps.yates.pcq.util.AnalysisInputType;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
 import edu.scripps.yates.pcq.xgmml.util.ColorManager;
@@ -189,6 +190,17 @@ public class PropertiesReader {
 			}
 		}
 		params.setAaQuantified(aaQuantified);
+
+		if (properties.containsKey("isobaricRatioType")) {
+			final String property = properties.getProperty("isobaricRatioType", false);
+			try {
+				IsobaricRatioType isobaricRatioType = IsobaricRatioType.valueOf(property);
+				params.setIsobaricRatioType(isobaricRatioType);
+			} catch (Exception e) {
+				throw new IllegalArgumentException("isobaricRatioType is not recognized as '" + property
+						+ ". Posible values are " + IsobaricRatioType.values());
+			}
+		}
 
 		// are we collapsing the indistinguishable peptides
 		boolean collapseIndistinguishablePeptides = Boolean
@@ -568,6 +580,16 @@ public class PropertiesReader {
 				&& params.isApplyClassificationsByProteinPair()) {
 			throw new IllegalArgumentException(
 					"ERROR in input parameters: It is not possible to perform a protein pair analysis on site specific quantification results");
+		}
+		if (params.getInputType() == AnalysisInputType.CENSUS_CHRO && params.getIsobaricRatioType() == null) {
+			throw new IllegalArgumentException(
+					"ERROR in input parameters: You need to specify 'isobaricRatioType' parameter when using inputType=CENSUS_CHRO");
+		}
+		if (params.getInputType() != AnalysisInputType.CENSUS_CHRO && params.getIsobaricRatioType() != null) {
+			throw new IllegalArgumentException(
+					"ERROR in input parameters: 'isobaricRatioType' parameter is not valid for inputType="
+							+ params.getInputType() + ". It is only valid for inputType="
+							+ AnalysisInputType.CENSUS_CHRO);
 		}
 	}
 
