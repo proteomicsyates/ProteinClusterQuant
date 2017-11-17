@@ -232,23 +232,24 @@ public class ProteinCluster {
 		if (peptides.size() > 1) {
 			for (int i = 0; i < peptides.size(); i++) {
 				QuantifiedPeptideInterface peptide1 = peptides.get(i);
-
-				if (!PCQUtils.containsAny(peptide1.getSequence(), quantifiedAAs)) {
-					if (!peptideSequencesDiscarded.contains(peptide1.getSequence())) {
-						peptideSequencesDiscarded.add(peptide1.getSequence());
-						log.info(peptide1.getSequence() + " discarded for not having one quantitation sites from '"
+				final String sequence1 = peptide1.getSequence();
+				// discard if it doesn't contain any quantified aa
+				if (!PCQUtils.containsAny(sequence1, quantifiedAAs)) {
+					if (!peptideSequencesDiscarded.contains(sequence1)) {
+						peptideSequencesDiscarded.add(sequence1);
+						log.info(sequence1 + " discarded for not having one quantitation sites from '"
 								+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
 					}
 					individualQuantifiedPeptideSet.remove(peptide1);
 					continue;
 				}
+				// if it is not isobaric peptide and it has more than one
+				// quantified site, it cannot be distinguish, so we discard it.
 				if (!(peptide1 instanceof IsobaricQuantifiedPeptide)
-						&& PCQUtils.howManyContains(peptide1.getSequence(), quantifiedAAs) > 1) {
-					// TODO: take into account peptides with multiple
-					// quantifiedAAs
-					if (!peptideSequencesDiscarded.contains(peptide1.getSequence())) {
-						peptideSequencesDiscarded.add(peptide1.getSequence());
-						log.info(peptide1.getSequence() + " discarded for having ambiguous quantitation sites from "
+						&& PCQUtils.howManyContains(sequence1, quantifiedAAs) > 1) {
+					if (!peptideSequencesDiscarded.contains(sequence1)) {
+						peptideSequencesDiscarded.add(sequence1);
+						log.info(sequence1 + " discarded for having ambiguous quantitation sites from "
 								+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
 					}
 					individualQuantifiedPeptideSet.remove(peptide1);
@@ -265,46 +266,54 @@ public class ProteinCluster {
 						.getProteinKeysByPeptideKeysForQuantifiedAAs(quantifiedAAs, uplr);
 				if (proteinKeysByPeptide1Keys.isEmpty()) {
 					// peptides without a site mapped to a protein are discarded
-					if (!peptideSequencesDiscarded.contains(peptide1.getSequence())) {
-						peptideSequencesDiscarded.add(peptide1.getSequence());
-						log.warn("Peptide '" + peptide1.getSequence() + "' cannot be mapped to any protein sequence");
-
+					if (!peptideSequencesDiscarded.contains(sequence1)) {
+						peptideSequencesDiscarded.add(sequence1);
+						log.warn("Peptide '" + sequence1 + "' cannot be mapped to any protein sequence");
 					}
 					individualQuantifiedPeptideSet.remove(peptide1);
 					continue;
 				}
 				for (int j = i + 1; j < peptides.size(); j++) {
 					QuantifiedPeptideInterface peptide2 = peptides.get(j);
-
-					if (!PCQUtils.containsAny(peptide2.getSequence(), quantifiedAAs)) {
-						if (!peptideSequencesDiscarded.contains(peptide2.getSequence())) {
-							peptideSequencesDiscarded.add(peptide2.getSequence());
-							log.info(peptide2.getSequence() + " discarded for not having one quantitation sites from '"
+					final String sequence2 = peptide2.getSequence();
+					// discard if it doesn't contain any quantified aa
+					if (!PCQUtils.containsAny(sequence2, quantifiedAAs)) {
+						if (!peptideSequencesDiscarded.contains(sequence2)) {
+							peptideSequencesDiscarded.add(sequence2);
+							log.info(sequence2 + " discarded for not having one quantitation sites from '"
 									+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
 						}
 						individualQuantifiedPeptideSet.remove(peptide2);
 						continue;
 					}
+					// if it is not isobaric peptide and it has more than one
+					// quantified site, it cannot be distinguish, so we discard
+					// it.
 					if (!(peptide2 instanceof IsobaricQuantifiedPeptide)
-							&& PCQUtils.howManyContains(peptide2.getSequence(), quantifiedAAs) > 1) {
-						if (!peptideSequencesDiscarded.contains(peptide2.getSequence())) {
-							peptideSequencesDiscarded.add(peptide2.getSequence());
-							log.info(
-									peptide2.getSequence() + " discarded for having ambiguous quantitation sites from '"
-											+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
+							&& PCQUtils.howManyContains(sequence2, quantifiedAAs) > 1) {
+						if (!peptideSequencesDiscarded.contains(sequence2)) {
+							peptideSequencesDiscarded.add(sequence2);
+							log.info(sequence2 + " discarded for having ambiguous quantitation sites from '"
+									+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
 						}
 						individualQuantifiedPeptideSet.remove(peptide2);
 						continue;
 					}
+					// get the keys from the peptide.
+					// not that the peptide could have more than one key because
+					// 2
+					// reasons:
+					// - it could be shared by more than one protein
+					// - it could have more than one quantified aminoacid in its
+					// sequence
 					Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = peptide2
 							.getProteinKeysByPeptideKeysForQuantifiedAAs(quantifiedAAs, uplr);
 					if (proteinKeysByPeptide2Keys.isEmpty()) {
-						if (!peptideSequencesDiscarded.contains(peptide2.getSequence())) {
-							peptideSequencesDiscarded.add(peptide2.getSequence());
+						if (!peptideSequencesDiscarded.contains(sequence2)) {
+							peptideSequencesDiscarded.add(sequence2);
 							// peptides without a site mapped to a protein are
 							// discarded
-							log.warn("Peptide '" + peptide2.getSequence()
-									+ "' cannot be mapped to any protein sequence");
+							log.warn("Peptide '" + sequence2 + "' cannot be mapped to any protein sequence");
 						}
 						individualQuantifiedPeptideSet.remove(peptide2);
 						continue;
@@ -319,6 +328,8 @@ public class ProteinCluster {
 									.get(positionInPeptide2);
 
 							// now I compare the two list of keys
+							// if they are equal, that means, if they share the
+							// same sites of the same proteins
 							if (PCQUtils.areEquals(proteinKeysFromPeptide1, proteinKeysFromPeptide2)) {
 
 								String key = PCQUtils.getPositionsInProteinsKey(proteinKeysFromPeptide1);
