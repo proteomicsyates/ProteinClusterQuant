@@ -70,7 +70,7 @@ public class PropertiesReader {
 		if (properties.containsKey("inputType")) {
 			try {
 				AnalysisInputType inputType = AnalysisInputType.valueOf(properties.getProperty("inputType", true));
-				params.setInputType(inputType);
+				params.setAnalysisInputType(inputType);
 			} catch (Exception e) {
 				throw new IllegalArgumentException("'inputType' parameter can only have the following values: "
 						+ AnalysisInputType.getPossibleValues());
@@ -587,14 +587,14 @@ public class PropertiesReader {
 			throw new IllegalArgumentException(
 					"ERROR in input parameters: It is not possible to perform a protein pair analysis on site specific quantification results");
 		}
-		if (params.getInputType() == AnalysisInputType.CENSUS_CHRO && params.getIsobaricRatioType() == null) {
+		if (params.getAnalysisInputType() == AnalysisInputType.CENSUS_CHRO && params.getIsobaricRatioType() == null) {
 			throw new IllegalArgumentException(
 					"ERROR in input parameters: You need to specify 'isobaricRatioType' parameter when using inputType=CENSUS_CHRO");
 		}
-		if (params.getInputType() != AnalysisInputType.CENSUS_CHRO && params.getIsobaricRatioType() != null) {
+		if (params.getAnalysisInputType() != AnalysisInputType.CENSUS_CHRO && params.getIsobaricRatioType() != null) {
 			throw new IllegalArgumentException(
 					"ERROR in input parameters: 'isobaricRatioType' parameter is not valid for inputType="
-							+ params.getInputType() + ". It is only valid for inputType="
+							+ params.getAnalysisInputType() + ". It is only valid for inputType="
 							+ AnalysisInputType.CENSUS_CHRO);
 		}
 	}
