@@ -40,7 +40,6 @@ import edu.scripps.yates.census.analysis.wrappers.OutlierRemovalResultWrapper;
 import edu.scripps.yates.census.analysis.wrappers.SanXotAnalysisResult;
 import edu.scripps.yates.census.analysis.wrappers.SanxotQuantResult;
 import edu.scripps.yates.census.read.AbstractQuantParser;
-import edu.scripps.yates.census.read.CensusChroParser;
 import edu.scripps.yates.census.read.model.CensusRatio;
 import edu.scripps.yates.census.read.model.IonCountRatio;
 import edu.scripps.yates.census.read.model.QuantifiedProtein;
@@ -417,27 +416,7 @@ public class ProteinClusterQuant {
 					out.write("\n");
 
 					String accessionString = PCQUtils.getAccessionString(psm.getQuantifiedProteins());
-					QuantRatio quantRatio = null;
-					if (params.getInputType() == AnalysisInputType.CENSUS_CHRO) {
-						if (params.isCollapseBySites()) {
-							// isobaric isotopologues and site specific
-							quantRatio = QuantUtils.getRatioByName(psm, CensusChroParser.ISOBARIC_INTENSITY_RATIO);
-
-						} else {
-							// isobaric isotopologues and no site specific
-							if (params.isPerformRatioIntegration()) {
-								// isobaric isotopologues and no site specific
-								// and sanxot
-								quantRatio = QuantUtils.getRatioByName(psm, CensusChroParser.ISOBARIC_INTENSITY_RATIO);
-							} else {
-								// isobaric isotopologues and no site specific
-								// and no sanxot
-								quantRatio = QuantUtils.getRatioByName(psm, CensusChroParser.ISOBARIC_COUNT_RATIO);
-							}
-						}
-					} else {
-						quantRatio = QuantUtils.getRepresentativeRatio(psm);
-					}
+					QuantRatio quantRatio = QuantUtils.getRatioByName(psm, PCQUtils.getRatioNameByAnalysisType());
 					String ratioDescription = "";
 					if (quantRatio != null) {
 						ratioDescription = quantRatio.getDescription();
@@ -1518,7 +1497,7 @@ public class ProteinClusterQuant {
 	}
 
 	private QuantificationType getQuantType() {
-		final AnalysisInputType inputType = getParams().getInputType();
+		final AnalysisInputType inputType = getParams().getAnalysisInputType();
 		if (inputType == AnalysisInputType.CENSUS_CHRO) {
 			return QuantificationType.ISOTOPOLOGUES;
 		} else if (inputType == AnalysisInputType.CENSUS_OUT) {
@@ -1975,9 +1954,9 @@ public class ProteinClusterQuant {
 						final QuantRatio pepRatio = PCQUtils.getRepresentativeRatioForPeptideNodes(
 								cluster.getPeptideNodes(), cond1, cond2, replicateName, true);
 						if (pepRatio != null) {
-							final Double countRatio = pepRatio.getNonLogRatio(cond1, cond2);
-							if (countRatio != null && !Double.isNaN(countRatio) && !Double.isInfinite(countRatio)) {
-								ratioValues.add(countRatio);
+							final Double ratioValue = pepRatio.getNonLogRatio(cond1, cond2);
+							if (ratioValue != null && !Double.isNaN(ratioValue) && !Double.isInfinite(ratioValue)) {
+								ratioValues.add(ratioValue);
 							}
 						}
 
