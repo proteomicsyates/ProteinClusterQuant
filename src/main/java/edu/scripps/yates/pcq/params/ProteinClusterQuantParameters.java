@@ -75,7 +75,7 @@ public class ProteinClusterQuantParameters {
 	private String mongoSeqDBName;
 	private String mongoMassDBName;
 	private boolean ignoreNotFoundPeptidesInDB;
-	private AnalysisInputType inputType;
+	private AnalysisInputType analysisInputType;
 	private Double significantFDRThreshold;
 	private boolean performRatioIntegration;
 	private List<PCQFilter> filters;
@@ -764,7 +764,7 @@ public class ProteinClusterQuantParameters {
 				+ ", remarkSignificantPeptides=" + remarkSignificantPeptides + ", mongoDBURI=" + mongoDBURI
 				+ ", mongoProtDBName=" + mongoProtDBName + ", mongoSeqDBName=" + mongoSeqDBName + ", mongoMassDBName="
 				+ mongoMassDBName + ", ignoreNotFoundPeptidesInDB=" + ignoreNotFoundPeptidesInDB + ", inputType="
-				+ inputType + ", outliersRemovalFDR=" + quantParameters.getOutlierRemovalFDR()
+				+ analysisInputType + ", outliersRemovalFDR=" + quantParameters.getOutlierRemovalFDR()
 				+ ", significantFDRThreshold=" + significantFDRThreshold + ", removeFilteredNodes="
 				+ removeFilteredNodes + " ]";
 	}
@@ -785,16 +785,16 @@ public class ProteinClusterQuantParameters {
 		return ret;
 	}
 
-	public AnalysisInputType getInputType() {
-		return inputType;
+	public AnalysisInputType getAnalysisInputType() {
+		return analysisInputType;
 	}
 
 	/**
 	 * @param inputType
 	 *            the inputType to set
 	 */
-	public void setInputType(AnalysisInputType inputType) {
-		this.inputType = inputType;
+	public void setAnalysisInputType(AnalysisInputType inputType) {
+		this.analysisInputType = inputType;
 	}
 
 	public List<PCQFilter> getFilters() {
