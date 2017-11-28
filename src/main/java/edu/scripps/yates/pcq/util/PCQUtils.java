@@ -1631,7 +1631,7 @@ public class PCQUtils {
 			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList, final String[] inputFileNamesArray)
 			throws FileNotFoundException {
 		log.debug("Getting input file parser");
-		if (params.getInputType() == AnalysisInputType.CENSUS_CHRO) {
+		if (params.getAnalysisInputType() == AnalysisInputType.CENSUS_CHRO) {
 			if (params.getMongoDBURI() != null) {
 				return PCQUtils.getCensusChroParserUsingMongoDBIndex(params.getMongoDBURI(),
 						params.getMongoMassDBName(), params.getMongoSeqDBName(), params.getMongoProtDBName(),
@@ -1647,7 +1647,7 @@ public class PCQUtils {
 						params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(), !params.isIgnorePTMs(),
 						params.getPeptideFilterRegexp(), params.getAaQuantified());
 			}
-		} else if (params.getInputType() == AnalysisInputType.CENSUS_OUT) {
+		} else if (params.getAnalysisInputType() == AnalysisInputType.CENSUS_OUT) {
 			if (params.getMongoDBURI() != null) {
 				final CensusOutParser parser = PCQUtils.getCensusOutParserUsingMongoDBIndex(params.getMongoDBURI(),
 						params.getMongoMassDBName(), params.getMongoSeqDBName(), params.getMongoProtDBName(),
@@ -1669,7 +1669,7 @@ public class PCQUtils {
 
 				return parser;
 			}
-		} else if (params.getInputType() == AnalysisInputType.SEPARATED_VALUES) {
+		} else if (params.getAnalysisInputType() == AnalysisInputType.SEPARATED_VALUES) {
 			if (params.getMongoDBURI() != null) {
 				final SeparatedValuesParser parser = PCQUtils.getSeparatedValuesParserUsingMongoDBIndex(
 						params.getMongoDBURI(), params.getMongoMassDBName(), params.getMongoSeqDBName(),
@@ -2025,7 +2025,7 @@ public class PCQUtils {
 					}
 				}
 			}
-			if (params.getInputType() == AnalysisInputType.CENSUS_CHRO) {
+			if (params.getAnalysisInputType() == AnalysisInputType.CENSUS_CHRO) {
 
 				if (params.getIsobaricRatioType() == IsobaricRatioType.Ri) {
 
@@ -2041,8 +2041,8 @@ public class PCQUtils {
 								toAverage.add(isobaricRatiosForSiteSpecificPeptideNode);
 							}
 						} else {
-							final QuantRatio averageRatio = QuantUtils.getAverageRatio(
-									QuantUtils.getNonInfinityRatios(peptideNode.getRatios()),
+							final QuantRatio averageRatio = QuantUtils.getAverageRatio(QuantUtils.getNonInfinityRatios(
+									QuantUtils.getRatiosByName(peptideNode.getRatios(), getRatioNameByAnalysisType())),
 									AggregationLevel.PEPTIDE_NODE);
 							if (averageRatio != null) {
 								toAverage.add(averageRatio);
@@ -2102,7 +2102,7 @@ public class PCQUtils {
 								continue;
 							}
 							if (psm instanceof QuantifiedPSM) {
-								QuantRatio validRatio = QuantUtils.getRepresentativeRatio(psm);
+								QuantRatio validRatio = QuantUtils.getRatioByName(psm, getRatioNameByAnalysisType());
 								if (validRatio != null) {
 									toAverage.add(validRatio);
 									if (validRatio.getQuantifiedSitePositionInPeptide() != null) {
@@ -2163,8 +2163,8 @@ public class PCQUtils {
 		for (Pair<QuantifiedPeptideInterface, PositionInPeptide> pair : peptidesWithPositionsInPeptide) {
 			final QuantifiedPeptideInterface peptide = pair.getFirstelement();
 			final int positionInPeptide = pair.getSecondElement().getPosition();
-			final Set<QuantRatio> nonInfinityRatios = peptide.getNonInfinityRatios();
-			for (QuantRatio quantRatio : nonInfinityRatios) {
+			List<QuantRatio> ratios = QuantUtils.getRatiosByName(peptide, getRatioNameByAnalysisType());
+			for (QuantRatio quantRatio : ratios) {
 				final Integer quantifiedSitePositionInPeptide = quantRatio.getQuantifiedSitePositionInPeptide();
 				if (quantifiedSitePositionInPeptide != null
 						&& quantifiedSitePositionInPeptide.equals(positionInPeptide)) {
@@ -2252,7 +2252,7 @@ public class PCQUtils {
 
 		List<Double> toAverage = new ArrayList<Double>();
 		// ISOTOPOLOGUES
-		if (ProteinClusterQuantParameters.getInstance().getInputType() == AnalysisInputType.CENSUS_CHRO) {
+		if (ProteinClusterQuantParameters.getInstance().getAnalysisInputType() == AnalysisInputType.CENSUS_CHRO) {
 
 			if (ProteinClusterQuantParameters.getInstance().isPerformRatioIntegration()) {
 				// SANXOT ENABLED
@@ -2578,5 +2578,37 @@ public class PCQUtils {
 			ret += StringUtils.allPositionsOf(sequence, c).size();
 		}
 		return ret;
+	}
+
+	/**
+	 * this method returns the name of the ratio that is used depending on the
+	 * analysis type.<br>
+	 * This function would be the one to be called to get the ratios from PSMs
+	 * and peptides, by calling to
+	 * QuantUtils.getRatiosByName(getRatioNameByAnalysisType())
+	 * 
+	 * @return
+	 */
+	public static String getRatioNameByAnalysisType() {
+		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+		final AnalysisInputType analysisInputType = params.getAnalysisInputType();
+		switch (analysisInputType) {
+		case CENSUS_CHRO:
+			if (params.getIsobaricRatioType() == IsobaricRatioType.Rc) {
+				return CensusChroParser.ISOBARIC_COUNT_RATIO;
+			} else if (params.getIsobaricRatioType() == IsobaricRatioType.Ri) {
+				return CensusChroParser.ISOBARIC_INTENSITY_RATIO;
+			}
+			break;
+		case CENSUS_OUT:
+			return CensusOutParser.AREA_RATIO;
+
+		case SEPARATED_VALUES:
+			return SeparatedValuesParser.RATIO;
+
+		default:
+			break;
+		}
+		throw new IllegalArgumentException("No ratio name defined for " + analysisInputType + " analysis");
 	}
 }
