@@ -815,9 +815,7 @@ public class XgmmlExporter {
 	 */
 	private String getPeptideNodeTooltip(String prefix, PCQPeptideNode peptideNode) {
 		StringBuilder sb = new StringBuilder();
-		if (peptideNode.getKey().equals("P04406#219")) {
-			log.info(peptideNode);
-		}
+
 		if (peptideNode.isDiscarded()) {
 			sb.append("<b>Peptide node discarded by applied filters</b>\n");
 		}
@@ -1150,7 +1148,7 @@ public class XgmmlExporter {
 		attributes.put(FINAL_RATIO, new AttributeValueType(finalRatioValue));
 
 		// in case of isotopologues
-		if (ProteinClusterQuantParameters.getInstance().getInputType() == AnalysisInputType.CENSUS_CHRO) {
+		if (ProteinClusterQuantParameters.getInstance().getAnalysisInputType() == AnalysisInputType.CENSUS_CHRO) {
 			// distinguish between Ri and Rc
 			final Double log2RiRatio = peptideNode.getSanXotRatio(cond1, cond2).getLog2Ratio(cond1, cond2);
 			attributes.put("Ri", new AttributeValueType(log2RiRatio));
