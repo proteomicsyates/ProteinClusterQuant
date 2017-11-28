@@ -43,6 +43,8 @@ public class SanxotRunner {
 
 		quantAnalysis = new QuantAnalysis(quantType, workingFolder, condition1, condition2,
 				ANALYSIS_LEVEL_OUTCOME.PEPTIDE);
+		// set the ratio name
+		quantParameters.setRatioName(PCQUtils.getRatioNameByAnalysisType());
 		quantAnalysis.setQuantParameters(quantParameters);
 		for (ExperimentFiles experimentFiles : params.getInputQuantificationFileNames()) {
 			QuantExperiment quantExperiment = new QuantExperiment(experimentFiles.getExperimentName());
