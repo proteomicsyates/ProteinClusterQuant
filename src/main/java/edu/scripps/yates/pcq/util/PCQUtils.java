@@ -207,7 +207,7 @@ public class PCQUtils {
 			QuantificationLabel denominatorLabel, char[] enzymeArray, int missedCleavages, boolean semiCleavage,
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs)
-			throws FileNotFoundException {
+					throws FileNotFoundException {
 		List<Map<QuantCondition, QuantificationLabel>> list = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
 		for (int i = 0; i < fileNames.length; i++) {
 			list.add(labelsByConditions);
@@ -222,7 +222,7 @@ public class PCQUtils {
 			QuantificationLabel denominatorLabel, char[] enzymeArray, int missedCleavages, boolean semiCleavage,
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs)
-			throws FileNotFoundException {
+					throws FileNotFoundException {
 		List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 		// Set parser (6 files) to peptides
 		for (String fileName : fileNames) {
@@ -265,7 +265,7 @@ public class PCQUtils {
 	private static DTASelectParser getDTASelectParser(File fastaFile, File inputFilefolder, String[] fileNames,
 			char[] enzymeArray, int missedCleavages, boolean semiCleavage, File uniprotReleasesFolder,
 			String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB, String peptideFilterRegexp)
-			throws FileNotFoundException {
+					throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		Map<String, RemoteSSHFileReference> xmlFiles = new THashMap<String, RemoteSSHFileReference>();
 		for (String fileName : fileNames) {
@@ -311,7 +311,7 @@ public class PCQUtils {
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep, boolean skipSingletons,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs)
-			throws FileNotFoundException {
+					throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -570,7 +570,7 @@ public class PCQUtils {
 			QuantificationLabel numeratorLabel, QuantificationLabel denominatorLabel, File uniprotReleasesFolder,
 			String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs)
-			throws FileNotFoundException {
+					throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -1629,7 +1629,7 @@ public class PCQUtils {
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
 			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList, final String[] inputFileNamesArray)
-			throws FileNotFoundException {
+					throws FileNotFoundException {
 		log.debug("Getting input file parser");
 		if (params.getAnalysisInputType() == AnalysisInputType.CENSUS_CHRO) {
 			if (params.getMongoDBURI() != null) {
@@ -1723,7 +1723,7 @@ public class PCQUtils {
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
 			Map<QuantCondition, QuantificationLabel> labelsByConditions, String inputFileName)
-			throws FileNotFoundException {
+					throws FileNotFoundException {
 		log.debug("Getting input file parser");
 		List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
 		labelsByConditionsList.add(labelsByConditions);
@@ -1962,8 +1962,8 @@ public class PCQUtils {
 	 * the peptideNode average Rc or Ri ratios of the individual peptides in the
 	 * node <br>
 	 * - in case of other quantification techniques, if SanXot is enabled, it is
-	 * the average of the SanXot ratios of the peptide nodes coming from
-	 * SanXot.<br>
+	 * the average of the SanXot ratios of the peptide nodes coming from SanXot.
+	 * <br>
 	 * - in case of other quantification techniques and SanXot is not enabled,
 	 * it is the average of the PSM ratios.<br>
 	 *
@@ -2041,8 +2041,10 @@ public class PCQUtils {
 								toAverage.add(isobaricRatiosForSiteSpecificPeptideNode);
 							}
 						} else {
-							final QuantRatio averageRatio = QuantUtils.getAverageRatio(QuantUtils.getNonInfinityRatios(
-									QuantUtils.getRatiosByName(peptideNode.getRatios(), getRatioNameByAnalysisType())),
+							final QuantRatio averageRatio = QuantUtils
+									.getAverageRatio(
+											QuantUtils.getNonInfinityRatios(QuantUtils.getRatiosByName(
+													peptideNode.getRatios(), getRatioNameByAnalysisType())),
 									AggregationLevel.PEPTIDE_NODE);
 							if (averageRatio != null) {
 								toAverage.add(averageRatio);
@@ -2145,8 +2147,8 @@ public class PCQUtils {
 	}
 
 	/**
-	 * The peptide node MUST have been created as a site specific peptide
-	 * node.<br>
+	 * The peptide node MUST have been created as a site specific peptide node.
+	 * <br>
 	 * It retrieves an average of all the non-infinity isobaric ratios per
 	 * peptide that are valid for the site that is quantified.
 	 * 
@@ -2187,8 +2189,8 @@ public class PCQUtils {
 	}
 
 	/**
-	 * The peptide node MUST have been created as a site specific peptide
-	 * node.<br>
+	 * The peptide node MUST have been created as a site specific peptide node.
+	 * <br>
 	 * It retrieves an average of all the non-infinity isobaric ratios per
 	 * peptide that are valid for the site that is quantified.
 	 * 
@@ -2592,6 +2594,9 @@ public class PCQUtils {
 	public static String getRatioNameByAnalysisType() {
 		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 		final AnalysisInputType analysisInputType = params.getAnalysisInputType();
+		if (analysisInputType == null) {
+			return null;
+		}
 		switch (analysisInputType) {
 		case CENSUS_CHRO:
 			if (params.getIsobaricRatioType() == IsobaricRatioType.Rc) {
