@@ -749,9 +749,18 @@ public class ProteinClusterQuant {
 
 			outputIntegrationFinalFile.write(getPeptideNodeHeaderLine() + "\n");
 			// sort peptide Nodes by FDR
-			List<PCQPeptideNode> peptideNodeIDsSortedByFDR = getPeptideNodesSortedByFDROrConsensusRatio(
-					peptideNodesByNodeID, ratioStatsByPeptideNodeKey, peptideNodesByNodeID.keySet());
-			for (PCQPeptideNode peptideNode : peptideNodeIDsSortedByFDR) {
+			List<PCQPeptideNode> sortedPeptideNodes = null;
+
+			if (params.isCollapseBySites()) {
+				// when collapsing by site, the peptide node ids are actually
+				// the protein accessions and the sites, therefore, this will be
+				// equivalent to sort by node id
+				sortedPeptideNodes = getPeptideNodesSortedByNodeID(peptideNodesByNodeID);
+			} else {
+				sortedPeptideNodes = getPeptideNodesSortedByFDROrConsensusRatio(peptideNodesByNodeID,
+						ratioStatsByPeptideNodeKey, peptideNodesByNodeID.keySet());
+			}
+			for (PCQPeptideNode peptideNode : sortedPeptideNodes) {
 				final String geneNameString = PCQUtils.getGeneNameString(annotatedProteins,
 						peptideNode.getProteinNodes(), null, params.isPrintOnlyFirstGene(), true);
 
@@ -783,6 +792,17 @@ public class ProteinClusterQuant {
 				log.error(e.getMessage());
 			}
 		}
+	}
+
+	private List<PCQPeptideNode> getPeptideNodesSortedByNodeID(Map<String, PCQPeptideNode> peptideNodesByNodeID) {
+		List<PCQPeptideNode> ret = new ArrayList<PCQPeptideNode>();
+		List<String> nodeIDs = new ArrayList<String>();
+		nodeIDs.addAll(peptideNodesByNodeID.keySet());
+		Collections.sort(nodeIDs);
+		for (String nodeID : nodeIDs) {
+			ret.add(peptideNodesByNodeID.get(nodeID));
+		}
+		return ret;
 	}
 
 	private String getPeptideNodeHeaderLine() {
