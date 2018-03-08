@@ -1,6 +1,9 @@
 # ProteinClusterQuant
 
-*Protein Cluster Quant* PCQ is a Java software for the quantitative analysis of complex proteomics samples. It performs a network-based quantitation of the peptides.  
+*Protein Cluster Quant* PCQ is a Java software for the analysis of complex proteomics samples (quantitative or not). It helps to reduce redundancy of peptide-to-protein relationship and to visualize the results in a bipartite network (Cytoscape).  
+
+## Use cases:
+ - Working with NGS databases results in a very redundant MS dataset in which each peptide is mapped to numerous protein sequence entries (sequencing products). PCQ will help you to 1) visualize all the data in a bipartite network, removing all the redundancy of the peptide-to-protein associations, but not loosing any piece of information as other protein inference approaches do; 2) try to  
   
 For a detailed description of the software, input files, intput parameters and outputs go to our **[wiki page](https://github.com/proteomicsyates/ProteinClusterQuant/wiki)**.
 
