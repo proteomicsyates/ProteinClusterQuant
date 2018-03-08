@@ -21,7 +21,7 @@
   
 For a detailed description of the software, input files, intput parameters and outputs go to our **[wiki page](https://github.com/proteomicsyates/ProteinClusterQuant/wiki)**.
 
-### How to get ProteinClusterQuant:
+## How to get ProteinClusterQuant:
 
 **Download latest build from [here](http://sealion.scripps.edu/PCQ)**  
 
@@ -48,5 +48,6 @@ Add the repositories:
 </snapshotRepository>
 ``` 
 
-
+## Getting help
+If you have any question, you want to report a bug or a suggestion, please contact to Salvador Martinez-Bartolome (salvador at scripps.edu)
 
