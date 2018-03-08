@@ -18,7 +18,7 @@
     - It can optionally aggregate ratios using SanXot* algorithm (handles source of errors properly, from individual ratio measurements in a PSM to a peptide node and having technical and/or biological replicates, using a weight average of the ratios). It calculates a quantitative FDR.
 
 
-  
+## Detailed instructions:  
 For a detailed description of the software, input files, intput parameters and outputs go to our **[wiki page](https://github.com/proteomicsyates/ProteinClusterQuant/wiki)**.
 
 ## How to get ProteinClusterQuant:
