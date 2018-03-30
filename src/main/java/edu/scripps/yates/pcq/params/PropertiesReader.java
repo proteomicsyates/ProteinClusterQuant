@@ -510,6 +510,11 @@ public class PropertiesReader {
 				params.addUniprotAnnotationColumn(column);
 			}
 		}
+
+		// look in uniprot for proteoforms
+		boolean lookForProteoforms = Boolean.valueOf(properties.getProperty("lookInUniprotForProteoforms", "false"));
+		params.setLookForProteoforms(lookForProteoforms);
+
 		// check errors
 		checkErrorsInParameters(params);
 	}
@@ -597,6 +602,7 @@ public class PropertiesReader {
 							+ params.getAnalysisInputType() + ". It is only valid for inputType="
 							+ AnalysisInputType.CENSUS_CHRO);
 		}
+
 	}
 
 }

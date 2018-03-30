@@ -101,6 +101,7 @@ public class ProteinClusterQuantParameters {
 	private QuantificationLabel numeratorLabel;
 	private QuantificationLabel denominatorLabel;
 	private IsobaricRatioType isobaricRatioType;
+	private Boolean lookForProteoforms;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -1159,5 +1160,13 @@ public class ProteinClusterQuantParameters {
 
 	public void setIsobaricRatioType(IsobaricRatioType isobaricRatioType) {
 		this.isobaricRatioType = isobaricRatioType;
+	}
+
+	public Boolean isLookForProteoforms() {
+		return lookForProteoforms;
+	}
+
+	public void setLookForProteoforms(Boolean lookForProteoforms) {
+		this.lookForProteoforms = lookForProteoforms;
 	}
 }

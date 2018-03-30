@@ -66,6 +66,9 @@ public abstract class PCQFilter {
 			}
 			final boolean valid = filter(pcqPeptideNode);
 			if (!valid) {
+				if (pcqPeptideNode.getKey().equals("ADRDEASPYAAMLAAQDVAEK")) {
+					log.info(pcqPeptideNode);
+				}
 				pcqPeptideNode.setDiscarded(true);
 				staticDiscardedPeptideNodesForStatistics.add(pcqPeptideNode);
 				if (ProteinClusterQuantParameters.getInstance().isRemoveFilteredNodes()) {
@@ -118,6 +121,9 @@ public abstract class PCQFilter {
 							}
 
 						}
+					}
+					if ("ADRDEASPYAAMLAAQDVAEK".equals(peptide.getKey())) {
+						log.info(peptide);
 					}
 					// remove psm from its peptide
 					psmsFromPeptide.remove();

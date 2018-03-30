@@ -414,7 +414,10 @@ public class ProteinClusterQuant {
 						}
 					}
 					out.write("\n");
-
+					if (psm.isDiscarded()) {
+						out.write("FILTERED\t" + psm.getKey() + "\t" + psm.getSequence());
+						continue;
+					}
 					String accessionString = PCQUtils.getAccessionString(psm.getQuantifiedProteins());
 					QuantRatio quantRatio = QuantUtils.getRatioByName(psm, PCQUtils.getRatioNameByAnalysisType());
 					String ratioDescription = "";
@@ -537,7 +540,10 @@ public class ProteinClusterQuant {
 			for (PCQPeptideNode peptideNode : peptideNodeList) {
 
 				out.write("\n");
-
+				if (peptideNode.isDiscarded()) {
+					out.write("FILTERED\t" + "\t" + "\t" + peptideNode.getFullSequence());
+					continue;
+				}
 				String accessionString = PCQUtils.getAccessionString(peptideNode.getQuantifiedProteins());
 				final QuantRatio quantRatio = PCQUtils.getRepresentativeRatioForPeptideNode(peptideNode, cond1, cond2,
 						null, true);
@@ -611,6 +617,7 @@ public class ProteinClusterQuant {
 					}
 				});
 				for (QuantifiedPeptideInterface peptide : peptideList) {
+
 					// check if we should ignore the ptm psms
 					if (params.isIgnorePTMs()) {
 						if (peptide.getPtms() != null && !peptide.getPtms().isEmpty()) {
@@ -618,14 +625,22 @@ public class ProteinClusterQuant {
 						}
 					}
 					out.write("\n");
-
+					if (peptide.isDiscarded()) {
+						// ignore if it is marked as discarded because the, it
+						// can fail when getRawFileNames()
+						out.write("FILTERED\t" + "\t" + peptide.getFullSequence());
+						continue;
+					}
 					String accessionString = PCQUtils.getAccessionString(peptide.getQuantifiedProteins());
 					final QuantRatio quantRatio = peptide.getConsensusRatio(cond1, cond2);
-
-					out.write(peptide.getRawFileNames().iterator().next() + "\t" + peptide.getQuantifiedPSMs().size()
-							+ "\t" + peptide.getFullSequence() + "\t" + accessionString + "\t"
-							+ quantRatio.getDescription() + "\t"
-							+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)));
+					try {
+						out.write(peptide.getRawFileNames().iterator().next() + "\t"
+								+ peptide.getQuantifiedPSMs().size() + "\t" + peptide.getFullSequence() + "\t"
+								+ accessionString + "\t" + quantRatio.getDescription() + "\t"
+								+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
 					if (quantRatio.getAssociatedConfidenceScore() != null) {
 						out.write("\t" + quantRatio.getAssociatedConfidenceScore().getScoreName() + "\t"
 								+ quantRatio.getAssociatedConfidenceScore().getValue());
@@ -1242,7 +1257,7 @@ public class ProteinClusterQuant {
 	 */
 	private SanXotAnalysisResult calculatePeptideNodeExperimentReplicateRatios(
 			SanXotAnalysisResult peptideRepSanxotResult, Set<ProteinCluster> clusterSet)
-			throws IOException, InterruptedException, ExecutionException {
+					throws IOException, InterruptedException, ExecutionException {
 		File relationshipFile = writeRelationshipFileFromPeptideExpRepToPeptideNodeExpRep(clusterSet);
 		boolean relationnshipFileIsValid = SanXotInterfaze.checkAnyDifferentRelationShip(relationshipFile);
 
