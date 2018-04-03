@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,7 @@ import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 import org.apache.log4j.Logger;
 
+import edu.scripps.yates.annotations.uniprot.UniprotEntryUtil;
 import edu.scripps.yates.annotations.uniprot.UniprotProteinLocalRetriever;
 import edu.scripps.yates.annotations.uniprot.xml.Entry;
 import edu.scripps.yates.census.analysis.QuantAnalysis;
@@ -43,6 +46,7 @@ import edu.scripps.yates.census.read.AbstractQuantParser;
 import edu.scripps.yates.census.read.model.CensusRatio;
 import edu.scripps.yates.census.read.model.IonCountRatio;
 import edu.scripps.yates.census.read.model.QuantifiedProtein;
+import edu.scripps.yates.census.read.model.QuantifiedProteinFromDBIndexEntry;
 import edu.scripps.yates.census.read.model.RatioScore;
 import edu.scripps.yates.census.read.model.interfaces.QuantParser;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
@@ -51,6 +55,8 @@ import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 import edu.scripps.yates.census.read.util.QuantUtils;
 import edu.scripps.yates.census.read.util.QuantificationLabel;
+import edu.scripps.yates.dbindex.DBIndexInterface;
+import edu.scripps.yates.dbindex.IndexedProtein;
 import edu.scripps.yates.dtaselectparser.DTASelectParser;
 import edu.scripps.yates.pcq.cases.Classification2Case;
 import edu.scripps.yates.pcq.compare.ComparisonInput;
@@ -74,6 +80,7 @@ import edu.scripps.yates.pcq.xgmml.util.AlignedPeptides;
 import edu.scripps.yates.pcq.xgmml.util.AlignmentSet;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.dates.DatesUtil;
+import edu.scripps.yates.utilities.fasta.FastaParser;
 import edu.scripps.yates.utilities.maths.Maths;
 import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.model.enums.CombinationType;
@@ -234,6 +241,17 @@ public class ProteinClusterQuant {
 			List<QuantifiedPeptideInterface> peptideList = new ArrayList<QuantifiedPeptideInterface>();
 			peptideList.addAll(pepMap.values());
 
+			// if there is no fasta file but there is lookForProteoforms,
+			// create new proteins with that
+			if (params.getFastaFile() == null) {
+				if (params.getUniprotReleasesFolder() != null) {
+					if (params.isLookForProteoforms() != null && params.isLookForProteoforms()) {
+						expandProteinsWithProteoforms(peptideList);
+					}
+				}
+			}
+
+			// make aligment
 			if (params.isMakeAlignments()) {
 				makePeptideAlignments(peptideList);
 			}
@@ -363,6 +381,96 @@ public class ProteinClusterQuant {
 			log.error(e.getMessage());
 		}
 
+	}
+
+	private void expandProteinsWithProteoforms(List<QuantifiedPeptideInterface> peptideList) throws IOException {
+		Set<String> uniprotACCs = new HashSet<String>();
+		Map<String, QuantifiedProteinInterface> proteinMap = new HashMap<String, QuantifiedProteinInterface>();
+		for (QuantifiedPeptideInterface peptide : peptideList) {
+			Set<QuantifiedProteinInterface> quantifiedProteins = peptide.getQuantifiedProteins();
+			for (QuantifiedProteinInterface protein : quantifiedProteins) {
+				if ("UNIPROT".equals(protein.getAccessionType())) {
+					uniprotACCs.add(protein.getAccession());
+					proteinMap.put(protein.getAccession(), protein);
+				}
+			}
+		}
+
+		// write the new fasta
+		File fasta = writeFasta(uniprotACCs, proteinMap);
+		// index fasta file
+		DBIndexInterface dbIndex = indexIsoformFasta(fasta);
+		Map<String, QuantifiedProteinInterface> newProteinsMap = new HashMap<String, QuantifiedProteinInterface>();
+		// iterate over peptides
+		for (QuantifiedPeptideInterface peptide : peptideList) {
+			Set<IndexedProtein> proteins = dbIndex.getProteins(peptide.getSequence());
+			for (IndexedProtein indexedProtein : proteins) {
+				String accession = FastaParser.getUniProtACC(indexedProtein.getAccession());
+				// just work with the new proteins that they were not in the
+				// uniprotACCs set
+				if (accession != null && !uniprotACCs.contains(accession)) {
+					QuantifiedProteinInterface protein = null;
+					if (newProteinsMap.containsKey(accession)) {
+						protein = newProteinsMap.get(accession);
+					} else {
+						protein = new QuantifiedProteinFromDBIndexEntry(indexedProtein);
+						newProteinsMap.put(accession, protein);
+					}
+					protein.addPeptide(peptide, true);
+				}
+			}
+		}
+
+	}
+
+	private DBIndexInterface indexIsoformFasta(File isoformFasta) {
+		DBIndexInterface dbIndex = PCQUtils.getFastaDBIndex(isoformFasta, params.getEnzymeArray(),
+				params.getMissedCleavages(), params.isSemiCleavage(), params.getPeptideFilterRegexp(),
+				params.getUniprotReleasesFolder(), params.isLookForProteoforms());
+		return dbIndex;
+	}
+
+	private File writeFasta(Set<String> uniprotACCs, Map<String, QuantifiedProteinInterface> proteinMap)
+			throws IOException {
+		UniprotProteinLocalRetriever uplr = new UniprotProteinLocalRetriever(params.getUniprotReleasesFolder(), true);
+		Map<String, Entry> annotatedProteins = uplr.getAnnotatedProteins(params.getUniprotVersion(), uniprotACCs);
+		if (!params.getOutputFileFolder().exists()) {
+			params.getOutputFileFolder().mkdirs();
+		}
+		File isoformFasta = new File(params.getOutputFileFolder().getAbsolutePath() + File.separator
+				+ params.getOutputPrefix() + "_input_proteins_" + params.getOutputSuffix() + ".fasta");
+		log.info("Writting FASTA file for " + uniprotACCs.size() + " proteins in order to index it with isoforms");
+		FileWriter fw = new FileWriter(isoformFasta);
+
+		for (String uniprotACC : uniprotACCs) {
+			if (annotatedProteins.containsKey(uniprotACC)) {
+				Entry entry = annotatedProteins.get(uniprotACC);
+				String seq = UniprotEntryUtil.getProteinSequence(entry);
+				StringBuilder fastaHeader = new StringBuilder();
+				String taxonomy = null;
+				String gene = null;
+				if (proteinMap.containsKey(uniprotACC)) {
+					QuantifiedProteinInterface protein = proteinMap.get(uniprotACC);
+					if (protein.getTaxonomies() != null && !protein.getTaxonomies().isEmpty()) {
+						taxonomy = protein.getTaxonomies().iterator().next();
+					}
+					gene = FastaParser.getGeneFromFastaHeader(protein.getDescription());
+				}
+				fastaHeader.append(">sp|").append(UniprotEntryUtil.getPrimaryAccession(entry)).append("|").append(" ")
+						.append(UniprotEntryUtil.getProteinDescription(entry));
+				if (taxonomy != null) {
+					fastaHeader.append(" OS=" + taxonomy);
+				}
+				if (gene != null) {
+					fastaHeader.append(" GN=" + gene);
+				}
+				fastaHeader.append("\n");
+				fw.write(fastaHeader.toString());
+				fw.write(seq + "\n");
+			}
+		}
+		fw.close();
+		return isoformFasta;
 	}
 
 	private void printPSMRatiosFile() {
