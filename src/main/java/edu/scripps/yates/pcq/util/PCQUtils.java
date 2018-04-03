@@ -404,7 +404,7 @@ public class PCQUtils {
 		log.info(dtaSelectParsersByFileNamesKey.size() + " parsers stored.");
 	}
 
-	private static DBIndexInterface getFastaDBIndex(File fastaFile, char[] enzymeArray, int missedCleavages,
+	public static DBIndexInterface getFastaDBIndex(File fastaFile, char[] enzymeArray, int missedCleavages,
 			boolean semicleavage, String peptideFilterRegexp, File uniprotReleasesFolder, Boolean lookForProteoforms) {
 		if (fastaFile != null) {
 
