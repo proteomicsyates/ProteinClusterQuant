@@ -1369,8 +1369,8 @@ public class XgmmlExporter {
 
 	private String getProteinNodeTooltip(PCQProteinNode proteinNode, String geneString,
 			Collection<Classification2Case> classification2Cases, StringBuilder classification2String) {
-		StringBuilder tooltipText = new StringBuilder("<b>Protein ACC(s):</b>\n").append(proteinNode.getKey())
-				.append("\n<b>Protein name(s):</b>\n ")
+		StringBuilder tooltipText = new StringBuilder("<b>Protein ACC(s):</b>\n")
+				.append(proteinNode.getKey().replace(" ", "\n")).append("\n<b>Protein name(s):</b>\n ")
 				.append(proteinNode.getDescription().replace(PCQUtils.PROTEIN_DESCRIPTION_SEPARATOR, "\n"));
 
 		if (classification2Cases != null) {
