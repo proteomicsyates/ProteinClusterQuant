@@ -60,6 +60,8 @@ import edu.scripps.yates.utilities.alignment.nwalign.NWAlign;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.maths.Maths;
 import edu.scripps.yates.utilities.model.enums.AggregationLevel;
+import edu.scripps.yates.utilities.progresscounter.ProgressCounter;
+import edu.scripps.yates.utilities.progresscounter.ProgressPrintingType;
 import edu.scripps.yates.utilities.remote.RemoteSSHFileReference;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import edu.scripps.yates.utilities.sequence.PositionInProtein;
@@ -85,32 +87,51 @@ public class PCQUtils {
 	public static final String KEY_SEPARATOR = "-";
 
 	public static AlignmentSet alignPeptides(List<QuantifiedPeptideInterface> peptideList, QuantCondition cond1,
-			QuantCondition cond2, FileWriter Output2) throws IOException {
+			QuantCondition cond2, FileWriter alignmentLogFile) throws IOException {
 		AlignmentSet ret = new AlignmentSet();
-
+		boolean someAlignmentPassThresholds = false;
+		long totalAligments = 0;
 		try {
+			int finalAlignmentScore = ProteinClusterQuantParameters.getInstance().getFinalAlignmentScore();
+			int maxAlignmentScore = -Integer.MAX_VALUE;
+			double sequenceIdentity = ProteinClusterQuantParameters.getInstance().getSequenceIdentity();
+			double maxSeqIdentity = -Double.MAX_VALUE;
+			int minConsecutiveIdenticalAlignment = ProteinClusterQuantParameters.getInstance()
+					.getMinConsecutiveIdenticalAlignment();
+			int maxConsecutiveIdenticalAlignment = -Integer.MAX_VALUE;
 			log.info("Aligning " + peptideList.size() + " peptides between them");
+			log.info("Using minScore=" + finalAlignmentScore + ", minSeqIdentity=" + sequenceIdentity
+					+ ", minConsecutiveAlignment=" + minConsecutiveIdenticalAlignment);
+			ProgressCounter counter = new ProgressCounter(peptideList.size(), ProgressPrintingType.PERCENTAGE_STEPS, 0);
 			for (int i = 0; i < peptideList.size(); i++) {
+				counter.increment();
 				QuantifiedPeptideInterface pep1 = peptideList.get(i);
-				if (i % 25 == 0) {
-					log.info("Aligning Peptides " + i + "/" + peptideList.size());
+				String printIfNecessary = counter.printIfNecessary();
+				if (printIfNecessary != null && !"".equals(printIfNecessary)) {
+					log.info("Aligning Peptides " + printIfNecessary);
 				}
 
 				for (int j = i + 1; j < peptideList.size(); j++) {
+					totalAligments++;
 					QuantifiedPeptideInterface pep2 = peptideList.get(j);
 					NWResult alignment = NWAlign.needlemanWunsch(pep1.getSequence(), pep2.getSequence(), -11, -1);
+					maxAlignmentScore = maxAlignmentScore < alignment.getFinalAlignmentScore()
+							? alignment.getFinalAlignmentScore() : maxAlignmentScore;
+					maxSeqIdentity = maxSeqIdentity < alignment.getSequenceIdentity() ? alignment.getSequenceIdentity()
+							: maxSeqIdentity;
+					maxConsecutiveIdenticalAlignment = maxConsecutiveIdenticalAlignment < alignment
+							.getMaxConsecutiveIdenticalAlignment() ? alignment.getMaxConsecutiveIdenticalAlignment()
+									: maxConsecutiveIdenticalAlignment;
 
-					if ((alignment.getFinalAlignmentScore() >= ProteinClusterQuantParameters.getInstance()
-							.getFinalAlignmentScore()
-							&& alignment.getSequenceIdentity() >= ProteinClusterQuantParameters.getInstance()
-									.getSequenceIdentity())
-							&& alignment.getMaxConsecutiveIdenticalAlignment() >= ProteinClusterQuantParameters
-									.getInstance().getMinConsecutiveIdenticalAlignment()) {
+					if ((alignment.getFinalAlignmentScore() >= finalAlignmentScore
+							&& alignment.getSequenceIdentity() >= sequenceIdentity)
+							&& alignment.getMaxConsecutiveIdenticalAlignment() >= minConsecutiveIdenticalAlignment) {
+						someAlignmentPassThresholds = true;
 						// store aligment
 						ret.addAlignment(new AlignedPeptides(alignment, pep1, pep2));
 						// print pep1 and pep2
-						Output2.append(pep1.getSequence() + "\t");
-						Output2.append(pep2.getSequence() + "\t");
+						alignmentLogFile.append(pep1.getSequence() + "\t");
+						alignmentLogFile.append(pep2.getSequence() + "\t");
 						Double ratio1 = null;
 						if (pep1 instanceof IsobaricQuantifiedPeptide) {
 							ratio1 = ((IsobaricQuantifiedPeptide) pep1).getIonCountRatio(cond1, cond2)
@@ -120,11 +141,11 @@ public class PCQUtils {
 									cond2);
 						}
 						if (ratio1 == Double.NEGATIVE_INFINITY) {
-							Output2.append("NEG_INF" + "\t");
+							alignmentLogFile.append("NEG_INF" + "\t");
 						} else if (ratio1 == Double.POSITIVE_INFINITY) {
-							Output2.append("POS_INF" + "\t");
+							alignmentLogFile.append("POS_INF" + "\t");
 						} else {
-							Output2.append(ratio1 + "\t");
+							alignmentLogFile.append(ratio1 + "\t");
 						}
 						Double ratio2 = null;
 						if (pep2 instanceof IsobaricQuantifiedPeptide) {
@@ -135,16 +156,16 @@ public class PCQUtils {
 									cond2);
 						}
 						if (ratio2 == Double.NEGATIVE_INFINITY) {
-							Output2.append("NEG_INF" + "\t");
+							alignmentLogFile.append("NEG_INF" + "\t");
 						} else if (ratio2 == Double.POSITIVE_INFINITY) {
-							Output2.append("POS_INF" + "\t");
+							alignmentLogFile.append("POS_INF" + "\t");
 						} else {
-							Output2.append(ratio2 + "\t");
+							alignmentLogFile.append(ratio2 + "\t");
 						}
 
-						Output2.append(alignment.getSequenceIdentity() + "\t");
-						Output2.append("1" + "\n");
-						Output2.flush();
+						alignmentLogFile.append(alignment.getSequenceIdentity() + "\t");
+						alignmentLogFile.append("1" + "\n");
+						alignmentLogFile.flush();
 
 						/*
 						 * // prints p1 and pep2
@@ -159,12 +180,20 @@ public class PCQUtils {
 
 				}
 			}
+			if (!someAlignmentPassThresholds) {
+				log.info("None of the aligments passed the thresholds: minAlignmentScore=" + finalAlignmentScore
+						+ ", minSeqIdentity=" + sequenceIdentity + ", minConsecutiveAlignment="
+						+ minConsecutiveIdenticalAlignment);
+				log.info("Better values were: minAlignmentScore=" + maxAlignmentScore + ", minSeqIdentity="
+						+ maxSeqIdentity + ", minConsecutiveAlignment=" + maxConsecutiveIdenticalAlignment);
+			}
 			return ret;
-		} finally
-
-		{
-			if (Output2 != null) {
-				Output2.close();
+		} finally {
+			if (ret.getNumAligments() > 0) {
+				log.info(ret.getNumAligments() + " aligments passed the threshold out of " + totalAligments);
+			}
+			if (alignmentLogFile != null) {
+				alignmentLogFile.close();
 			}
 		}
 
@@ -208,6 +237,7 @@ public class PCQUtils {
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs,
 			Boolean lookForProteoforms) throws FileNotFoundException {
+
 		List<Map<QuantCondition, QuantificationLabel>> list = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
 		for (int i = 0; i < fileNames.length; i++) {
 			list.add(labelsByConditions);
@@ -224,6 +254,7 @@ public class PCQUtils {
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs,
 			Boolean lookForProteoforms) throws FileNotFoundException {
+
 		List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 		// Set parser (6 files) to peptides
 		for (String fileName : fileNames) {
@@ -267,6 +298,7 @@ public class PCQUtils {
 			char[] enzymeArray, int missedCleavages, boolean semiCleavage, File uniprotReleasesFolder,
 			String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB, String peptideFilterRegexp,
 			Boolean lookForProteoforms) throws FileNotFoundException {
+
 		// Set parser (6 files) to peptides
 		Map<String, RemoteSSHFileReference> xmlFiles = new THashMap<String, RemoteSSHFileReference>();
 		for (String fileName : fileNames) {
@@ -313,6 +345,7 @@ public class PCQUtils {
 			boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep, boolean skipSingletons,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs,
 			Boolean lookForProteoforms) throws FileNotFoundException {
+
 		// Set parser (6 files) to peptides
 		List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -573,7 +606,7 @@ public class PCQUtils {
 			QuantificationLabel numeratorLabel, QuantificationLabel denominatorLabel, File uniprotReleasesFolder,
 			String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs)
-					throws FileNotFoundException {
+			throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -1632,7 +1665,7 @@ public class PCQUtils {
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
 			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList, final String[] inputFileNamesArray)
-					throws FileNotFoundException {
+			throws FileNotFoundException {
 		log.debug("Getting input file parser");
 		if (params.getAnalysisInputType() == AnalysisInputType.CENSUS_CHRO) {
 			if (params.getMongoDBURI() != null) {
@@ -1729,7 +1762,7 @@ public class PCQUtils {
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
 			Map<QuantCondition, QuantificationLabel> labelsByConditions, String inputFileName)
-					throws FileNotFoundException {
+			throws FileNotFoundException {
 		log.debug("Getting input file parser");
 		List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
 		labelsByConditionsList.add(labelsByConditions);
@@ -2047,10 +2080,8 @@ public class PCQUtils {
 								toAverage.add(isobaricRatiosForSiteSpecificPeptideNode);
 							}
 						} else {
-							final QuantRatio averageRatio = QuantUtils
-									.getAverageRatio(
-											QuantUtils.getNonInfinityRatios(QuantUtils.getRatiosByName(
-													peptideNode.getRatios(), getRatioNameByAnalysisType())),
+							final QuantRatio averageRatio = QuantUtils.getAverageRatio(QuantUtils.getNonInfinityRatios(
+									QuantUtils.getRatiosByName(peptideNode.getRatios(), getRatioNameByAnalysisType())),
 									AggregationLevel.PEPTIDE_NODE);
 							if (averageRatio != null) {
 								toAverage.add(averageRatio);
