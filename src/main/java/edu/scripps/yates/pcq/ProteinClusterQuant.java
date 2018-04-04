@@ -84,6 +84,8 @@ import edu.scripps.yates.utilities.fasta.FastaParser;
 import edu.scripps.yates.utilities.maths.Maths;
 import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.model.enums.CombinationType;
+import edu.scripps.yates.utilities.progresscounter.ProgressCounter;
+import edu.scripps.yates.utilities.progresscounter.ProgressPrintingType;
 import edu.scripps.yates.utilities.proteomicsmodel.Score;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import edu.scripps.yates.utilities.sequence.PositionInProtein;
@@ -2261,9 +2263,14 @@ public class ProteinClusterQuant {
 			log.info("Classifying cases...");
 			// to calculate the mean and std of ratios
 			List<Double> peptideNodeConsensusRatios = new ArrayList<Double>();
+			ProgressCounter counter = new ProgressCounter(clusterSet.size(), ProgressPrintingType.EVERY_STEP, 0);
 			for (ProteinCluster cluster : clusterSet) {
+				counter.increment();
 				boolean containsSignificantPeptideNodes = false;
-
+				String progress = counter.printIfNecessary();
+				if (progress != null && !"".equals(progress)) {
+					log.info("Clusters processed (1/2 round): " + progress);
+				}
 				Set<PCQProteinNode> proteinNodeSet = cluster.getNonDiscardedProteinNodes();
 				if (cluster.getNonDiscardedProteinSet().size() > 1) {
 					numClustWithMoreThanOneIndividualProtein++;
@@ -2373,9 +2380,15 @@ public class ProteinClusterQuant {
 					numSignificantClusters++;
 				}
 			}
+			counter = new ProgressCounter(clusterSet.size(), ProgressPrintingType.EVERY_STEP, 0);
+
 			// iterate over cluster set (for each cluster)
 			for (ProteinCluster cluster : clusterSet) {
-
+				counter.increment();
+				String progress = counter.printIfNecessary();
+				if (progress != null && !"".equals(progress)) {
+					log.info("Clusters processed (2/2 round): " + progress);
+				}
 				Set<ProteinPair> proteinPairs = cluster.getProteinPairs();
 
 				for (ProteinPair proteinPair : proteinPairs) {
