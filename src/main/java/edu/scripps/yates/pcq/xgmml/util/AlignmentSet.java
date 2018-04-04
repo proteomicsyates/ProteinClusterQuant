@@ -42,4 +42,8 @@ public class AlignmentSet {
 		}
 		return Collections.emptySet();
 	}
+
+	public int getNumAligments() {
+		return map.size();
+	}
 }
