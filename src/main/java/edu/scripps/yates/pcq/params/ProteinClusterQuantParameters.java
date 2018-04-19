@@ -96,12 +96,12 @@ public class ProteinClusterQuantParameters {
 	private boolean ignorePTMs;
 	private boolean semiCleavage;
 	private String peptideFilterRegexp;
-	private List<UniprotAnnotationColumn> uniprotAnnotationColumns = new ArrayList<UniprotAnnotationColumn>();
+	private final List<UniprotAnnotationColumn> uniprotAnnotationColumns = new ArrayList<UniprotAnnotationColumn>();
 	private char[] aaQuantified;
 	private QuantificationLabel numeratorLabel;
 	private QuantificationLabel denominatorLabel;
 	private IsobaricRatioType isobaricRatioType;
-	private Boolean lookForProteoforms;
+	private boolean lookForProteoforms;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -221,18 +221,18 @@ public class ProteinClusterQuantParameters {
 	}
 
 	public List<String> getExperimentNames() {
-		List<String> ret = new ArrayList<String>();
+		final List<String> ret = new ArrayList<String>();
 		final List<ExperimentFiles> inputFileNames = getInputQuantificationFileNames();
-		for (ExperimentFiles experimentFiles : inputFileNames) {
+		for (final ExperimentFiles experimentFiles : inputFileNames) {
 			ret.add(experimentFiles.getExperimentName());
 		}
 		return ret;
 	}
 
 	public Map<String, List<String>> getReplicateNamesByExperimentNameMap() {
-		Map<String, List<String>> map = new THashMap<String, List<String>>();
-		for (ExperimentFiles experimentFiles : getInputQuantificationFileNames()) {
-			List<String> replicateNames = new ArrayList<String>();
+		final Map<String, List<String>> map = new THashMap<String, List<String>>();
+		for (final ExperimentFiles experimentFiles : getInputQuantificationFileNames()) {
+			final List<String> replicateNames = new ArrayList<String>();
 			replicateNames.addAll(experimentFiles.getRelicateFileNames());
 			map.put(experimentFiles.getExperimentName(), replicateNames);
 		}
@@ -772,14 +772,14 @@ public class ProteinClusterQuantParameters {
 
 	public String[] getQuantInputFileNamesArray() {
 		int size = 0;
-		for (ExperimentFiles experimentFileName : inputQuantificationFiles) {
+		for (final ExperimentFiles experimentFileName : inputQuantificationFiles) {
 			size += experimentFileName.getRelicateFileNames().size();
 		}
-		String[] ret = new String[size];
+		final String[] ret = new String[size];
 		int index = 0;
-		for (ExperimentFiles experimentFileName : inputQuantificationFiles) {
+		for (final ExperimentFiles experimentFileName : inputQuantificationFiles) {
 			final List<String> list = experimentFileName.getRelicateFileNames();
-			for (String fileName : list) {
+			for (final String fileName : list) {
 				ret[index++] = fileName.trim();
 			}
 		}
@@ -795,7 +795,7 @@ public class ProteinClusterQuantParameters {
 	 *            the inputType to set
 	 */
 	public void setAnalysisInputType(AnalysisInputType inputType) {
-		this.analysisInputType = inputType;
+		analysisInputType = inputType;
 	}
 
 	public List<PCQFilter> getFilters() {
@@ -1080,14 +1080,14 @@ public class ProteinClusterQuantParameters {
 
 	public String[] getIdentificationInputFileNamesArray() {
 		int size = 0;
-		for (ExperimentFiles experimentFileName : inputIdentificationFiles) {
+		for (final ExperimentFiles experimentFileName : inputIdentificationFiles) {
 			size += experimentFileName.getRelicateFileNames().size();
 		}
-		String[] ret = new String[size];
+		final String[] ret = new String[size];
 		int index = 0;
-		for (ExperimentFiles experimentFileName : inputIdentificationFiles) {
+		for (final ExperimentFiles experimentFileName : inputIdentificationFiles) {
 			final List<String> list = experimentFileName.getRelicateFileNames();
-			for (String fileName : list) {
+			for (final String fileName : list) {
 				ret[index++] = fileName.trim();
 			}
 		}
@@ -1123,7 +1123,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	public void addUniprotAnnotationColumn(UniprotAnnotationColumn uniprotAnnotationColumn) {
-		this.uniprotAnnotationColumns.add(uniprotAnnotationColumn);
+		uniprotAnnotationColumns.add(uniprotAnnotationColumn);
 	}
 
 	public char[] getAaQuantified() {
@@ -1135,7 +1135,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	public boolean isCollapseBySites() {
-		return this.aaQuantified != null && this.aaQuantified.length > 0;
+		return aaQuantified != null && aaQuantified.length > 0;
 	}
 
 	public QuantificationLabel getNumeratorLabel() {
@@ -1143,7 +1143,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	public void setNumeratorLabel(QuantificationLabel numerator) {
-		this.numeratorLabel = numerator;
+		numeratorLabel = numerator;
 	}
 
 	public QuantificationLabel getDenominatorLabel() {
@@ -1151,7 +1151,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	public void setDenominatorLabel(QuantificationLabel denominator) {
-		this.denominatorLabel = denominator;
+		denominatorLabel = denominator;
 	}
 
 	public IsobaricRatioType getIsobaricRatioType() {
@@ -1162,7 +1162,7 @@ public class ProteinClusterQuantParameters {
 		this.isobaricRatioType = isobaricRatioType;
 	}
 
-	public Boolean isLookForProteoforms() {
+	public boolean isLookForProteoforms() {
 		return lookForProteoforms;
 	}
 
