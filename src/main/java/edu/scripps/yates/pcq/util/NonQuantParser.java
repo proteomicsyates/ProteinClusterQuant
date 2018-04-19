@@ -3,6 +3,7 @@ package edu.scripps.yates.pcq.util;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.PatternSyntaxException;
 
 import org.apache.log4j.Logger;
 
@@ -14,7 +15,6 @@ import edu.scripps.yates.census.read.model.StaticQuantMaps;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
-import edu.scripps.yates.dbindex.DBIndexInterface;
 import edu.scripps.yates.dbindex.IndexedProtein;
 import edu.scripps.yates.dbindex.util.PeptideNotFoundInDBIndexException;
 import edu.scripps.yates.dtaselectparser.DTASelectParser;
@@ -27,25 +27,28 @@ import edu.scripps.yates.utilities.fasta.FastaParser;
 public class NonQuantParser extends AbstractQuantParser {
 	private final static Logger log = Logger.getLogger(NonQuantParser.class);
 	private final DTASelectParser dtaSelectParser;
-	private final DBIndexInterface dbIndex;
 
-	public NonQuantParser(DTASelectParser dtaSelectParser) {
+	public NonQuantParser(DTASelectParser dtaSelectParser) throws PatternSyntaxException, IOException {
 		this.dtaSelectParser = dtaSelectParser;
-		dbIndex = dtaSelectParser.getDBIndex();
+		setDbIndex(dtaSelectParser.getDBIndex());
+		setDecoyPattern(dtaSelectParser.getDecoyPattern());
+		setIgnoreNotFoundPeptidesInDB(dtaSelectParser.isIgnoreNotFoundPeptidesInDB());
+		setRetrieveFastaIsoforms(dtaSelectParser.isRetrieveFastaIsoforms());
 		// do not clear static maps, in order to get the same objects than a
 		// previous quantparser
 		super.clearStaticMapsBeforeReading = false;
+
 	}
 
 	@Override
 	protected void process() {
 		try {
 			final Map<String, DTASelectPSM> psms = dtaSelectParser.getDTASelectPSMsByPSMID();
-			for (DTASelectPSM psm : psms.values()) {
+			for (final DTASelectPSM psm : psms.values()) {
 				processPSM(psm);
 
 			}
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 
@@ -53,10 +56,10 @@ public class NonQuantParser extends AbstractQuantParser {
 
 	private void processPSM(DTASelectPSM psm) throws IOException {
 
-		String experimentKey = psm.getRawFileName();
+		final String experimentKey = psm.getRawFileName();
 
 		QuantifiedPSMInterface quantifiedPSM = new NonQuantifiedPSM(psm);
-		for (String inputFileName : dtaSelectParser.getInputFilePathes()) {
+		for (final String inputFileName : dtaSelectParser.getInputFilePathes()) {
 			quantifiedPSM.getFileNames().add(inputFileName);
 		}
 		final String psmKey = KeyUtils.getSpectrumKey(quantifiedPSM, true);
@@ -95,7 +98,7 @@ public class NonQuantParser extends AbstractQuantParser {
 		}
 
 		if (dbIndex != null) {
-			String cleanSeq = quantifiedPSM.getSequence();
+			final String cleanSeq = quantifiedPSM.getSequence();
 			final Set<IndexedProtein> indexedProteins = dbIndex.getProteins(cleanSeq);
 			if (indexedProteins.isEmpty()) {
 				if (!super.ignoreNotFoundPeptidesInDB) {
@@ -108,8 +111,8 @@ public class NonQuantParser extends AbstractQuantParser {
 			}
 			// create a new Quantified Protein for each
 			// indexedProtein
-			for (IndexedProtein indexedProtein : indexedProteins) {
-				String proteinKey = KeyUtils.getProteinKey(indexedProtein);
+			for (final IndexedProtein indexedProtein : indexedProteins) {
+				final String proteinKey = KeyUtils.getProteinKey(indexedProtein);
 				QuantifiedProteinInterface quantifiedProtein = null;
 				if (StaticQuantMaps.proteinMap.containsKey(proteinKey)) {
 					quantifiedProtein = StaticQuantMaps.proteinMap.getItem(proteinKey);
@@ -134,8 +137,8 @@ public class NonQuantParser extends AbstractQuantParser {
 			}
 		}
 		final Set<DTASelectProtein> proteins = psm.getProteins();
-		for (DTASelectProtein dtaSelectProtein : proteins) {
-			String proteinKey = FastaParser.getACC(dtaSelectProtein.getLocus()).getFirstelement();
+		for (final DTASelectProtein dtaSelectProtein : proteins) {
+			final String proteinKey = FastaParser.getACC(dtaSelectProtein.getLocus()).getFirstelement();
 			QuantifiedProteinInterface quantifiedProtein = null;
 			if (StaticQuantMaps.proteinMap.containsKey(proteinKey)) {
 				quantifiedProtein = StaticQuantMaps.proteinMap.getItem(proteinKey);
