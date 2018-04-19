@@ -245,7 +245,7 @@ public class ProteinClusterQuant {
 			// create new proteins with that
 			if (params.getFastaFile() == null) {
 				if (params.getUniprotReleasesFolder() != null) {
-					if (params.isLookForProteoforms() != null && params.isLookForProteoforms()) {
+					if (params.isLookForProteoforms()) {
 						expandProteinsWithProteoforms(peptideList);
 					}
 				}
