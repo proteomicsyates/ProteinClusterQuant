@@ -85,6 +85,7 @@ public class PCQUtils {
 	private static Map<String, QuantParser> quantParsersByFileNamesKey = new THashMap<String, QuantParser>();
 	private static Map<String, DTASelectParser> dtaSelectParsersByFileNamesKey = new THashMap<String, DTASelectParser>();
 	public static final String KEY_SEPARATOR = "-";
+	public static final ProteinSequences proteinSequences = new ProteinSequences();
 
 	public static AlignmentSet alignPeptides(List<QuantifiedPeptideInterface> peptideList, QuantCondition cond1,
 			QuantCondition cond2, FileWriter alignmentLogFile) throws IOException {
