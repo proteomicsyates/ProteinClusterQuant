@@ -62,8 +62,6 @@ import edu.scripps.yates.pcq.cases.Classification2Case;
 import edu.scripps.yates.pcq.compare.ComparisonInput;
 import edu.scripps.yates.pcq.compare.PCQCompare;
 import edu.scripps.yates.pcq.filter.PCQFilter;
-import edu.scripps.yates.pcq.filter.PCQFilterByIonCount;
-import edu.scripps.yates.pcq.filter.PCQFilterByPSMCount;
 import edu.scripps.yates.pcq.model.PCQPeptideNode;
 import edu.scripps.yates.pcq.model.PCQProteinNode;
 import edu.scripps.yates.pcq.model.ProteinCluster;
@@ -140,7 +138,7 @@ public class ProteinClusterQuant {
 
 	private static void errorInParameters() {
 		// automatically generate the help statement
-		HelpFormatter formatter = new HelpFormatter();
+		final HelpFormatter formatter = new HelpFormatter();
 
 		formatter.printHelp("`java -jar PCQ.jar -f input_parameters_file [-c]", "\n\n\n", options,
 				"\n\nContact Salvador Martinez-Bartolome at salvador@scripps.edu for more help");
@@ -150,19 +148,19 @@ public class ProteinClusterQuant {
 
 	public static void main(String args[]) throws IOException, ParseException {
 		setupCommandLineOptions();
-		CommandLineParser parser = new BasicParser();
+		final CommandLineParser parser = new BasicParser();
 		try {
-			CommandLine cmd = parser.parse(options, args);
+			final CommandLine cmd = parser.parse(options, args);
 			if (cmd.getOptionValue("f") == null) {
 				throw new Exception("Provide input parameter file with 'f' option");
 			}
-			File inputFile = new File(cmd.getOptionValue("f"));
+			final File inputFile = new File(cmd.getOptionValue("f"));
 			if (cmd.hasOption("c")) {
-				ComparisonInput comparisonInput = new ComparisonInput(inputFile);
+				final ComparisonInput comparisonInput = new ComparisonInput(inputFile);
 				final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 				params.setComparisonInput(comparisonInput);
 				params.setAnalysisRun(false);
-				ProteinClusterQuant pcq = new ProteinClusterQuant(params, null);
+				final ProteinClusterQuant pcq = new ProteinClusterQuant(params, null);
 				pcq.run();
 
 			} else {
@@ -176,10 +174,10 @@ public class ProteinClusterQuant {
 				final File setupPropertiesFile = new File(propertiesFilePath);
 				PropertiesReader.readProperties(setupPropertiesFile);
 				ProteinClusterQuantParameters.getInstance().setAnalysisRun(true);
-				ProteinClusterQuant clusterCreator = new ProteinClusterQuant(setupPropertiesFile);
+				final ProteinClusterQuant clusterCreator = new ProteinClusterQuant(setupPropertiesFile);
 				clusterCreator.run();
 			}
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			e.printStackTrace();
 			errorInParameters();
 		}
@@ -207,7 +205,7 @@ public class ProteinClusterQuant {
 		clusterSet = new THashSet<ProteinCluster>();
 
 		try {
-			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
+			final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
 					params.getNumeratorLabel(), params.getDenominatorLabel());
 			// try to get an quantParser
 			quantParser = PCQUtils.getQuantParser(params, labelsByConditionsList);
@@ -221,10 +219,10 @@ public class ProteinClusterQuant {
 			}
 
 			if (idParser != null) {
-				NonQuantParser nonQuantParser = new NonQuantParser(idParser);
+				final NonQuantParser nonQuantParser = new NonQuantParser(idParser);
 				// add the peptides to the map
 				final Map<String, QuantifiedPeptideInterface> nonQuantPeptideMap = nonQuantParser.getPeptideMap();
-				for (String peptideKey : nonQuantPeptideMap.keySet()) {
+				for (final String peptideKey : nonQuantPeptideMap.keySet()) {
 					if (pepMap.containsKey(peptideKey)) {
 						final QuantifiedPeptideInterface quantifiedPeptideInterface = pepMap.get(peptideKey);
 						final QuantifiedPeptideInterface nonQuantifiedPeptide = nonQuantPeptideMap.get(peptideKey);
@@ -240,7 +238,7 @@ public class ProteinClusterQuant {
 				removePTMPeptides(pepMap);
 			}
 			// List to hold all peptides
-			List<QuantifiedPeptideInterface> peptideList = new ArrayList<QuantifiedPeptideInterface>();
+			final List<QuantifiedPeptideInterface> peptideList = new ArrayList<QuantifiedPeptideInterface>();
 			peptideList.addAll(pepMap.values());
 
 			// if there is no fasta file but there is lookForProteoforms,
@@ -265,14 +263,14 @@ public class ProteinClusterQuant {
 				clusterSet = createClusters(pepMap);
 
 				// filtering clusters
-				List<PCQFilter> filters = params.getFilters();
+				final List<PCQFilter> filters = params.getFilters();
 				if (!filters.isEmpty()) {
 					log.info("Filtering " + clusterSet.size() + " clusters");
 					int numFilteredClusters = 0;
 					final Iterator<ProteinCluster> proteinClusterIterator = clusterSet.iterator();
 					while (proteinClusterIterator.hasNext()) {
 						final ProteinCluster cluster = proteinClusterIterator.next();
-						for (PCQFilter pcqFilter : filters) {
+						for (final PCQFilter pcqFilter : filters) {
 							pcqFilter.filter(cluster);
 						}
 
@@ -310,8 +308,8 @@ public class ProteinClusterQuant {
 			int numProteinPairs = 0;
 			int loopIndex = 0;
 			int previousPercent = 0;
-			for (ProteinCluster cluster : clusterSet) {
-				int percent = (int) ((loopIndex++ * 100.0f) / clusterSet.size());
+			for (final ProteinCluster cluster : clusterSet) {
+				final int percent = (int) ((loopIndex++ * 100.0f) / clusterSet.size());
 				if (previousPercent != percent) {
 					previousPercent = percent;
 					log.info(percent + "% clusters processed (" + loopIndex + "/" + clusterSet.size() + ")");
@@ -336,8 +334,8 @@ public class ProteinClusterQuant {
 				setIntegrationResultsPerReplicateIntoPeptideNodes(clusterSet, peptideNodeRepSanxotResult);
 				// make a custom sanxot analysis from peptide_node_rep to
 				// peptide_node
-				SanXotAnalysisResult peptideNodeSanxotResult = calculatePeptideNodeRatios(peptideNodeRepSanxotResult,
-						clusterSet);
+				final SanXotAnalysisResult peptideNodeSanxotResult = calculatePeptideNodeRatios(
+						peptideNodeRepSanxotResult, clusterSet);
 
 				ratioStatsByPeptideNodeKey = peptideNodeSanxotResult.getLastIntegrationResults().getOutStatsRatios();
 
@@ -372,13 +370,13 @@ public class ProteinClusterQuant {
 			moveResultsToFinalFolder();
 
 			log.info("DONE.");
-		} catch (FileNotFoundException e) {
+		} catch (final FileNotFoundException e) {
 			e.printStackTrace();
 			log.error(e.getMessage());
-		} catch (InterruptedException e) {
+		} catch (final InterruptedException e) {
 			e.printStackTrace();
 			log.error(e.getMessage());
-		} catch (ExecutionException e) {
+		} catch (final ExecutionException e) {
 			e.printStackTrace();
 			log.error(e.getMessage());
 		}
@@ -386,11 +384,11 @@ public class ProteinClusterQuant {
 	}
 
 	private void expandProteinsWithProteoforms(List<QuantifiedPeptideInterface> peptideList) throws IOException {
-		Set<String> uniprotACCs = new HashSet<String>();
-		Map<String, QuantifiedProteinInterface> proteinMap = new HashMap<String, QuantifiedProteinInterface>();
-		for (QuantifiedPeptideInterface peptide : peptideList) {
-			Set<QuantifiedProteinInterface> quantifiedProteins = peptide.getQuantifiedProteins();
-			for (QuantifiedProteinInterface protein : quantifiedProteins) {
+		final Set<String> uniprotACCs = new HashSet<String>();
+		final Map<String, QuantifiedProteinInterface> proteinMap = new HashMap<String, QuantifiedProteinInterface>();
+		for (final QuantifiedPeptideInterface peptide : peptideList) {
+			final Set<QuantifiedProteinInterface> quantifiedProteins = peptide.getQuantifiedProteins();
+			for (final QuantifiedProteinInterface protein : quantifiedProteins) {
 				if ("UNIPROT".equals(protein.getAccessionType())) {
 					uniprotACCs.add(protein.getAccession());
 					proteinMap.put(protein.getAccession(), protein);
@@ -399,15 +397,15 @@ public class ProteinClusterQuant {
 		}
 
 		// write the new fasta
-		File fasta = writeFasta(uniprotACCs, proteinMap);
+		final File fasta = writeFasta(uniprotACCs, proteinMap);
 		// index fasta file
-		DBIndexInterface dbIndex = indexIsoformFasta(fasta);
-		Map<String, QuantifiedProteinInterface> newProteinsMap = new HashMap<String, QuantifiedProteinInterface>();
+		final DBIndexInterface dbIndex = indexIsoformFasta(fasta);
+		final Map<String, QuantifiedProteinInterface> newProteinsMap = new HashMap<String, QuantifiedProteinInterface>();
 		// iterate over peptides
-		for (QuantifiedPeptideInterface peptide : peptideList) {
-			Set<IndexedProtein> proteins = dbIndex.getProteins(peptide.getSequence());
-			for (IndexedProtein indexedProtein : proteins) {
-				String accession = FastaParser.getUniProtACC(indexedProtein.getAccession());
+		for (final QuantifiedPeptideInterface peptide : peptideList) {
+			final Set<IndexedProtein> proteins = dbIndex.getProteins(peptide.getSequence());
+			for (final IndexedProtein indexedProtein : proteins) {
+				final String accession = FastaParser.getUniProtACC(indexedProtein.getAccession());
 				// just work with the new proteins that they were not in the
 				// uniprotACCs set
 				if (accession != null && !uniprotACCs.contains(accession)) {
@@ -426,7 +424,7 @@ public class ProteinClusterQuant {
 	}
 
 	private DBIndexInterface indexIsoformFasta(File isoformFasta) {
-		DBIndexInterface dbIndex = PCQUtils.getFastaDBIndex(isoformFasta, params.getEnzymeArray(),
+		final DBIndexInterface dbIndex = PCQUtils.getFastaDBIndex(isoformFasta, params.getEnzymeArray(),
 				params.getMissedCleavages(), params.isSemiCleavage(), params.getPeptideFilterRegexp(),
 				params.getUniprotReleasesFolder(), params.isLookForProteoforms());
 		return dbIndex;
@@ -434,25 +432,26 @@ public class ProteinClusterQuant {
 
 	private File writeFasta(Set<String> uniprotACCs, Map<String, QuantifiedProteinInterface> proteinMap)
 			throws IOException {
-		UniprotProteinLocalRetriever uplr = new UniprotProteinLocalRetriever(params.getUniprotReleasesFolder(), true);
-		Map<String, Entry> annotatedProteins = uplr.getAnnotatedProteins(params.getUniprotVersion(), uniprotACCs);
+		final UniprotProteinLocalRetriever uplr = new UniprotProteinLocalRetriever(params.getUniprotReleasesFolder(),
+				true);
+		final Map<String, Entry> annotatedProteins = uplr.getAnnotatedProteins(params.getUniprotVersion(), uniprotACCs);
 		if (!params.getOutputFileFolder().exists()) {
 			params.getOutputFileFolder().mkdirs();
 		}
-		File isoformFasta = new File(params.getOutputFileFolder().getAbsolutePath() + File.separator
+		final File isoformFasta = new File(params.getOutputFileFolder().getAbsolutePath() + File.separator
 				+ params.getOutputPrefix() + "_input_proteins_" + params.getOutputSuffix() + ".fasta");
 		log.info("Writting FASTA file for " + uniprotACCs.size() + " proteins in order to index it with isoforms");
-		FileWriter fw = new FileWriter(isoformFasta);
+		final FileWriter fw = new FileWriter(isoformFasta);
 
-		for (String uniprotACC : uniprotACCs) {
+		for (final String uniprotACC : uniprotACCs) {
 			if (annotatedProteins.containsKey(uniprotACC)) {
-				Entry entry = annotatedProteins.get(uniprotACC);
-				String seq = UniprotEntryUtil.getProteinSequence(entry);
-				StringBuilder fastaHeader = new StringBuilder();
+				final Entry entry = annotatedProteins.get(uniprotACC);
+				final String seq = UniprotEntryUtil.getProteinSequence(entry);
+				final StringBuilder fastaHeader = new StringBuilder();
 				String taxonomy = null;
 				String gene = null;
 				if (proteinMap.containsKey(uniprotACC)) {
-					QuantifiedProteinInterface protein = proteinMap.get(uniprotACC);
+					final QuantifiedProteinInterface protein = proteinMap.get(uniprotACC);
 					if (protein.getTaxonomies() != null && !protein.getTaxonomies().isEmpty()) {
 						taxonomy = protein.getTaxonomies().iterator().next();
 					}
@@ -479,14 +478,14 @@ public class ProteinClusterQuant {
 		FileWriter out = null;
 
 		try {
-			UniprotProteinLocalRetriever uplr = PCQUtils
+			final UniprotProteinLocalRetriever uplr = PCQUtils
 					.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
 
 			final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 			final File outputFileFolder = params.getTemporalOutputFolder();
 			final String outputPrefix = params.getOutputPrefix();
 			final String outputSuffix = params.getOutputSuffix();
-			String fileName = outputPrefix + "_psmTable_" + outputSuffix + ".txt";
+			final String fileName = outputPrefix + "_psmTable_" + outputSuffix + ".txt";
 
 			log.info("Printing PSM ratios at file : '" + fileName + "'");
 			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName);
@@ -500,15 +499,15 @@ public class ProteinClusterQuant {
 						+ "Quant site");
 			}
 			if (quantParser != null) {
-				List<QuantifiedPSMInterface> psmList = new ArrayList<QuantifiedPSMInterface>();
+				final List<QuantifiedPSMInterface> psmList = new ArrayList<QuantifiedPSMInterface>();
 				psmList.addAll(quantParser.getPSMMap().values());
 				// sort list by Peptide sequence and then by psm id
 				Collections.sort(psmList, new Comparator<QuantifiedPSMInterface>() {
 
 					@Override
 					public int compare(QuantifiedPSMInterface o1, QuantifiedPSMInterface o2) {
-						String sequence = o1.getSequence();
-						String sequence2 = o2.getSequence();
+						final String sequence = o1.getSequence();
+						final String sequence2 = o2.getSequence();
 						if (!sequence.equals(sequence2)) {
 							return sequence.compareTo(sequence2);
 						} else {
@@ -516,7 +515,7 @@ public class ProteinClusterQuant {
 						}
 					}
 				});
-				for (QuantifiedPSMInterface psm : psmList) {
+				for (final QuantifiedPSMInterface psm : psmList) {
 					// check if we should ignore the ptm psms
 					if (params.isIgnorePTMs()) {
 						if (psm.getPtms() != null && !psm.getPtms().isEmpty()) {
@@ -528,8 +527,8 @@ public class ProteinClusterQuant {
 						out.write("FILTERED\t" + psm.getKey() + "\t" + psm.getSequence());
 						continue;
 					}
-					String accessionString = PCQUtils.getAccessionString(psm.getQuantifiedProteins());
-					QuantRatio quantRatio = QuantUtils.getRatioByName(psm, PCQUtils.getRatioNameByAnalysisType());
+					final String accessionString = PCQUtils.getAccessionString(psm.getQuantifiedProteins());
+					final QuantRatio quantRatio = QuantUtils.getRatioByName(psm, PCQUtils.getRatioNameByAnalysisType());
 					String ratioDescription = "";
 					if (quantRatio != null) {
 						ratioDescription = quantRatio.getDescription();
@@ -553,11 +552,12 @@ public class ProteinClusterQuant {
 							quantifiedSitePositionInPeptide = quantRatio.getQuantifiedSitePositionInPeptide();
 						}
 						final QuantifiedPeptideInterface quantifiedPeptide = psm.getQuantifiedPeptide();
-						Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = quantifiedPeptide
-								.getProteinKeysByPeptideKeysForQuantifiedAAs(params.getAaQuantified(), uplr);
-						StringBuilder quantifiedSitepositionInProtein = new StringBuilder();
+						final Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = quantifiedPeptide
+								.getProteinKeysByPeptideKeysForQuantifiedAAs(params.getAaQuantified(), uplr,
+										PCQUtils.proteinSequences);
+						final StringBuilder quantifiedSitepositionInProtein = new StringBuilder();
 
-						for (PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
+						for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
 
 							if (quantifiedSitePositionInPeptide != null) {
 								if (positionInPeptide.getPosition() == quantifiedSitePositionInPeptide) {
@@ -595,13 +595,13 @@ public class ProteinClusterQuant {
 			}
 		} catch (
 
-		IOException e) {
+		final IOException e) {
 			e.printStackTrace();
 		} finally {
 			if (out != null) {
 				try {
 					out.close();
-				} catch (IOException e) {
+				} catch (final IOException e) {
 					e.printStackTrace();
 				}
 			}
@@ -618,7 +618,7 @@ public class ProteinClusterQuant {
 			final File outputFileFolder = params.getTemporalOutputFolder();
 			final String outputPrefix = params.getOutputPrefix();
 			final String outputSuffix = params.getOutputSuffix();
-			String fileName = outputPrefix + "_peptideNodeTable_" + outputSuffix + ".txt";
+			final String fileName = outputPrefix + "_peptideNodeTable_" + outputSuffix + ".txt";
 
 			log.info("Printing Peptide Node ratios at file : '" + fileName + "'");
 			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName);
@@ -631,8 +631,8 @@ public class ProteinClusterQuant {
 				out.write("\t" + "QuantSitePositionInProtein(s)" + "\t" + "Quant site");
 			}
 
-			List<PCQPeptideNode> peptideNodeList = new ArrayList<PCQPeptideNode>();
-			for (ProteinCluster cluster : clusterSet) {
+			final List<PCQPeptideNode> peptideNodeList = new ArrayList<PCQPeptideNode>();
+			for (final ProteinCluster cluster : clusterSet) {
 				peptideNodeList.addAll(cluster.getPeptideNodes());
 			}
 			log.info("Sorting " + peptideNodeList.size() + " peptide nodes");
@@ -641,20 +641,20 @@ public class ProteinClusterQuant {
 
 				@Override
 				public int compare(PCQPeptideNode o1, PCQPeptideNode o2) {
-					String sequence = o1.getKey();
-					String sequence2 = o2.getKey();
+					final String sequence = o1.getKey();
+					final String sequence2 = o2.getKey();
 					return sequence.compareTo(sequence2);
 
 				}
 			});
-			for (PCQPeptideNode peptideNode : peptideNodeList) {
+			for (final PCQPeptideNode peptideNode : peptideNodeList) {
 
 				out.write("\n");
 				if (peptideNode.isDiscarded()) {
 					out.write("FILTERED\t" + "\t" + "\t" + peptideNode.getFullSequence());
 					continue;
 				}
-				String accessionString = PCQUtils.getAccessionString(peptideNode.getQuantifiedProteins());
+				final String accessionString = PCQUtils.getAccessionString(peptideNode.getQuantifiedProteins());
 				final QuantRatio quantRatio = PCQUtils.getRepresentativeRatioForPeptideNode(peptideNode, cond1, cond2,
 						null, true);
 
@@ -675,13 +675,13 @@ public class ProteinClusterQuant {
 
 			}
 
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		} finally {
 			if (out != null) {
 				try {
 					out.close();
-				} catch (IOException e) {
+				} catch (final IOException e) {
 					e.printStackTrace();
 				}
 			}
@@ -693,14 +693,14 @@ public class ProteinClusterQuant {
 		FileWriter out = null;
 
 		try {
-			UniprotProteinLocalRetriever uplr = PCQUtils
+			final UniprotProteinLocalRetriever uplr = PCQUtils
 					.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
 
 			final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 			final File outputFileFolder = params.getTemporalOutputFolder();
 			final String outputPrefix = params.getOutputPrefix();
 			final String outputSuffix = params.getOutputSuffix();
-			String fileName = outputPrefix + "_peptideTable_" + outputSuffix + ".txt";
+			final String fileName = outputPrefix + "_peptideTable_" + outputSuffix + ".txt";
 
 			log.info("Printing Peptide ratios at file : '" + fileName + "'");
 			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName);
@@ -713,20 +713,20 @@ public class ProteinClusterQuant {
 						+ "Quant site");
 			}
 			if (quantParser != null) {
-				List<QuantifiedPeptideInterface> peptideList = new ArrayList<QuantifiedPeptideInterface>();
+				final List<QuantifiedPeptideInterface> peptideList = new ArrayList<QuantifiedPeptideInterface>();
 				peptideList.addAll(quantParser.getPeptideMap().values());
 				// sort list by Peptide sequence and then by psm id
 				Collections.sort(peptideList, new Comparator<QuantifiedPeptideInterface>() {
 
 					@Override
 					public int compare(QuantifiedPeptideInterface o1, QuantifiedPeptideInterface o2) {
-						String sequence = o1.getSequence();
-						String sequence2 = o2.getSequence();
+						final String sequence = o1.getSequence();
+						final String sequence2 = o2.getSequence();
 						return sequence.compareTo(sequence2);
 
 					}
 				});
-				for (QuantifiedPeptideInterface peptide : peptideList) {
+				for (final QuantifiedPeptideInterface peptide : peptideList) {
 
 					// check if we should ignore the ptm psms
 					if (params.isIgnorePTMs()) {
@@ -741,14 +741,14 @@ public class ProteinClusterQuant {
 						out.write("FILTERED\t" + "\t" + peptide.getFullSequence());
 						continue;
 					}
-					String accessionString = PCQUtils.getAccessionString(peptide.getQuantifiedProteins());
+					final String accessionString = PCQUtils.getAccessionString(peptide.getQuantifiedProteins());
 					final QuantRatio quantRatio = peptide.getConsensusRatio(cond1, cond2);
 					try {
 						out.write(peptide.getRawFileNames().iterator().next() + "\t"
 								+ peptide.getQuantifiedPSMs().size() + "\t" + peptide.getFullSequence() + "\t"
 								+ accessionString + "\t" + quantRatio.getDescription() + "\t"
 								+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)));
-					} catch (Exception e) {
+					} catch (final Exception e) {
 						e.printStackTrace();
 					}
 					if (quantRatio.getAssociatedConfidenceScore() != null) {
@@ -758,12 +758,13 @@ public class ProteinClusterQuant {
 						out.write("\t\t");
 					}
 					if (params.isCollapseBySites()) {
-						Integer quantifiedSitePositionInPeptide = quantRatio.getQuantifiedSitePositionInPeptide();
-						Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = peptide
-								.getProteinKeysByPeptideKeysForQuantifiedAAs(params.getAaQuantified(), uplr);
-						StringBuilder quantifiedSitepositionInProtein = new StringBuilder();
+						final Integer quantifiedSitePositionInPeptide = quantRatio.getQuantifiedSitePositionInPeptide();
+						final Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = peptide
+								.getProteinKeysByPeptideKeysForQuantifiedAAs(params.getAaQuantified(), uplr,
+										PCQUtils.proteinSequences);
+						final StringBuilder quantifiedSitepositionInProtein = new StringBuilder();
 
-						for (PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
+						for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
 
 							if (quantifiedSitePositionInPeptide != null) {
 								if (positionInPeptide.getPosition() == quantifiedSitePositionInPeptide) {
@@ -799,13 +800,13 @@ public class ProteinClusterQuant {
 
 				}
 			}
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		} finally {
 			if (out != null) {
 				try {
 					out.close();
-				} catch (IOException e) {
+				} catch (final IOException e) {
 					e.printStackTrace();
 				}
 			}
@@ -815,22 +816,22 @@ public class ProteinClusterQuant {
 
 	private void removePTMPeptides(Map<String, QuantifiedPeptideInterface> pepMap) {
 		log.info("Removing peptides with PTMs...");
-		Set<QuantifiedPeptideInterface> peptidesToRemove = new THashSet<QuantifiedPeptideInterface>();
-		for (String peptideKey : pepMap.keySet()) {
+		final Set<QuantifiedPeptideInterface> peptidesToRemove = new THashSet<QuantifiedPeptideInterface>();
+		for (final String peptideKey : pepMap.keySet()) {
 			final QuantifiedPeptideInterface peptide = pepMap.get(peptideKey);
 			if (peptide.containsPTMs()) {
 				peptidesToRemove.add(peptide);
 				final Set<QuantifiedPSMInterface> psms = peptide.getQuantifiedPSMs();
-				for (QuantifiedPSMInterface psm : psms) {
+				for (final QuantifiedPSMInterface psm : psms) {
 					psm.setQuantifiedPeptide(null, false);
 					final Set<QuantifiedProteinInterface> proteins = psm.getQuantifiedProteins();
-					for (QuantifiedProteinInterface protein : proteins) {
+					for (final QuantifiedProteinInterface protein : proteins) {
 						protein.getQuantifiedPSMs().remove(psm);
 					}
 				}
 			}
 		}
-		for (QuantifiedPeptideInterface peptide : peptidesToRemove) {
+		for (final QuantifiedPeptideInterface peptide : peptidesToRemove) {
 			final QuantifiedPeptideInterface removed = pepMap.remove(peptide.getKey());
 			if (removed == null) {
 				log.info(peptide);
@@ -851,15 +852,15 @@ public class ProteinClusterQuant {
 	private void printFinalFile(Set<ProteinCluster> clusterSet,
 			Map<String, SanxotQuantResult> ratioStatsByPeptideNodeKey) {
 
-		Map<String, PCQPeptideNode> peptideNodesByNodeID = new THashMap<String, PCQPeptideNode>();
-		for (ProteinCluster cluster : clusterSet) {
+		final Map<String, PCQPeptideNode> peptideNodesByNodeID = new THashMap<String, PCQPeptideNode>();
+		for (final ProteinCluster cluster : clusterSet) {
 			final Set<String> peptideNodeKeys = cluster.getPeptideNodeKeys();
-			for (String peptideNodeID : peptideNodeKeys) {
+			for (final String peptideNodeID : peptideNodeKeys) {
 				peptideNodesByNodeID.put(peptideNodeID, cluster.getPeptideNodeByKey(peptideNodeID));
 			}
 		}
 
-		Map<String, Entry> annotatedProteins = getAnnotatedProteins();
+		final Map<String, Entry> annotatedProteins = getAnnotatedProteins();
 
 		FileWriter outputIntegrationFinalFile = null;
 
@@ -868,7 +869,7 @@ public class ProteinClusterQuant {
 			final File outputFileFolder = params.getTemporalOutputFolder();
 			final String outputPrefix = params.getOutputPrefix();
 			final String outputSuffix = params.getOutputSuffix();
-			String fileName = outputPrefix + "_finalTable_" + outputSuffix + ".txt";
+			final String fileName = outputPrefix + "_finalTable_" + outputSuffix + ".txt";
 			log.info("Printing final data table in file at '" + fileName + "'");
 			outputIntegrationFinalFile = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName);
 
@@ -885,7 +886,7 @@ public class ProteinClusterQuant {
 				sortedPeptideNodes = getPeptideNodesSortedByFDROrConsensusRatio(peptideNodesByNodeID,
 						ratioStatsByPeptideNodeKey, peptideNodesByNodeID.keySet());
 			}
-			for (PCQPeptideNode peptideNode : sortedPeptideNodes) {
+			for (final PCQPeptideNode peptideNode : sortedPeptideNodes) {
 				final String geneNameString = PCQUtils.getGeneNameString(annotatedProteins,
 						peptideNode.getProteinNodes(), null, params.isPrintOnlyFirstGene(), true);
 
@@ -896,7 +897,7 @@ public class ProteinClusterQuant {
 					sanxotQuantResult = ratioStatsByPeptideNodeKey.get(peptideNode.getKey());
 				}
 
-				String peptideNodeLine = getPeptideNodeLine(peptideNode, geneNameString, speciesString,
+				final String peptideNodeLine = getPeptideNodeLine(peptideNode, geneNameString, speciesString,
 						sanxotQuantResult);
 
 				outputIntegrationFinalFile.write(peptideNodeLine + "\n");
@@ -907,31 +908,31 @@ public class ProteinClusterQuant {
 
 		} catch (
 
-		IOException e) {
+		final IOException e) {
 			log.error(e.getMessage());
 		} finally {
 			try {
 				if (outputIntegrationFinalFile != null)
 					outputIntegrationFinalFile.close();
-			} catch (IOException e) {
+			} catch (final IOException e) {
 				log.error(e.getMessage());
 			}
 		}
 	}
 
 	private List<PCQPeptideNode> getPeptideNodesSortedByNodeID(Map<String, PCQPeptideNode> peptideNodesByNodeID) {
-		List<PCQPeptideNode> ret = new ArrayList<PCQPeptideNode>();
-		List<String> nodeIDs = new ArrayList<String>();
+		final List<PCQPeptideNode> ret = new ArrayList<PCQPeptideNode>();
+		final List<String> nodeIDs = new ArrayList<String>();
 		nodeIDs.addAll(peptideNodesByNodeID.keySet());
 		Collections.sort(nodeIDs);
-		for (String nodeID : nodeIDs) {
+		for (final String nodeID : nodeIDs) {
 			ret.add(peptideNodesByNodeID.get(nodeID));
 		}
 		return ret;
 	}
 
 	private String getPeptideNodeHeaderLine() {
-		StringBuilder sb = new StringBuilder();
+		final StringBuilder sb = new StringBuilder();
 
 		// peptide Node ID
 		sb.append("peptideNodeID");
@@ -986,7 +987,7 @@ public class ProteinClusterQuant {
 
 	private String getPeptideNodeLine(PCQPeptideNode peptideNode, String geneNameString, String speciesString,
 			SanxotQuantResult sanxotQuantResult) {
-		StringBuilder sb = new StringBuilder();
+		final StringBuilder sb = new StringBuilder();
 
 		// peptide Node ID
 		sb.append(peptideNode.getKey());
@@ -1089,7 +1090,7 @@ public class ProteinClusterQuant {
 	private List<PCQPeptideNode> getPeptideNodesSortedByFDROrConsensusRatio(
 			Map<String, PCQPeptideNode> peptideNodesByNodeID,
 			final Map<String, SanxotQuantResult> ratioStatsByPeptideNodeKey, Set<String> peptideNodeIDs) {
-		List<PCQPeptideNode> ret = new ArrayList<PCQPeptideNode>();
+		final List<PCQPeptideNode> ret = new ArrayList<PCQPeptideNode>();
 		ret.addAll(peptideNodesByNodeID.values());
 
 		Collections.sort(ret, new Comparator<PCQPeptideNode>() {
@@ -1130,20 +1131,20 @@ public class ProteinClusterQuant {
 			Map<String, SanxotQuantResult> ratioStatsByPeptideNodeKey) {
 		log.info("Assigning calculated peptide node ratios and FDRs to network...");
 		int numNodesWithConsensusRatio = 0;
-		for (ProteinCluster proteinCluster : clusterSet) {
+		for (final ProteinCluster proteinCluster : clusterSet) {
 			final Set<PCQPeptideNode> peptideNodes = proteinCluster.getPeptideNodes();
-			for (PCQPeptideNode pcqPeptideNode : peptideNodes) {
+			for (final PCQPeptideNode pcqPeptideNode : peptideNodes) {
 				final String peptideNodeKey = pcqPeptideNode.getKey();
 				if (ratioStatsByPeptideNodeKey.containsKey(peptideNodeKey)) {
 					final SanxotQuantResult sanxotQuantResult = ratioStatsByPeptideNodeKey.get(peptideNodeKey);
 
 					final Map<QuantCondition, QuantificationLabel> labelsByConditions = getConsensusQuantificationLabelsByConditions();
 					final Map<QuantificationLabel, QuantCondition> conditionsByLabels = swapMap(labelsByConditions);
-					CensusRatio ratio = new CensusRatio(sanxotQuantResult.getNonLog2ratio(), false, conditionsByLabels,
-							labelsByConditions.get(cond1), labelsByConditions.get(cond2), AggregationLevel.PEPTIDE_NODE,
-							PCQPeptideNode.INTEGRATED_PEPTIDE_NODE_RATIO);
+					final CensusRatio ratio = new CensusRatio(sanxotQuantResult.getNonLog2ratio(), false,
+							conditionsByLabels, labelsByConditions.get(cond1), labelsByConditions.get(cond2),
+							AggregationLevel.PEPTIDE_NODE, PCQPeptideNode.INTEGRATED_PEPTIDE_NODE_RATIO);
 					ratio.setCombinationType(CombinationType.WEIGHTED_AVERAGE);
-					RatioScore fdrScore = new RatioScore(String.valueOf(sanxotQuantResult.getFdr()),
+					final RatioScore fdrScore = new RatioScore(String.valueOf(sanxotQuantResult.getFdr()),
 							PCQUtils.FDR_CONFIDENCE_SCORE_NAME, "PSM-level quantification confidence metric",
 							"FDR of significantly changing ratio");
 					ratio.setRatioScore(fdrScore);
@@ -1164,8 +1165,8 @@ public class ProteinClusterQuant {
 			SanXotAnalysisResult peptideNodeRepSanxotResult) {
 		final Map<String, Map<String, IntegrationResultWrapper>> integrationsByExperiments = peptideNodeRepSanxotResult
 				.getReplicateIntegrationResultsByExperiment();
-		for (String experimentName : integrationsByExperiments.keySet()) {
-			for (String replicateName : integrationsByExperiments.get(experimentName).keySet()) {
+		for (final String experimentName : integrationsByExperiments.keySet()) {
+			for (final String replicateName : integrationsByExperiments.get(experimentName).keySet()) {
 				final IntegrationResultWrapper integrationResultWrapper = integrationsByExperiments.get(experimentName)
 						.get(replicateName);
 				final Map<String, SanxotQuantResult> outStatsRatios = integrationResultWrapper.getOutStatsRatios();
@@ -1173,22 +1174,22 @@ public class ProteinClusterQuant {
 				log.info("Assigning calculated peptide node ratios and FDRs to network in replicate '" + replicateName
 						+ "'...");
 				int numNodesWithConsensusRatio = 0;
-				for (ProteinCluster proteinCluster : clusterSet) {
+				for (final ProteinCluster proteinCluster : clusterSet) {
 					final Set<PCQPeptideNode> peptideNodes = proteinCluster.getPeptideNodes();
-					for (PCQPeptideNode pcqPeptideNode : peptideNodes) {
+					for (final PCQPeptideNode pcqPeptideNode : peptideNodes) {
 						final String peptideNodeKey = pcqPeptideNode.getKey();
-						String integrationKey = peptideNodeKey + "_" + replicateName;
+						final String integrationKey = peptideNodeKey + "_" + replicateName;
 						if (outStatsRatios.containsKey(integrationKey)) {
 							final SanxotQuantResult sanxotQuantResult = outStatsRatios.get(integrationKey);
 
 							final Map<QuantCondition, QuantificationLabel> labelsByConditions = getConsensusQuantificationLabelsByConditions();
 							final Map<QuantificationLabel, QuantCondition> conditionsByLabels = swapMap(
 									labelsByConditions);
-							CensusRatio ratio = new CensusRatio(sanxotQuantResult.getNonLog2ratio(), false,
+							final CensusRatio ratio = new CensusRatio(sanxotQuantResult.getNonLog2ratio(), false,
 									conditionsByLabels, labelsByConditions.get(cond1), labelsByConditions.get(cond2),
 									AggregationLevel.PEPTIDE_NODE, PCQPeptideNode.INTEGRATED_PEPTIDE_NODE_RATIO);
 							ratio.setCombinationType(CombinationType.WEIGHTED_AVERAGE);
-							RatioScore fdrScore = new RatioScore(String.valueOf(sanxotQuantResult.getFdr()),
+							final RatioScore fdrScore = new RatioScore(String.valueOf(sanxotQuantResult.getFdr()),
 									PCQUtils.FDR_CONFIDENCE_SCORE_NAME, "PSM-level quantification confidence metric",
 									"FDR of significantly changing ratio");
 							ratio.setRatioScore(fdrScore);
@@ -1222,9 +1223,9 @@ public class ProteinClusterQuant {
 	 * @return
 	 */
 	private Map<QuantCondition, QuantificationLabel> getConsensusQuantificationLabelsByConditions() {
-		for (ExperimentFiles experimentFiles : ProteinClusterQuantParameters.getInstance()
+		for (final ExperimentFiles experimentFiles : ProteinClusterQuantParameters.getInstance()
 				.getInputQuantificationFileNames()) {
-			for (String replicateFileName : experimentFiles.getRelicateFileNames()) {
+			for (final String replicateFileName : experimentFiles.getRelicateFileNames()) {
 				final Map<QuantCondition, QuantificationLabel> labelsByConditions = getLabelsByConditions(
 						replicateFileName);
 				if (labelsByConditions != null) {
@@ -1236,8 +1237,8 @@ public class ProteinClusterQuant {
 	}
 
 	private Map<QuantificationLabel, QuantCondition> swapMap(Map<QuantCondition, QuantificationLabel> map) {
-		Map<QuantificationLabel, QuantCondition> ret = new THashMap<QuantificationLabel, QuantCondition>();
-		for (QuantCondition condition : map.keySet()) {
+		final Map<QuantificationLabel, QuantCondition> ret = new THashMap<QuantificationLabel, QuantCondition>();
+		for (final QuantCondition condition : map.keySet()) {
 			final QuantificationLabel quantificationLabel = map.get(condition);
 			ret.put(quantificationLabel, condition);
 		}
@@ -1248,29 +1249,29 @@ public class ProteinClusterQuant {
 			Set<ProteinCluster> clusterSet) throws IOException, InterruptedException, ExecutionException {
 		final Map<String, IntegrationResultWrapper> experimentIntegrationResults = peptideNodeRepSanxotResult
 				.getExperimentIntegrationResults();
-		File workingFolder = QuantAnalysis.createWorkingFolder(params.getTemporalOutputFolder(),
+		final File workingFolder = QuantAnalysis.createWorkingFolder(params.getTemporalOutputFolder(),
 				ANALYSIS_LEVEL_OUTCOME.PEPTIDE);
 		File relationshipFile = writeRelationshipFileFromPeptideExpNodeToPeptideNode(clusterSet);
-		List<File> files = new ArrayList<File>();
-		for (String experimentName : experimentIntegrationResults.keySet()) {
+		final List<File> files = new ArrayList<File>();
+		for (final String experimentName : experimentIntegrationResults.keySet()) {
 			files.add(experimentIntegrationResults.get(experimentName).getHigherLevelDataFile());
 		}
-		SanXotAnalysisResult ret = new SanXotAnalysisResult(null);
+		final SanXotAnalysisResult ret = new SanXotAnalysisResult(null);
 		IntegrationResultWrapper integrationResult = null;
 		if (files.size() == 1) {
 			// if there is only one file, use the file from previous integration
 			integrationResult = peptideNodeRepSanxotResult.getLastIntegrationResults();
 
 		} else {
-			File mergedFile = new File(
+			final File mergedFile = new File(
 					workingFolder.getAbsolutePath() + File.separator + "PeptideNodeExp2PeptideNode.xls");
 			edu.scripps.yates.utilities.files.FileUtils.mergeFiles(files, mergedFile, true);
 			integrationResult = SanxotRunner.integrate(relationshipFile, mergedFile, null, "PeptideNodeExp2PeptideNode",
 					null, workingFolder, true, getParams().getQuantParameters());
 
 			if (isRemoveOutliers()) {
-				File infoFile = integrationResult.getInfoFile();
-				String prefix = "outliers_removed";
+				final File infoFile = integrationResult.getInfoFile();
+				final String prefix = "outliers_removed";
 				final OutlierRemovalResultWrapper removeOutliers = SanxotRunner.removeOutliers(relationshipFile,
 						mergedFile, infoFile, prefix, workingFolder, getParams().getQuantParameters());
 				relationshipFile = removeOutliers.getRelatFile();
@@ -1280,7 +1281,7 @@ public class ProteinClusterQuant {
 			ret.addIntegrationResult(integrationResult);
 		}
 		// make the last integration in order to get the FDR
-		IntegrationResultWrapper finalIntegrationResult = SanxotRunner.integrate(null,
+		final IntegrationResultWrapper finalIntegrationResult = SanxotRunner.integrate(null,
 				integrationResult.getHigherLevelDataFile(), null, "PeptideNode2All", null, workingFolder, true,
 				getParams().getQuantParameters());
 		ret.addIntegrationResult(finalIntegrationResult);
@@ -1295,12 +1296,12 @@ public class ProteinClusterQuant {
 			throws IOException {
 		final File workingFolder = QuantAnalysis.createWorkingFolder(params.getTemporalOutputFolder(),
 				ANALYSIS_LEVEL_OUTCOME.PEPTIDE);
-		File outputFile = new File(
+		final File outputFile = new File(
 				workingFolder.getAbsolutePath() + File.separator + "Relat_PeptideExpNode2PeptideNodeRep.csv");
 		// Set<String> replicateNames =
 		// getReplicateNamesFromClusters(clusterSet);
-		FileWriter fw = new FileWriter(outputFile);
-		BufferedWriter bw = new BufferedWriter(fw);
+		final FileWriter fw = new FileWriter(outputFile);
+		final BufferedWriter bw = new BufferedWriter(fw);
 		int numDiscardedPeptideNodes = 0;
 		try {
 			fw.write("#Peptide_node\tPeptide_node_exp\n");
@@ -1308,15 +1309,15 @@ public class ProteinClusterQuant {
 			final Map<String, List<String>> replicateNamesByExperimentNameMap = params
 					.getReplicateNamesByExperimentNameMap();
 
-			for (ProteinCluster proteinCluster : clusterSet) {
-				for (PCQPeptideNode peptideNode : proteinCluster.getPeptideNodes()) {
+			for (final ProteinCluster proteinCluster : clusterSet) {
+				for (final PCQPeptideNode peptideNode : proteinCluster.getPeptideNodes()) {
 					if (peptideNode.isDiscarded()) {
 						numDiscardedPeptideNodes++;
 						continue;
 					}
 					final String peptideNodeKey = peptideNode.getKey();
 					String experimentKey = "";
-					for (String experimentName : replicateNamesByExperimentNameMap.keySet()) {
+					for (final String experimentName : replicateNamesByExperimentNameMap.keySet()) {
 						if (replicateNamesByExperimentNameMap.size() > 1) {
 							experimentKey = experimentName;
 						}
@@ -1328,7 +1329,7 @@ public class ProteinClusterQuant {
 
 						// peptide_rep
 
-						StringBuilder sb = new StringBuilder();
+						final StringBuilder sb = new StringBuilder();
 						sb.append(peptideNodeKey).append("\t");
 						sb.append(peptideNodeKey);
 						if (!"".equals(experimentKey)) {
@@ -1340,7 +1341,7 @@ public class ProteinClusterQuant {
 					}
 				}
 			}
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			if (bw != null) {
 				bw.close();
 			}
@@ -1367,27 +1368,27 @@ public class ProteinClusterQuant {
 	 */
 	private SanXotAnalysisResult calculatePeptideNodeExperimentReplicateRatios(
 			SanXotAnalysisResult peptideRepSanxotResult, Set<ProteinCluster> clusterSet)
-					throws IOException, InterruptedException, ExecutionException {
+			throws IOException, InterruptedException, ExecutionException {
 		File relationshipFile = writeRelationshipFileFromPeptideExpRepToPeptideNodeExpRep(clusterSet);
-		boolean relationnshipFileIsValid = SanXotInterfaze.checkAnyDifferentRelationShip(relationshipFile);
+		final boolean relationnshipFileIsValid = SanXotInterfaze.checkAnyDifferentRelationShip(relationshipFile);
 
-		File workingFolder = QuantAnalysis.createWorkingFolder(params.getTemporalOutputFolder(),
+		final File workingFolder = QuantAnalysis.createWorkingFolder(params.getTemporalOutputFolder(),
 				ANALYSIS_LEVEL_OUTCOME.PEPTIDE);
-		SanXotAnalysisResult ret = new SanXotAnalysisResult(null);
+		final SanXotAnalysisResult ret = new SanXotAnalysisResult(null);
 		final Map<String, List<String>> replicateNamesByExperimentNameMap = params
 				.getReplicateNamesByExperimentNameMap();
 
 		String experimentKey = "";
-		for (String experimentName : replicateNamesByExperimentNameMap.keySet()) {
+		for (final String experimentName : replicateNamesByExperimentNameMap.keySet()) {
 			if (replicateNamesByExperimentNameMap.size() > 1) {
 				experimentKey = experimentName;
 			}
-			Map<String, IntegrationResultWrapper> replicateIntegrations = peptideRepSanxotResult
+			final Map<String, IntegrationResultWrapper> replicateIntegrations = peptideRepSanxotResult
 					.getReplicateIntegrationResultsByExperiment().get(experimentName);
-			List<File> dataFiles = new ArrayList<File>();
+			final List<File> dataFiles = new ArrayList<File>();
 			String replicateKey = "";
 			IntegrationResultWrapper replicateIntegrationResult = null;
-			for (String replicateName : replicateIntegrations.keySet()) {
+			for (final String replicateName : replicateIntegrations.keySet()) {
 				if (replicateIntegrations.size() > 1) {
 					replicateKey = replicateName;
 				}
@@ -1396,14 +1397,14 @@ public class ProteinClusterQuant {
 				if (relationnshipFileIsValid) {
 
 					final String prefix = "PeptideExpRep2PeptideNodeExpRep_" + experimentKey + replicateKey;
-					boolean checkRelationshipValidity = params.getFilters().isEmpty();
+					final boolean checkRelationshipValidity = params.getFilters().isEmpty();
 					replicateIntegrationResult = SanxotRunner.integrate(relationshipFile,
 							integrationResultForReplicate.getHigherLevelDataFile(), infoFile, prefix, null,
 							workingFolder, checkRelationshipValidity, getParams().getQuantParameters());
 
 					if (isRemoveOutliers()) {
 						infoFile = replicateIntegrationResult.getInfoFile();
-						String outliersPrefix = "outliers_removed_" + prefix;
+						final String outliersPrefix = "outliers_removed_" + prefix;
 						final OutlierRemovalResultWrapper removeOutliers = SanxotRunner.removeOutliers(relationshipFile,
 								integrationResultForReplicate.getHigherLevelDataFile(), infoFile, outliersPrefix,
 								workingFolder, getParams().getQuantParameters());
@@ -1420,17 +1421,17 @@ public class ProteinClusterQuant {
 			}
 			if (dataFiles.size() > 1) {
 				File relationshipFile2 = writeRelationshipFileFromPeptideNodeExpRepToPeptideNodeExp(clusterSet);
-				File mergedFile = new File(workingFolder.getAbsolutePath() + File.separator
+				final File mergedFile = new File(workingFolder.getAbsolutePath() + File.separator
 						+ "PeptideRep2PeptideNodeExpRep_" + experimentKey + ".xls");
 				// append the results files
 				edu.scripps.yates.utilities.files.FileUtils.mergeFiles(dataFiles, mergedFile, true);
-				String prefixExperiment = "PeptideNodeExpRep2PeptideNodeExp_" + experimentKey;
+				final String prefixExperiment = "PeptideNodeExpRep2PeptideNodeExp_" + experimentKey;
 				IntegrationResultWrapper experimentIntegrationResult = SanxotRunner.integrate(relationshipFile2,
 						mergedFile, null, prefixExperiment, null, workingFolder, true,
 						getParams().getQuantParameters());
 				if (isRemoveOutliers()) {
-					File infoFile = experimentIntegrationResult.getInfoFile();
-					String outliersPrefix = "outliers_removed_" + prefixExperiment;
+					final File infoFile = experimentIntegrationResult.getInfoFile();
+					final String outliersPrefix = "outliers_removed_" + prefixExperiment;
 					final OutlierRemovalResultWrapper removeOutliers = SanxotRunner.removeOutliers(relationshipFile2,
 							mergedFile, infoFile, outliersPrefix, workingFolder, getParams().getQuantParameters());
 					relationshipFile2 = removeOutliers.getRelatFile();
@@ -1452,37 +1453,37 @@ public class ProteinClusterQuant {
 
 		final File workingFolder = QuantAnalysis.createWorkingFolder(params.getTemporalOutputFolder(),
 				ANALYSIS_LEVEL_OUTCOME.PEPTIDE);
-		File outputFile = new File(
+		final File outputFile = new File(
 				workingFolder.getAbsolutePath() + File.separator + "Relat_PeptideNodeExpRep2PeptideNodeExp.csv");
 		// Set<String> replicateNames =
 		// getReplicateNamesFromClusters(clusterSet);
-		FileWriter fw = new FileWriter(outputFile);
-		BufferedWriter bw = new BufferedWriter(fw);
+		final FileWriter fw = new FileWriter(outputFile);
+		final BufferedWriter bw = new BufferedWriter(fw);
 		int numDiscardedPeptideNodes = 0;
 		try {
 			fw.write("#Peptide_node_exp\tPeptide_node_exp_rep\n");
 			final Map<String, List<String>> replicateNamesByExperimentNameMap = params
 					.getReplicateNamesByExperimentNameMap();
-			for (ProteinCluster proteinCluster : clusterSet) {
-				for (PCQPeptideNode peptideNode : proteinCluster.getPeptideNodes()) {
+			for (final ProteinCluster proteinCluster : clusterSet) {
+				for (final PCQPeptideNode peptideNode : proteinCluster.getPeptideNodes()) {
 					if (peptideNode.isDiscarded()) {
 						numDiscardedPeptideNodes++;
 						continue;
 					}
 					final String peptideNodeKey = peptideNode.getKey();
 					String experimentKey = "";
-					for (String experimentName : replicateNamesByExperimentNameMap.keySet()) {
+					for (final String experimentName : replicateNamesByExperimentNameMap.keySet()) {
 						if (replicateNamesByExperimentNameMap.size() > 1) {
 							experimentKey = experimentName;
 						}
 						// peptide_node_rep
-						StringBuilder peptideNodeExp = new StringBuilder();
+						final StringBuilder peptideNodeExp = new StringBuilder();
 						peptideNodeExp.append(peptideNodeKey);
 						if (!"".equals(experimentKey)) {
 							peptideNodeExp.append("_").append(experimentKey);
 						}
 						String replicateKey = "";
-						for (String replicateName : replicateNamesByExperimentNameMap.get(experimentName)) {
+						for (final String replicateName : replicateNamesByExperimentNameMap.get(experimentName)) {
 							if (replicateNamesByExperimentNameMap.get(experimentName).size() > 1) {
 								replicateKey = replicateName;
 							}
@@ -1492,7 +1493,7 @@ public class ProteinClusterQuant {
 
 							// peptide_rep
 
-							StringBuilder sb = new StringBuilder();
+							final StringBuilder sb = new StringBuilder();
 							sb.append(peptideNodeExp).append("\t");
 							sb.append(peptideNodeKey);
 							if (!"".equals(replicateKey)) {
@@ -1508,7 +1509,7 @@ public class ProteinClusterQuant {
 					}
 				}
 			}
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			if (bw != null) {
 				bw.close();
 			}
@@ -1541,32 +1542,32 @@ public class ProteinClusterQuant {
 			throws IOException {
 		final File workingFolder = QuantAnalysis.createWorkingFolder(params.getTemporalOutputFolder(),
 				ANALYSIS_LEVEL_OUTCOME.PEPTIDE);
-		File outputFile = new File(
+		final File outputFile = new File(
 				workingFolder.getAbsolutePath() + File.separator + "Relat_PeptideExpRep2PeptideNodeExpRep.csv");
 		// Set<String> replicateNames =
 		// getReplicateNamesFromClusters(clusterSet);
-		FileWriter fw = new FileWriter(outputFile);
-		BufferedWriter bw = new BufferedWriter(fw);
+		final FileWriter fw = new FileWriter(outputFile);
+		final BufferedWriter bw = new BufferedWriter(fw);
 		int numDiscardedPeptideNodes = 0;
 		try {
 			fw.write("#Peptide_node_exp_rep\tPeptide_exp_rep\n");
 			final Map<String, List<String>> replicateNamesByExperimentNameMap = params
 					.getReplicateNamesByExperimentNameMap();
 
-			for (ProteinCluster proteinCluster : clusterSet) {
-				for (PCQPeptideNode peptideNode : proteinCluster.getPeptideNodes()) {
+			for (final ProteinCluster proteinCluster : clusterSet) {
+				for (final PCQPeptideNode peptideNode : proteinCluster.getPeptideNodes()) {
 					if (peptideNode.isDiscarded()) {
 						numDiscardedPeptideNodes++;
 						continue;
 					}
 					final String peptideNodeKey = peptideNode.getKey();
 					String experimentKey = "";
-					for (String experimentName : replicateNamesByExperimentNameMap.keySet()) {
+					for (final String experimentName : replicateNamesByExperimentNameMap.keySet()) {
 						if (replicateNamesByExperimentNameMap.size() > 1) {
 							experimentKey = experimentName;
 						}
 						String replicateKey = "";
-						for (String replicateName : replicateNamesByExperimentNameMap.get(experimentName)) {
+						for (final String replicateName : replicateNamesByExperimentNameMap.get(experimentName)) {
 							if (replicateNamesByExperimentNameMap.get(experimentName).size() > 1) {
 								replicateKey = replicateName;
 							}
@@ -1577,9 +1578,9 @@ public class ProteinClusterQuant {
 							// peptide_node_rep
 
 							// peptide_rep
-							Set<QuantifiedPeptideInterface> peptidesInReplicate = peptideNode
+							final Set<QuantifiedPeptideInterface> peptidesInReplicate = peptideNode
 									.getQuantifiedPeptidesInReplicate(replicateName);
-							for (QuantifiedPeptideInterface quantifiedPeptideInterface : peptidesInReplicate) {
+							for (final QuantifiedPeptideInterface quantifiedPeptideInterface : peptidesInReplicate) {
 								// a line per peptide
 								bw.write(peptideNodeKey);
 								if (!"".equals(replicateKey)) {
@@ -1607,7 +1608,7 @@ public class ProteinClusterQuant {
 					}
 				}
 			}
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			e.printStackTrace();
 			if (bw != null) {
 				bw.close();
@@ -1631,10 +1632,10 @@ public class ProteinClusterQuant {
 	 */
 	private SanXotAnalysisResult calculatePeptideExperimentReplicateRatios() throws IOException {
 		log.info("Running SanXot algorithm for integrating quantitative ratios");
-		long t1 = System.currentTimeMillis();
-		SanxotRunner sanxotRunner = new SanxotRunner(this, getQuantType(), getParams().getTemporalOutputFolder(), cond1,
-				cond2, getParams().getFastaFile(), getParams().getQuantParameters());
-		SanXotAnalysisResult result = sanxotRunner.run();
+		final long t1 = System.currentTimeMillis();
+		final SanxotRunner sanxotRunner = new SanxotRunner(this, getQuantType(), getParams().getTemporalOutputFolder(),
+				cond1, cond2, getParams().getFastaFile(), getParams().getQuantParameters());
+		final SanXotAnalysisResult result = sanxotRunner.run();
 		final String time = DatesUtil.getDescriptiveTimeFromMillisecs(System.currentTimeMillis() - t1);
 		log.info("Sanxot run finished in " + time);
 		return result;
@@ -1664,13 +1665,13 @@ public class ProteinClusterQuant {
 	}
 
 	private void exportToXGMML(Set<ProteinCluster> clusterSet) {
-		Map<String, Entry> annotatedProteins = getAnnotatedProteins();
-		XgmmlExporter exporter = new XgmmlExporter();
+		final Map<String, Entry> annotatedProteins = getAnnotatedProteins();
+		final XgmmlExporter exporter = new XgmmlExporter();
 		exporter.exportToXGMMLUsingNodes(clusterSet, annotatedProteins, cond1, cond2);
 	}
 
 	private void makePeptideAlignments(List<QuantifiedPeptideInterface> peptideList) throws IOException {
-		ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 		final File outputFileFolder = params.getTemporalOutputFolder();
 		final String outputPrefix = params.getOutputPrefix();
 		final String outputSuffix = params.getOutputSuffix();
@@ -1679,7 +1680,7 @@ public class ProteinClusterQuant {
 		try {
 			output = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + outputPrefix + "_pep_"
 					+ outputSuffix + ".txt");
-			long t = System.currentTimeMillis();
+			final long t = System.currentTimeMillis();
 			// store the peptide alignments
 			peptideAlignments = PCQUtils.alignPeptides(peptideList, cond1, cond2, output);
 			log.debug("Alignments done in "
@@ -1693,13 +1694,13 @@ public class ProteinClusterQuant {
 
 	public Map<QuantCondition, QuantificationLabel> getLabelsByConditions(String replicateName) {
 
-		List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
+		final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
 				params.getNumeratorLabel(), params.getDenominatorLabel());
 		final List<ExperimentFiles> inputFileNames = ProteinClusterQuantParameters.getInstance()
 				.getInputQuantificationFileNames();
 		int j = 0;
-		for (ExperimentFiles experimentFiles : inputFileNames) {
-			for (String replicateFileName : experimentFiles.getRelicateFileNames()) {
+		for (final ExperimentFiles experimentFiles : inputFileNames) {
+			for (final String replicateFileName : experimentFiles.getRelicateFileNames()) {
 				if (replicateFileName.equals(replicateName)) {
 					return labelsByConditionsList.get(j);
 				}
@@ -1711,10 +1712,10 @@ public class ProteinClusterQuant {
 
 	private List<Map<QuantCondition, QuantificationLabel>> getLabelsByconditionsList(QuantificationLabel labelNumerator,
 			QuantificationLabel labelDenominator) {
-		List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
+		final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
 
 		// per L/H xml file
-		Map<QuantCondition, QuantificationLabel> labelsByConditions = new THashMap<QuantCondition, QuantificationLabel>();
+		final Map<QuantCondition, QuantificationLabel> labelsByConditions = new THashMap<QuantCondition, QuantificationLabel>();
 		// TODO
 		labelsByConditions.put(cond1, labelNumerator);
 		labelsByConditions.put(cond2, labelDenominator);
@@ -1737,7 +1738,7 @@ public class ProteinClusterQuant {
 
 		// per H/L xml file
 		if (getParams().isLabelSwap()) {
-			Map<QuantCondition, QuantificationLabel> labelsByConditions2 = new THashMap<QuantCondition, QuantificationLabel>();
+			final Map<QuantCondition, QuantificationLabel> labelsByConditions2 = new THashMap<QuantCondition, QuantificationLabel>();
 			labelsByConditions2.put(cond1, labelDenominator);
 			labelsByConditions2.put(cond2, labelNumerator);
 			for (int i = 0; i < max; i++) {
@@ -1758,13 +1759,14 @@ public class ProteinClusterQuant {
 	 * 
 	 * @param peptideMap
 	 * @return
+	 * @throws IOException
 	 */
-	private Set<ProteinCluster> createClusters(Map<String, QuantifiedPeptideInterface> peptideMap) {
-		Map<String, ProteinCluster> clustersByPeptideSequence = new THashMap<String, ProteinCluster>();
-		Set<ProteinCluster> clusterSet = new THashSet<ProteinCluster>();
+	private Set<ProteinCluster> createClusters(Map<String, QuantifiedPeptideInterface> peptideMap) throws IOException {
+		final Map<String, ProteinCluster> clustersByPeptideSequence = new THashMap<String, ProteinCluster>();
+		final Set<ProteinCluster> clusterSet = new THashSet<ProteinCluster>();
 		log.info("Starting clustering " + peptideMap.size() + " peptides...");
 		long t0 = System.currentTimeMillis();
-		for (QuantifiedPeptideInterface peptide : peptideMap.values()) {
+		for (final QuantifiedPeptideInterface peptide : peptideMap.values()) {
 			if (params.isIgnorePTMs() && peptide.containsPTMs()) {
 				continue;
 			}
@@ -1774,7 +1776,7 @@ public class ProteinClusterQuant {
 				continue;
 			}
 
-			String fullSequence1 = peptide.getFullSequence();
+			final String fullSequence1 = peptide.getFullSequence();
 
 			ProteinCluster cluster = null;
 
@@ -1793,15 +1795,15 @@ public class ProteinClusterQuant {
 			cluster.addIndividualQuantifiedPeptide(peptide);
 			// in case of having peptide alignments done
 			if (peptideAlignments != null && !peptideAlignments.getAlignmentsForPeptide(peptide).isEmpty()) {
-				Set<AlignedPeptides> alignments = peptideAlignments.getAlignmentsForPeptide(peptide);
-				for (AlignedPeptides alignment : alignments) {
-					NWResult alignResult = alignment.getAlignmentResult();
+				final Set<AlignedPeptides> alignments = peptideAlignments.getAlignmentsForPeptide(peptide);
+				for (final AlignedPeptides alignment : alignments) {
+					final NWResult alignResult = alignment.getAlignmentResult();
 					if (alignResult.getFinalAlignmentScore() >= params.getFinalAlignmentScore()
 							&& alignResult.getSequenceIdentity() >= params.getSequenceIdentity()
 							&& alignResult.getMaxConsecutiveIdenticalAlignment() >= ProteinClusterQuantParameters
 									.getInstance().getMinConsecutiveIdenticalAlignment()) {
 
-						QuantifiedPeptideInterface peptide2 = alignment.getPeptideAligned(peptide);
+						final QuantifiedPeptideInterface peptide2 = alignment.getPeptideAligned(peptide);
 
 						// Set<String> modifiedPeptideSeqs =
 						// nonModifiedToModifiedMap.get(peptide2.getSequence());
@@ -1815,13 +1817,14 @@ public class ProteinClusterQuant {
 						// cluster
 						if (peptide2 != null) {
 							if (clustersByPeptideSequence.containsKey(peptide2.getFullSequence())) {
-								ProteinCluster cluster2 = clustersByPeptideSequence.get(peptide2.getFullSequence());
+								final ProteinCluster cluster2 = clustersByPeptideSequence
+										.get(peptide2.getFullSequence());
 								if (!cluster.equals(cluster2)) {
 									// merges the clusters with similar
 									// peptides
 									cluster = PCQUtils.mergeClusters(cluster, cluster2);
 									clusterSet.remove(cluster2);
-									for (QuantifiedPeptideInterface quantifiedPeptide : cluster.getPeptideSet()) {
+									for (final QuantifiedPeptideInterface quantifiedPeptide : cluster.getPeptideSet()) {
 										clustersByPeptideSequence.put(quantifiedPeptide.getFullSequence(), cluster);
 									}
 								}
@@ -1838,22 +1841,22 @@ public class ProteinClusterQuant {
 				}
 			}
 			// get proteins of the peptide and add them to the cluster
-			Set<QuantifiedProteinInterface> proteinSet = peptide.getQuantifiedProteins();
-			for (QuantifiedProteinInterface protein : proteinSet) {
+			final Set<QuantifiedProteinInterface> proteinSet = peptide.getQuantifiedProteins();
+			for (final QuantifiedProteinInterface protein : proteinSet) {
 				// put protein in cluster
 				cluster.addIndividualQuantifiedProtein(protein);
 
 				// peptide 2 <- protein
-				for (QuantifiedPeptideInterface peptide2 : protein.getQuantifiedPeptides()) {
+				for (final QuantifiedPeptideInterface peptide2 : protein.getQuantifiedPeptides()) {
 					// checking to see if peptide 2 is already in a
 					// cluster
 					if (clustersByPeptideSequence.containsKey(peptide2.getFullSequence())) {
-						ProteinCluster cluster2 = clustersByPeptideSequence.get(peptide2.getFullSequence());
+						final ProteinCluster cluster2 = clustersByPeptideSequence.get(peptide2.getFullSequence());
 						if (!cluster.equals(cluster2)) {
 							// merge the clusters
 							cluster = PCQUtils.mergeClusters(cluster, cluster2);
 							clusterSet.remove(cluster2);
-							for (QuantifiedPeptideInterface quantifiedPeptide : cluster.getPeptideSet()) {
+							for (final QuantifiedPeptideInterface quantifiedPeptide : cluster.getPeptideSet()) {
 								clustersByPeptideSequence.put(quantifiedPeptide.getFullSequence(), cluster);
 							}
 						}
@@ -1878,7 +1881,7 @@ public class ProteinClusterQuant {
 		t0 = System.currentTimeMillis();
 		int numProteinNodes = 0;
 		int numPeptideNodes = 0;
-		for (ProteinCluster proteinCluster : clusterSet) {
+		for (final ProteinCluster proteinCluster : clusterSet) {
 			proteinCluster.createNodes();
 			numProteinNodes += proteinCluster.getProteinNodes().size();
 			numPeptideNodes += proteinCluster.getPeptideNodes().size();
@@ -1901,11 +1904,11 @@ public class ProteinClusterQuant {
 		if (params.isIgnorePTMs()) {
 			return;
 		}
-		Set<QuantifiedProteinInterface> individualProteins = PCQUtils.getProteinsFromPeptides(pepMap.values());
-		Map<String, QuantifiedProteinInterface> newProteins = new THashMap<String, QuantifiedProteinInterface>();
-		for (QuantifiedProteinInterface protein : individualProteins) {
-			List<QuantifiedPeptideInterface> ptmPeptides = new ArrayList<QuantifiedPeptideInterface>();
-			for (QuantifiedPeptideInterface peptide : protein.getQuantifiedPeptides()) {
+		final Set<QuantifiedProteinInterface> individualProteins = PCQUtils.getProteinsFromPeptides(pepMap.values());
+		final Map<String, QuantifiedProteinInterface> newProteins = new THashMap<String, QuantifiedProteinInterface>();
+		for (final QuantifiedProteinInterface protein : individualProteins) {
+			final List<QuantifiedPeptideInterface> ptmPeptides = new ArrayList<QuantifiedPeptideInterface>();
+			for (final QuantifiedPeptideInterface peptide : protein.getQuantifiedPeptides()) {
 
 				if (peptide.containsPTMs()) {
 					ptmPeptides.add(peptide);
@@ -1913,7 +1916,7 @@ public class ProteinClusterQuant {
 					if (nonModifiedToModifiedMap.containsKey(peptide.getSequence())) {
 						nonModifiedToModifiedMap.get(peptide.getSequence()).add(peptide.getFullSequence());
 					} else {
-						Set<String> set = new THashSet<String>();
+						final Set<String> set = new THashSet<String>();
 						set.add(peptide.getFullSequence());
 						nonModifiedToModifiedMap.put(peptide.getSequence(), set);
 					}
@@ -1926,8 +1929,8 @@ public class ProteinClusterQuant {
 						numPTMs);
 				while (combinationsIterator.hasNext()) {
 					final int[] combinationsIndexes = combinationsIterator.next();
-					List<QuantifiedPeptideInterface> ptmPeptides2 = new ArrayList<QuantifiedPeptideInterface>();
-					for (int index : combinationsIndexes) {
+					final List<QuantifiedPeptideInterface> ptmPeptides2 = new ArrayList<QuantifiedPeptideInterface>();
+					for (final int index : combinationsIndexes) {
 						ptmPeptides2.add(ptmPeptides.get(index));
 					}
 					final String proteinPTMKey = PCQUtils.getProteinPTMKey(protein.getAccession(),
@@ -1953,15 +1956,15 @@ public class ProteinClusterQuant {
 					// set discarded
 					proteinPTM.setDiscarded(protein.isDiscarded());
 					// add all non modified peptides for now...
-					for (QuantifiedPeptideInterface peptide : protein.getQuantifiedPeptides()) {
+					for (final QuantifiedPeptideInterface peptide : protein.getQuantifiedPeptides()) {
 						if (!peptide.containsPTMs()) {
 							proteinPTM.addPeptide(peptide, true);
 						}
 					}
 
-					for (QuantifiedPeptideInterface ptmPeptide : ptmPeptides2) {
+					for (final QuantifiedPeptideInterface ptmPeptide : ptmPeptides2) {
 						proteinPTM.addPeptide(ptmPeptide, true);
-						String nonModifiedSeq = ptmPeptide.getSequence();
+						final String nonModifiedSeq = ptmPeptide.getSequence();
 						// remove the non modified version if exist
 						final Iterator<QuantifiedPSMInterface> psmIterator = proteinPTM.getQuantifiedPSMs().iterator();
 						while (psmIterator.hasNext()) {
@@ -1973,7 +1976,7 @@ public class ProteinClusterQuant {
 											.getQuantifiedPeptide();
 									final Set<QuantifiedPSMInterface> quantifiedPSMs = nonModifiedPeptide
 											.getQuantifiedPSMs();
-									for (QuantifiedPSMInterface nonModifiedPSM2 : quantifiedPSMs) {
+									for (final QuantifiedPSMInterface nonModifiedPSM2 : quantifiedPSMs) {
 										nonModifiedPSM2.getQuantifiedProteins().remove(proteinPTM);
 									}
 									nonModifiedPSM.getQuantifiedProteins().remove(proteinPTM);
@@ -1990,7 +1993,7 @@ public class ProteinClusterQuant {
 						// add psms to ptmProtein and remove them from original
 						// protein
 						final Set<QuantifiedPSMInterface> quantifiedPSMs = ptmPeptide.getQuantifiedPSMs();
-						for (QuantifiedPSMInterface psm : quantifiedPSMs) {
+						for (final QuantifiedPSMInterface psm : quantifiedPSMs) {
 							proteinPTM.addPSM(psm, true);
 							psm.getQuantifiedProteins().remove(protein);
 							// remove psm from original protein
@@ -2036,7 +2039,7 @@ public class ProteinClusterQuant {
 
 	private void printPSEAQuantFiles(Set<ProteinCluster> clusterSet) {
 
-		Map<String, Entry> annotatedProteins = getAnnotatedProteins();
+		final Map<String, Entry> annotatedProteins = getAnnotatedProteins();
 
 		if (getParams().getQuantInputFileNamesArray() != null && getParams().getQuantInputFileNamesArray().length > 0
 				&& !"".equals(getParams().getQuantInputFileNamesArray()[0])) {
@@ -2049,15 +2052,15 @@ public class ProteinClusterQuant {
 				final File outputFileFolder = params.getTemporalOutputFolder();
 				final String outputPrefix = params.getOutputPrefix();
 				final String outputSuffix = params.getOutputSuffix();
-				String fileName1 = outputPrefix + "_pseaQuant_" + outputSuffix + ".txt";
+				final String fileName1 = outputPrefix + "_pseaQuant_" + outputSuffix + ".txt";
 				outputPSEAQuant = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName1);
-				String fileName2 = outputPrefix + "_pseaQuant_inv_" + outputSuffix + ".txt";
+				final String fileName2 = outputPrefix + "_pseaQuant_inv_" + outputSuffix + ".txt";
 				outputPSEAQuant_inv = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName2);
 				log.info("Printing PSEA-Quant input files at '" + fileName1 + "' and '" + fileName2 + "'");
 				final Mean meanCalculator = new Mean();
-				List<String> replicateNameList = new ArrayList<String>();
-				Set<String> replicateNames = new THashSet<String>();
-				for (ProteinCluster cluster : clusterSet) {
+				final List<String> replicateNameList = new ArrayList<String>();
+				final Set<String> replicateNames = new THashSet<String>();
+				for (final ProteinCluster cluster : clusterSet) {
 					final Set<QuantifiedPeptideInterface> peptideSet = cluster.getPeptideSet();
 					replicateNames.addAll(getReplicateNamesFromPeptides(peptideSet));
 
@@ -2069,13 +2072,13 @@ public class ProteinClusterQuant {
 				int numClustersSkippedNotHavingGoodRatios = 0;
 
 				// do not include simulans and virilis in PSEA Quant output
-				Set<String> validTaxonomies = new THashSet<String>();
+				final Set<String> validTaxonomies = new THashSet<String>();
 				validTaxonomies.add("melanogaster");
 				validTaxonomies.add("human");
 				validTaxonomies.add("homo");
 				validTaxonomies.add("musculus");
 				validTaxonomies.add("cerevisiae");
-				for (ProteinCluster cluster : clusterSet) {
+				for (final ProteinCluster cluster : clusterSet) {
 
 					final String geneNameString = PCQUtils.getGeneNameString(annotatedProteins, cluster,
 							validTaxonomies, params.isPrintOnlyFirstGene(), true);
@@ -2088,13 +2091,13 @@ public class ProteinClusterQuant {
 						numClustersSkippedNotHavingGeneName++;
 						continue;
 					}
-					List<Double> ratioMeans = new ArrayList<Double>();
+					final List<Double> ratioMeans = new ArrayList<Double>();
 
 					// according to the manuscript, it is the average of the
 					// ratios of the peptide nodes.
 
-					for (String replicateName : replicateNameList) {
-						Set<Double> ratioValues = new THashSet<Double>();
+					for (final String replicateName : replicateNameList) {
+						final Set<Double> ratioValues = new THashSet<Double>();
 
 						final QuantRatio pepRatio = PCQUtils.getRepresentativeRatioForPeptideNodes(
 								cluster.getPeptideNodes(), cond1, cond2, replicateName, true);
@@ -2109,9 +2112,9 @@ public class ProteinClusterQuant {
 						if (ratioValues.isEmpty()) {
 							numClustersSkippedNotHavingGoodRatios++;
 						} else {
-							double[] ratios = new double[ratioValues.size()];
-							int index = 0;
-							for (double ratioValue : ratioValues) {
+							final double[] ratios = new double[ratioValues.size()];
+							final int index = 0;
+							for (final double ratioValue : ratioValues) {
 								ratios[index] = ratioValue;
 							}
 							ratioMean = meanCalculator.evaluate(ratios);
@@ -2119,7 +2122,7 @@ public class ProteinClusterQuant {
 						ratioMeans.add(ratioMean);
 					}
 					boolean validCluster = false;
-					for (Double ratioMean : ratioMeans) {
+					for (final Double ratioMean : ratioMeans) {
 						if (ratioMean != null) {
 							validCluster = true;
 							break;
@@ -2131,7 +2134,7 @@ public class ProteinClusterQuant {
 					}
 					outputPSEAQuant.write(geneNameString + "\t");
 					outputPSEAQuant_inv.write(geneNameString + "\t");
-					for (Double ratioMean : ratioMeans) {
+					for (final Double ratioMean : ratioMeans) {
 						if (ratioMean != null) {
 							outputPSEAQuant.write(String.valueOf(ratioMean));
 							outputPSEAQuant_inv.write(String.valueOf(1.0 / ratioMean));
@@ -2145,16 +2148,19 @@ public class ProteinClusterQuant {
 					outputPSEAQuant_inv.flush();
 
 				}
-
-				log.info("Clusters skipped due to not having appropiate gene name: "
-						+ numClustersSkippedNotHavingGeneName);
-				log.info("Clusters skipped due to not having at least one valid ratio: "
-						+ numClustersSkippedNotHavingGoodRatios);
+				if (numClustersSkippedNotHavingGeneName > 0) {
+					log.info("Clusters skipped due to not having appropiate gene name: "
+							+ numClustersSkippedNotHavingGeneName);
+				}
+				if (numClustersSkippedNotHavingGoodRatios > 0) {
+					log.info("Clusters skipped due to not having at least one valid ratio: "
+							+ numClustersSkippedNotHavingGoodRatios);
+				}
 				log.info("PSEA-Quant files writen");
 
 			} catch (
 
-			IOException e)
+			final IOException e)
 
 			{
 				log.error(e.getMessage());
@@ -2166,7 +2172,7 @@ public class ProteinClusterQuant {
 						outputPSEAQuant.close();
 					if (outputPSEAQuant_inv != null)
 						outputPSEAQuant_inv.close();
-				} catch (IOException e) {
+				} catch (final IOException e) {
 					log.error(e.getMessage());
 				}
 			}
@@ -2179,10 +2185,10 @@ public class ProteinClusterQuant {
 		if (annotatedProteins == null) {
 			if (getParams().getUniprotReleasesFolder() != null) {
 
-				UniprotProteinLocalRetriever uplr = PCQUtils
+				final UniprotProteinLocalRetriever uplr = PCQUtils
 						.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
 
-				Set<String> uniprotAccSet = new THashSet<String>();
+				final Set<String> uniprotAccSet = new THashSet<String>();
 				if (quantParser != null) {
 					uniprotAccSet.addAll(quantParser.getUniprotAccSet());
 				}
@@ -2211,8 +2217,8 @@ public class ProteinClusterQuant {
 		// for (Classification1Case case1 : Classification1Case.values()) {
 		// classification1Counters.put(case1, 0);
 		// }
-		Map<Classification2Case, Integer> classification2Counters = new THashMap<Classification2Case, Integer>();
-		for (Classification2Case case2 : Classification2Case.values()) {
+		final Map<Classification2Case, Integer> classification2Counters = new THashMap<Classification2Case, Integer>();
+		for (final Classification2Case case2 : Classification2Case.values()) {
 			classification2Counters.put(case2, 0);
 		}
 
@@ -2244,7 +2250,7 @@ public class ProteinClusterQuant {
 		int numPeptideNodesWithTwoTax = 0;
 		int numPeptideNodesWithMoreTax = 0;
 		int numPeptideNodesDiscarded = 0;
-		List<Double> peptideNodesVariances = new ArrayList<Double>();
+		final List<Double> peptideNodesVariances = new ArrayList<Double>();
 		// List<ProteinPairPValue> ranking = new ArrayList<ProteinPairPValue>();
 		try {
 			final String outputPrefix = params.getOutputPrefix();
@@ -2262,16 +2268,16 @@ public class ProteinClusterQuant {
 
 			log.info("Classifying cases...");
 			// to calculate the mean and std of ratios
-			List<Double> peptideNodeConsensusRatios = new ArrayList<Double>();
+			final List<Double> peptideNodeConsensusRatios = new ArrayList<Double>();
 			ProgressCounter counter = new ProgressCounter(clusterSet.size(), ProgressPrintingType.EVERY_STEP, 0);
-			for (ProteinCluster cluster : clusterSet) {
+			for (final ProteinCluster cluster : clusterSet) {
 				counter.increment();
 				boolean containsSignificantPeptideNodes = false;
-				String progress = counter.printIfNecessary();
+				final String progress = counter.printIfNecessary();
 				if (progress != null && !"".equals(progress)) {
 					log.info("Clusters processed (1/2 round): " + progress);
 				}
-				Set<PCQProteinNode> proteinNodeSet = cluster.getNonDiscardedProteinNodes();
+				final Set<PCQProteinNode> proteinNodeSet = cluster.getNonDiscardedProteinNodes();
 				if (cluster.getNonDiscardedProteinSet().size() > 1) {
 					numClustWithMoreThanOneIndividualProtein++;
 				}
@@ -2282,7 +2288,7 @@ public class ProteinClusterQuant {
 				numProt += cluster.getNumDifferentNonDiscardedIndividualProteins();
 				numPep += cluster.getNumDifferentNonDiscardedIndividualPeptides();
 				numPepNodes += cluster.getNonDiscardedPeptideNodes().size();
-				for (PCQPeptideNode peptideNode : cluster.getPeptideNodes()) {
+				for (final PCQPeptideNode peptideNode : cluster.getPeptideNodes()) {
 					if (peptideNode.isDiscarded()) {
 						numPeptideNodesDiscarded++;
 						continue;
@@ -2295,7 +2301,7 @@ public class ProteinClusterQuant {
 					}
 					final QuantRatio peptideNodeFinalRatio = PCQUtils.getRepresentativeRatioForPeptideNode(peptideNode,
 							cond1, cond2, null, true);
-					Double ratioValue = PCQUtils.getLog2RatioValue(peptideNodeFinalRatio, cond1, cond2);
+					final Double ratioValue = PCQUtils.getLog2RatioValue(peptideNodeFinalRatio, cond1, cond2);
 
 					if (Double.isNaN(ratioValue)) {
 						numNanPepNodes++;
@@ -2319,13 +2325,13 @@ public class ProteinClusterQuant {
 							if (score != null) {
 								try {
 									if (score.getValue() != null) {
-										double fdr = Double.valueOf(score.getValue());
+										final double fdr = Double.valueOf(score.getValue());
 										if (params.getSignificantFDRThreshold() >= fdr) {
 											numSignificantPeptideNodes++;
 											containsSignificantPeptideNodes = true;
 										}
 									}
-								} catch (NumberFormatException e) {
+								} catch (final NumberFormatException e) {
 
 								}
 							}
@@ -2383,15 +2389,15 @@ public class ProteinClusterQuant {
 			counter = new ProgressCounter(clusterSet.size(), ProgressPrintingType.EVERY_STEP, 0);
 
 			// iterate over cluster set (for each cluster)
-			for (ProteinCluster cluster : clusterSet) {
+			for (final ProteinCluster cluster : clusterSet) {
 				counter.increment();
-				String progress = counter.printIfNecessary();
+				final String progress = counter.printIfNecessary();
 				if (progress != null && !"".equals(progress)) {
 					log.info("Clusters processed (2/2 round): " + progress);
 				}
-				Set<ProteinPair> proteinPairs = cluster.getProteinPairs();
+				final Set<ProteinPair> proteinPairs = cluster.getProteinPairs();
 
-				for (ProteinPair proteinPair : proteinPairs) {
+				for (final ProteinPair proteinPair : proteinPairs) {
 
 					numProteinPairs++;
 					numNonUniqueProteinPairs += proteinPair.getNumSharedNodes();
@@ -2403,7 +2409,7 @@ public class ProteinClusterQuant {
 					}
 
 					// print proteinPair summary
-					for (String summaryLine : proteinPair.getSummaryLines(cond1, cond2)) {
+					for (final String summaryLine : proteinPair.getSummaryLines(cond1, cond2)) {
 						outputPairs.write(summaryLine + "\n");
 					}
 
@@ -2420,9 +2426,9 @@ public class ProteinClusterQuant {
 					// int count = classification1Counters.get(pairCase1) + 1;
 					// classification1Counters.put(pairCase1, count);
 					// }
-					Collection<Classification2Case> pairCases2 = proteinPair.getClassification2Cases().values();
-					for (Classification2Case pairCase2 : pairCases2) {
-						int count = classification2Counters.get(pairCase2) + 1;
+					final Collection<Classification2Case> pairCases2 = proteinPair.getClassification2Cases().values();
+					for (final Classification2Case pairCase2 : pairCases2) {
+						final int count = classification2Counters.get(pairCase2) + 1;
 						classification2Counters.put(pairCase2, count);
 
 					}
@@ -2441,7 +2447,7 @@ public class ProteinClusterQuant {
 
 			// log.info("Number Inconsistent with Cluster: " +
 			// numInconsistenceClusters);
-			StringBuilder stats = new StringBuilder();
+			final StringBuilder stats = new StringBuilder();
 			stats.append("\n-----------------\n");
 			if (params.isApplyClassificationsByProteinPair()) {
 				if (!params.isCollapseIndistinguishablePeptides() || !params.isCollapseIndistinguishableProteins()) {
@@ -2451,16 +2457,16 @@ public class ProteinClusterQuant {
 					stats.append("-----------------\n");
 					stats.append("Protein pair classification 2 (user-defined fold change threshold):\t\n");
 
-					for (Classification2Case case2 : Classification2Case.values()) {
+					for (final Classification2Case case2 : Classification2Case.values()) {
 						stats.append("Number of Case " + case2.getCaseID() + " " + case2.getExplanation() + ":\t"
 								+ classification2Counters.get(case2) + "\n");
 					}
 					// FDR associated with the classification 1:
 					// FDR = Ns/(Ns+Nu/2)
-					int ns = classification2Counters.get(Classification2Case.CASE1);
-					int nu = classification2Counters.get(Classification2Case.CASE3)
+					final int ns = classification2Counters.get(Classification2Case.CASE1);
+					final int nu = classification2Counters.get(Classification2Case.CASE3)
 							+ classification2Counters.get(Classification2Case.CASE4);
-					StringBuilder fdrExplanation2 = new StringBuilder();
+					final StringBuilder fdrExplanation2 = new StringBuilder();
 					fdrExplanation2.append("FDR = Ns/(Ns+Nu/2), where Ns=" + ns + " and Nu="
 							+ classification2Counters.get(Classification2Case.CASE3) + "+"
 							+ classification2Counters.get(Classification2Case.CASE4) + "=" + nu);
@@ -2469,7 +2475,7 @@ public class ProteinClusterQuant {
 						fdr = 100 * ns * 1.0 / (ns + (nu / 2.0));
 
 					}
-					DecimalFormat df = new DecimalFormat("#.#");
+					final DecimalFormat df = new DecimalFormat("#.#");
 					stats.append("Significantly regulated unique peptide nodes FDR = " + df.format(fdr) + "%\n");
 					stats.append("(" + fdrExplanation2 + ")\n");
 					stats.append("-----------------\n");
@@ -2481,15 +2487,15 @@ public class ProteinClusterQuant {
 			stats.append("\n");
 			if (params.isIonsPerPeptideNodeThresholdOn()) {
 				stats.append("Peptide nodes discarded due to minimum number of ions ("
-						+ params.getIonsPerPeptideNodeThreshold() + "):\t"
-						+ PCQFilterByIonCount.getDiscardedPeptideNodes().size() + "\n");
+						+ params.getIonsPerPeptideNodeThreshold() + "):\t" + PCQFilter.getDiscardedPeptideNodes().size()
+						+ "\n");
 			} else {
 				stats.append("No peptide nodes discarded due to minimum number of ions. Filter was disabled.\n");
 			}
 			if (params.isPsmsPerPeptideNodeThresholdOn()) {
 				stats.append("Peptide nodes discarded due to minimum number of PSMs )"
-						+ params.getPsmsPerPeptideNodeThreshold() + "):\t"
-						+ PCQFilterByPSMCount.getDiscardedPeptideNodes().size() + "\n\n");
+						+ params.getPsmsPerPeptideNodeThreshold() + "):\t" + PCQFilter.getDiscardedPeptideNodes().size()
+						+ "\n\n");
 			} else {
 				stats.append("No peptide nodes discarded due to minimum number of PSMs. Filter was disabled.\n\n");
 			}
@@ -2535,7 +2541,7 @@ public class ProteinClusterQuant {
 				stats.append("Number of Peptides:\t " + numPep + "\n");
 				stats.append("Number of Peptides Nodes:\t " + numPepNodes + "\n");
 				stats.append("Number of Peptides Nodes removed by filters:\t "
-						+ PCQFilterByIonCount.getDiscardedPeptideNodes().size() + "\n");
+						+ PCQFilter.getDiscardedPeptideNodes().size() + "\n");
 			} else {
 				stats.append("Number of Peptides:\t " + numPep + "\n");
 				stats.append("Number of Peptides Nodes:\t " + numPepNodes + "\n");
@@ -2574,7 +2580,7 @@ public class ProteinClusterQuant {
 			outputSummary.write(stats.toString() + "\n");
 		} catch (
 
-		IOException e) {
+		final IOException e) {
 			log.error(e.getMessage());
 		} finally {
 			try {
@@ -2584,7 +2590,7 @@ public class ProteinClusterQuant {
 					outputPairs.close();
 				// append parameters file into the summary file
 				appendFiles(outputSummaryFile, setupPropertiesFile);
-			} catch (IOException e) {
+			} catch (final IOException e) {
 				log.error(e.getMessage());
 			}
 
@@ -2599,11 +2605,11 @@ public class ProteinClusterQuant {
 			File file3;
 			file3 = File.createTempFile("TEMP", "tmp");
 			file3.deleteOnExit();
-			FileWriter filewriter = new FileWriter(file3, true);
+			final FileWriter filewriter = new FileWriter(file3, true);
 
 			// Read the file as string
-			String file1Str = FileUtils.readFileToString(file1);
-			String file2Str = FileUtils.readFileToString(file2);
+			final String file1Str = FileUtils.readFileToString(file1);
+			final String file2Str = FileUtils.readFileToString(file2);
 
 			// Write the file
 			filewriter.write(file1Str);
@@ -2611,21 +2617,21 @@ public class ProteinClusterQuant {
 			filewriter.write(file2Str); // true for append
 			filewriter.close();
 			FileUtils.copyFile(file3, file1);
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			e.printStackTrace();
 		}
 
 	}
 
 	private Set<String> getReplicateNamesFromPeptides(Set<QuantifiedPeptideInterface> peptideSet) {
-		Set<String> ret = new THashSet<String>();
-		for (QuantifiedPeptideInterface quantifiedPeptide : peptideSet) {
+		final Set<String> ret = new THashSet<String>();
+		for (final QuantifiedPeptideInterface quantifiedPeptide : peptideSet) {
 			final Set<String> fileNames = quantifiedPeptide.getFileNames();
-			for (String string : fileNames) {
+			for (final String string : fileNames) {
 				// boolean someAdded = false;
 				final String[] replicateIdentifiers = params.getQuantInputFileNamesArray();
 				if (replicateIdentifiers != null) {
-					for (String replicateIdentifier : replicateIdentifiers) {
+					for (final String replicateIdentifier : replicateIdentifiers) {
 						if (string.contains(replicateIdentifier)) {
 							ret.add(replicateIdentifier);
 							// someAdded = true;
