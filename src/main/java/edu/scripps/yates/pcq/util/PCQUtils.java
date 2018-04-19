@@ -281,7 +281,7 @@ public class PCQUtils {
 	private static DTASelectParser getDTASelectParser(File fastaFile, File inputFilefolder, String[] fileNames,
 			char[] enzymeArray, int missedCleavages, boolean semiCleavage, File uniprotReleasesFolder,
 			String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB, String peptideFilterRegexp,
-			Boolean lookForProteoforms) throws FileNotFoundException {
+			boolean lookForProteoforms) throws FileNotFoundException {
 
 		// Set parser (6 files) to peptides
 		final Map<String, RemoteSSHFileReference> xmlFiles = new THashMap<String, RemoteSSHFileReference>();
@@ -299,7 +299,7 @@ public class PCQUtils {
 
 		final DTASelectParser parser = new DTASelectParser(xmlFiles);
 		try {
-
+			parser.setRetrieveFastaIsoforms(lookForProteoforms);
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages, semiCleavage,
@@ -347,8 +347,9 @@ public class PCQUtils {
 		final CensusOutParser parser = new CensusOutParser(xmlFiles, labelsByConditions, numeratorLabel,
 				denominatorLabel);
 		try {
-			final boolean collapseBySites = ProteinClusterQuantParameters.getInstance().isCollapseBySites();
-			parser.setRetrieveFastaIsoforms(collapseBySites);
+			// final boolean collapseBySites =
+			// ProteinClusterQuantParameters.getInstance().isCollapseBySites();
+			parser.setRetrieveFastaIsoforms(lookForProteoforms);
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			parser.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
@@ -428,11 +429,9 @@ public class PCQUtils {
 		if (fastaFile != null) {
 
 			final DBIndexSearchParams defaultDBIndexParams = DBIndexInterface.getDefaultDBIndexParams(fastaFile);
-			final String fastaIndexKey = IndexUtil.createFullIndexFileName(defaultDBIndexParams);
-			if (indexByFastaIndexKey.containsKey(fastaIndexKey)) {
-				return indexByFastaIndexKey.get(fastaIndexKey);
-			}
+
 			((DBIndexSearchParamsImpl) defaultDBIndexParams).setEnzymeArr(enzymeArray, missedCleavages, semicleavage);
+			((DBIndexSearchParamsImpl) defaultDBIndexParams).setSemiCleavage(semicleavage);
 			((DBIndexSearchParamsImpl) defaultDBIndexParams).setEnzymeOffset(0);
 			((DBIndexSearchParamsImpl) defaultDBIndexParams).setEnzymeNocutResidues("");
 			((DBIndexSearchParamsImpl) defaultDBIndexParams).setH2OPlusProtonAdded(true);
@@ -445,7 +444,10 @@ public class PCQUtils {
 				((DBIndexSearchParamsImpl) defaultDBIndexParams)
 						.setPeptideFilter(new PeptideFilterBySequence(peptideFilterRegexp));
 			}
-
+			final String fastaIndexKey = IndexUtil.createFullIndexFileName(defaultDBIndexParams);
+			if (indexByFastaIndexKey.containsKey(fastaIndexKey)) {
+				return indexByFastaIndexKey.get(fastaIndexKey);
+			}
 			final DBIndexInterface dbIndex = new DBIndexInterface(defaultDBIndexParams);
 			indexByFastaIndexKey.put(fastaIndexKey, dbIndex);
 			return dbIndex;
@@ -561,7 +563,7 @@ public class PCQUtils {
 	private static DTASelectParser getDTASelectParserUsingMongoDBIndex(String mongoDBURI, String mongoMassDBName,
 			String mongoSeqDBName, String mongoProtDBName, File inputFilefolder, String[] fileNames,
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
-			String peptideFilterRegexp) throws FileNotFoundException {
+			String peptideFilterRegexp, boolean lookForProteoforms) throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		final Map<String, RemoteSSHFileReference> xmlFiles = new THashMap<String, RemoteSSHFileReference>();
 
@@ -578,6 +580,7 @@ public class PCQUtils {
 		}
 		final DTASelectParser parser = new DTASelectParser(xmlFiles);
 		try {
+			parser.setRetrieveFastaIsoforms(lookForProteoforms);
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			final DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
@@ -1742,7 +1745,8 @@ public class PCQUtils {
 			return getDTASelectParserUsingMongoDBIndex(params.getMongoDBURI(), params.getMongoMassDBName(),
 					params.getMongoSeqDBName(), params.getMongoProtDBName(), params.getInputFileFolder(),
 					inputFileNamesArray, params.getUniprotReleasesFolder(), params.getUniprotVersion(),
-					params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(), params.getPeptideFilterRegexp());
+					params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(), params.getPeptideFilterRegexp(),
+					params.isLookForProteoforms());
 		} else {
 			return getDTASelectParser(params.getFastaFile(), params.getInputFileFolder(), inputFileNamesArray,
 					params.getEnzymeArray(), params.getMissedCleavages(), params.isSemiCleavage(),
