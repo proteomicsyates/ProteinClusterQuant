@@ -102,6 +102,8 @@ public class ProteinClusterQuantParameters {
 	private QuantificationLabel denominatorLabel;
 	private IsobaricRatioType isobaricRatioType;
 	private boolean lookForProteoforms;
+	private boolean ignoreTaxonomies;
+	private boolean ignoreACCFormat;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -1168,5 +1170,21 @@ public class ProteinClusterQuantParameters {
 
 	public void setLookForProteoforms(Boolean lookForProteoforms) {
 		this.lookForProteoforms = lookForProteoforms;
+	}
+
+	public boolean ignoreTaxonomies() {
+		return ignoreTaxonomies;
+	}
+
+	public void setIgnoreTaxonomies(boolean ignoreTaxonomies) {
+		this.ignoreTaxonomies = ignoreTaxonomies;
+	}
+
+	public boolean ignoreACCFormat() {
+		return ignoreACCFormat;
+	}
+
+	public void setIgnoreACCFormat(boolean ignoreACCFormat) {
+		this.ignoreACCFormat = ignoreACCFormat;
 	}
 }

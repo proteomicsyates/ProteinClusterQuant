@@ -42,9 +42,11 @@ public class ProteinClusterQuantProperties extends Properties {
 	 */
 	public String getProperty(String propertyKey, boolean mandatory) {
 		String ret = getProperty(propertyKey);
-		if (ret == null && mandatory) {
+		if ((ret == null || "".equals(ret)) && mandatory) {
 			throw new IllegalArgumentException("Parameter '" + propertyKey + "' is not found");
-
+		}
+		if ("".equals(ret)) {
+			ret = null;
 		}
 		return ret;
 	}

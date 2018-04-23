@@ -11,6 +11,7 @@ import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 import edu.scripps.yates.census.read.util.QuantUtils;
+import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.util.PCQUtils;
 import gnu.trove.set.hash.THashSet;
 
@@ -43,7 +44,7 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 	}
 
 	public PCQProteinNode(ProteinCluster proteinCluster, QuantifiedProteinInterface... proteinCollection) {
-		for (QuantifiedProteinInterface protein : proteinCollection) {
+		for (final QuantifiedProteinInterface protein : proteinCollection) {
 			proteinSet.add(protein);
 		}
 		this.proteinCluster = proteinCluster;
@@ -55,8 +56,8 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 
 	@Override
 	public Set<QuantifiedPeptideInterface> getQuantifiedPeptides() {
-		Set<QuantifiedPeptideInterface> ret = new THashSet<QuantifiedPeptideInterface>();
-		for (PCQPeptideNode peptideNode : getPeptideNodes()) {
+		final Set<QuantifiedPeptideInterface> ret = new THashSet<QuantifiedPeptideInterface>();
+		for (final PCQPeptideNode peptideNode : getPeptideNodes()) {
 			ret.addAll(peptideNode.getQuantifiedPeptides());
 		}
 		return ret;
@@ -83,22 +84,24 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 	}
 
 	public Set<String> getTaxonomies() {
-		if (taxonomies == null) {
-			taxonomies = new THashSet<String>();
-			final List<String> sortedTaxonomies = PCQUtils.getSortedTaxonomies(proteinSet);
-			for (String taxonomy : sortedTaxonomies) {
-				if (taxonomy != null)
-					taxonomies.add(taxonomy);
-			}
+		if (!ProteinClusterQuantParameters.getInstance().ignoreTaxonomies()) {
+			if (taxonomies == null) {
+				taxonomies = new THashSet<String>();
+				final List<String> sortedTaxonomies = PCQUtils.getSortedTaxonomies(proteinSet);
+				for (final String taxonomy : sortedTaxonomies) {
+					if (taxonomy != null)
+						taxonomies.add(taxonomy);
+				}
 
+			}
 		}
 		return taxonomies;
 	}
 
 	@Override
 	public Set<QuantifiedPSMInterface> getQuantifiedPSMs() {
-		Set<QuantifiedPSMInterface> set = new THashSet<QuantifiedPSMInterface>();
-		for (QuantifiedProteinInterface protein : proteinSet) {
+		final Set<QuantifiedPSMInterface> set = new THashSet<QuantifiedPSMInterface>();
+		for (final QuantifiedProteinInterface protein : proteinSet) {
 			set.addAll(protein.getQuantifiedPSMs());
 		}
 		return set;
@@ -116,9 +119,9 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 
 	@Override
 	public String toString() {
-		StringBuilder sb = new StringBuilder();
+		final StringBuilder sb = new StringBuilder();
 		sb.append(getAccession() + "': ");
-		List<PCQPeptideNode> list = new ArrayList<PCQPeptideNode>();
+		final List<PCQPeptideNode> list = new ArrayList<PCQPeptideNode>();
 		list.addAll(getPeptideNodes());
 		Collections.sort(list, new Comparator<PCQPeptideNode>() {
 
@@ -127,8 +130,8 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 				return o1.getSequence().compareTo(o2.getSequence());
 			}
 		});
-		StringBuilder sb2 = new StringBuilder();
-		for (PCQPeptideNode peptideNode : list) {
+		final StringBuilder sb2 = new StringBuilder();
+		for (final PCQPeptideNode peptideNode : list) {
 			if (!"".equals(sb2.toString()))
 				sb2.append(",");
 			sb2.append(peptideNode);
@@ -152,7 +155,7 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 	}
 
 	public void removeProteinsFromPeptidesInNode() {
-		for (QuantifiedProteinInterface protein : proteinSet) {
+		for (final QuantifiedProteinInterface protein : proteinSet) {
 			QuantUtils.discardProtein(protein);
 		}
 	}
@@ -186,7 +189,7 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 		} else {
 			// return true if all peptide nodes are discarded
 			final Set<PCQPeptideNode> peptideNodes2 = getPeptideNodes();
-			for (PCQPeptideNode pcqPeptideNode : peptideNodes2) {
+			for (final PCQPeptideNode pcqPeptideNode : peptideNodes2) {
 				if (!pcqPeptideNode.isDiscarded()) {
 					return false;
 				}
@@ -196,7 +199,7 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 	}
 
 	public boolean containsPTMs() {
-		for (PCQPeptideNode peptideNode : getPeptideNodes()) {
+		for (final PCQPeptideNode peptideNode : getPeptideNodes()) {
 			if (peptideNode.containsPTMs()) {
 				return true;
 			}

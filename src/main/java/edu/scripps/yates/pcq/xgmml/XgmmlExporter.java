@@ -354,7 +354,12 @@ public class XgmmlExporter {
 			}
 
 		} else {
-			createNodesAndEdgesFromProteinNodes(proteinNodes.iterator().next(), null, false, false, false, null, graph);
+			if (proteinNodes.size() > 1) {
+				log.info("asdf");
+			}
+			for (final PCQProteinNode pcqProteinNode : proteinNodes) {
+				createNodesAndEdgesFromProteinNodes(pcqProteinNode, null, false, false, false, null, graph);
+			}
 		}
 		// draw an edge between the aligned peptides
 		final Set<PCQPeptideNode> peptideNodes = proteinCluster.getPeptideNodes();
@@ -461,8 +466,8 @@ public class XgmmlExporter {
 		/////////////////////
 		// U1 peptides unique to protein1
 		if (proteinNode1 != null) {
-			final Set<PCQPeptideNode> peptidesNodesU1 = PCQUtils.getUniquePeptideNodes(proteinNode1, proteinNode2, true,
-					ProteinClusterQuantParameters.getInstance().isRemoveFilteredNodes());
+			final Set<PCQPeptideNode> peptidesNodesU1 = PCQUtils.getUniquePeptideNodes(proteinNode1, proteinNode2,
+					false, ProteinClusterQuantParameters.getInstance().isRemoveFilteredNodes());
 
 			for (final PCQPeptideNode uniquePeptideNode_U1 : peptidesNodesU1) {
 				final String peptidesSequenceString_U1 = uniquePeptideNode_U1.getKey();
@@ -591,7 +596,7 @@ public class XgmmlExporter {
 			}
 
 			// U2 peptides unique to protein 2
-			final Set<PCQPeptideNode> peptidesU2 = PCQUtils.getUniquePeptideNodes(proteinNode2, proteinNode1, true,
+			final Set<PCQPeptideNode> peptidesU2 = PCQUtils.getUniquePeptideNodes(proteinNode2, proteinNode1, false,
 					ProteinClusterQuantParameters.getInstance().isRemoveFilteredNodes());
 			for (final PCQPeptideNode uniquePeptides_U2 : peptidesU2) {
 				final String peptidesSequenceString_U2 = uniquePeptides_U2.getKey();

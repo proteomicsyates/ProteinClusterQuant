@@ -220,6 +220,7 @@ public class ProteinClusterQuant {
 
 			if (idParser != null) {
 				final NonQuantParser nonQuantParser = new NonQuantParser(idParser);
+
 				// add the peptides to the map
 				final Map<String, QuantifiedPeptideInterface> nonQuantPeptideMap = nonQuantParser.getPeptideMap();
 				for (final String peptideKey : nonQuantPeptideMap.keySet()) {
@@ -304,24 +305,26 @@ public class ProteinClusterQuant {
 			}
 			log.info("Final number of clusters after iterations: \t" + clusterSet.size());
 
-			log.info("Identifying protein pairs in " + clusterSet.size() + " clusters...");
-			int numProteinPairs = 0;
-			int loopIndex = 0;
-			int previousPercent = 0;
-			for (final ProteinCluster cluster : clusterSet) {
-				final int percent = (int) ((loopIndex++ * 100.0f) / clusterSet.size());
-				if (previousPercent != percent) {
-					previousPercent = percent;
-					log.info(percent + "% clusters processed (" + loopIndex + "/" + clusterSet.size() + ")");
+			if (params.isApplyClassificationsByProteinPair()) {
+				log.info("Identifying protein pairs in " + clusterSet.size() + " clusters...");
+				int numProteinPairs = 0;
+				int loopIndex = 0;
+				int previousPercent = 0;
+				for (final ProteinCluster cluster : clusterSet) {
+					final int percent = (int) ((loopIndex++ * 100.0f) / clusterSet.size());
+					if (previousPercent != percent) {
+						previousPercent = percent;
+						log.info(percent + "% clusters processed (" + loopIndex + "/" + clusterSet.size() + ")");
+					}
+
+					// create protein pairs in the cluster
+					cluster.createPairs(peptideAlignments);
+
+					// count protein pairs
+					numProteinPairs += cluster.getProteinPairs().size();
 				}
-
-				// create protein pairs in the cluster
-				cluster.createPairs(peptideAlignments);
-				// count protein pairs
-				numProteinPairs += cluster.getProteinPairs().size();
+				log.info(numProteinPairs + " protein pairs identified.");
 			}
-			log.info(numProteinPairs + " protein pairs identified.");
-
 			Map<String, SanxotQuantResult> ratioStatsByPeptideNodeKey = null;
 			if (params.isPerformRatioIntegration()) {
 				// calculating ratios up to peptide_exp_rep level
@@ -413,7 +416,8 @@ public class ProteinClusterQuant {
 					if (newProteinsMap.containsKey(accession)) {
 						protein = newProteinsMap.get(accession);
 					} else {
-						protein = new QuantifiedProteinFromDBIndexEntry(indexedProtein);
+						protein = new QuantifiedProteinFromDBIndexEntry(indexedProtein, params.ignoreTaxonomies(),
+								params.ignoreACCFormat());
 						newProteinsMap.put(accession, protein);
 					}
 					protein.addPeptide(peptide, true);
@@ -1766,7 +1770,14 @@ public class ProteinClusterQuant {
 		final Set<ProteinCluster> clusterSet = new THashSet<ProteinCluster>();
 		log.info("Starting clustering " + peptideMap.size() + " peptides...");
 		long t0 = System.currentTimeMillis();
+		final ProgressCounter counter = new ProgressCounter(peptideMap.values().size(),
+				ProgressPrintingType.PERCENTAGE_STEPS, 0);
 		for (final QuantifiedPeptideInterface peptide : peptideMap.values()) {
+			counter.increment();
+			final String printIfNecessary = counter.printIfNecessary();
+			if (!"".equals(printIfNecessary)) {
+				log.info(printIfNecessary + " peptides clustered");
+			}
 			if (params.isIgnorePTMs() && peptide.containsPTMs()) {
 				continue;
 			}
@@ -1940,7 +1951,8 @@ public class ProteinClusterQuant {
 					if (newProteins.containsKey(proteinPTMKey)) {
 						proteinPTM = (QuantifiedProtein) newProteins.get(proteinPTMKey);
 					} else {
-						proteinPTM = new QuantifiedProtein(protein.getAccession(), proteinPTMKey);
+						proteinPTM = new QuantifiedProtein(protein.getAccession(), proteinPTMKey,
+								params.ignoreTaxonomies());
 						newProteins.put(proteinPTMKey, proteinPTM);
 					}
 					// set accession type

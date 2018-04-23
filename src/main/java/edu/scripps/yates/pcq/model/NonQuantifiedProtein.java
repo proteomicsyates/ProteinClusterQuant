@@ -15,8 +15,8 @@ import edu.scripps.yates.utilities.proteomicsmodel.Amount;
 public class NonQuantifiedProtein extends QuantifiedProtein {
 	private final DTASelectProtein protein;
 
-	public NonQuantifiedProtein(DTASelectProtein protein) {
-		super(FastaParser.getACC(protein.getLocus()).getFirstelement());
+	public NonQuantifiedProtein(DTASelectProtein protein, boolean ignoreTaxonomies) {
+		super(FastaParser.getACC(protein.getLocus()).getFirstelement(), ignoreTaxonomies);
 		this.protein = protein;
 	}
 

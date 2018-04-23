@@ -35,7 +35,7 @@ public class ColorManager {
 	}
 
 	public Color getColorForProteinTaxonomy(String taxonomy) {
-		for (String taxonomies : colorsByTaxonomies.keySet()) {
+		for (final String taxonomies : colorsByTaxonomies.keySet()) {
 			if (taxonomies != null && taxonomy != null && (taxonomies.toLowerCase().contains(taxonomy.toLowerCase())
 					|| (taxonomy != null && taxonomy.toLowerCase().contains(taxonomies.toLowerCase())))) {
 				return colorsByTaxonomies.get(taxonomies);
@@ -160,6 +160,10 @@ public class ColorManager {
 
 	public Color getLabelColorForDiscardedNode() {
 		return Color.gray;
+	}
+
+	public boolean hasColorsByTaxonomy() {
+		return !colorsByTaxonomies.isEmpty();
 	}
 
 }

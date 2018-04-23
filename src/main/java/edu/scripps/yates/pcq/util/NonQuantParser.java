@@ -22,7 +22,8 @@ import edu.scripps.yates.dtaselectparser.util.DTASelectPSM;
 import edu.scripps.yates.dtaselectparser.util.DTASelectProtein;
 import edu.scripps.yates.pcq.model.NonQuantifiedPSM;
 import edu.scripps.yates.pcq.model.NonQuantifiedProtein;
-import edu.scripps.yates.utilities.fasta.FastaParser;
+import edu.scripps.yates.utilities.progresscounter.ProgressCounter;
+import edu.scripps.yates.utilities.progresscounter.ProgressPrintingType;
 
 public class NonQuantParser extends AbstractQuantParser {
 	private final static Logger log = Logger.getLogger(NonQuantParser.class);
@@ -33,7 +34,9 @@ public class NonQuantParser extends AbstractQuantParser {
 		setDbIndex(dtaSelectParser.getDBIndex());
 		setDecoyPattern(dtaSelectParser.getDecoyPattern());
 		setIgnoreNotFoundPeptidesInDB(dtaSelectParser.isIgnoreNotFoundPeptidesInDB());
+		setIgnoreTaxonomies(dtaSelectParser.isIgnoreTaxonomies());
 		setRetrieveFastaIsoforms(dtaSelectParser.isRetrieveFastaIsoforms());
+		setIgnoreACCFormat(dtaSelectParser.isIgnoreACCFormat());
 		// do not clear static maps, in order to get the same objects than a
 		// previous quantparser
 		super.clearStaticMapsBeforeReading = false;
@@ -44,7 +47,15 @@ public class NonQuantParser extends AbstractQuantParser {
 	protected void process() {
 		try {
 			final Map<String, DTASelectPSM> psms = dtaSelectParser.getDTASelectPSMsByPSMID();
+			// wrapping dtaselect psms to PCQ
+			log.info("Wrapping " + psms.size() + " PSMs from DTASelect parser into PCQ");
+			final ProgressCounter counter = new ProgressCounter(psms.size(), ProgressPrintingType.PERCENTAGE_STEPS, 0);
 			for (final DTASelectPSM psm : psms.values()) {
+				counter.increment();
+				final String printIfNecessary = counter.printIfNecessary();
+				if (!"".equals(printIfNecessary)) {
+					log.info("Wrapping PSMs to PCQ... " + printIfNecessary);
+				}
 				processPSM(psm);
 
 			}
@@ -87,7 +98,7 @@ public class NonQuantParser extends AbstractQuantParser {
 			if (quantifiedPSM.getFullSequence().equals("PNS(114.042927)VPQE(14.01565)LAATTEKTEPNSQEDKNDGGK")) {
 				log.info(quantifiedPSM);
 			}
-			quantifiedPeptide = new QuantifiedPeptide(quantifiedPSM);
+			quantifiedPeptide = new QuantifiedPeptide(quantifiedPSM, isIgnoreTaxonomies());
 		}
 		StaticQuantMaps.peptideMap.addItem(quantifiedPeptide);
 
@@ -112,12 +123,13 @@ public class NonQuantParser extends AbstractQuantParser {
 			// create a new Quantified Protein for each
 			// indexedProtein
 			for (final IndexedProtein indexedProtein : indexedProteins) {
-				final String proteinKey = KeyUtils.getProteinKey(indexedProtein);
+				final String proteinKey = KeyUtils.getProteinKey(indexedProtein, isIgnoreACCFormat());
 				QuantifiedProteinInterface quantifiedProtein = null;
 				if (StaticQuantMaps.proteinMap.containsKey(proteinKey)) {
 					quantifiedProtein = StaticQuantMaps.proteinMap.getItem(proteinKey);
 				} else {
-					quantifiedProtein = new QuantifiedProteinFromDBIndexEntry(indexedProtein);
+					quantifiedProtein = new QuantifiedProteinFromDBIndexEntry(indexedProtein, isIgnoreTaxonomies(),
+							isIgnoreACCFormat());
 				}
 				StaticQuantMaps.proteinMap.addItem(quantifiedProtein);
 				// add psm to the proteins
@@ -138,12 +150,12 @@ public class NonQuantParser extends AbstractQuantParser {
 		}
 		final Set<DTASelectProtein> proteins = psm.getProteins();
 		for (final DTASelectProtein dtaSelectProtein : proteins) {
-			final String proteinKey = FastaParser.getACC(dtaSelectProtein.getLocus()).getFirstelement();
+			final String proteinKey = dtaSelectProtein.getAccession();
 			QuantifiedProteinInterface quantifiedProtein = null;
 			if (StaticQuantMaps.proteinMap.containsKey(proteinKey)) {
 				quantifiedProtein = StaticQuantMaps.proteinMap.getItem(proteinKey);
 			} else {
-				quantifiedProtein = new NonQuantifiedProtein(dtaSelectProtein);
+				quantifiedProtein = new NonQuantifiedProtein(dtaSelectProtein, isIgnoreTaxonomies());
 			}
 			StaticQuantMaps.proteinMap.addItem(quantifiedProtein);
 			// add psm to the proteins

@@ -69,6 +69,7 @@ import edu.scripps.yates.utilities.strings.StringUtils;
 import edu.scripps.yates.utilities.util.Pair;
 import edu.scripps.yates.utilities.util.StringPosition;
 import gnu.trove.map.hash.THashMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.set.hash.THashSet;
 import gnu.trove.set.hash.TIntHashSet;
 
@@ -84,6 +85,7 @@ public class PCQUtils {
 	public static final String FDR_CONFIDENCE_SCORE_NAME = "FDR";
 	private static Map<String, QuantParser> quantParsersByFileNamesKey = new THashMap<String, QuantParser>();
 	private static Map<String, DTASelectParser> dtaSelectParsersByFileNamesKey = new THashMap<String, DTASelectParser>();
+	private static TIntObjectHashMap<Set<String>> cachedProteinNodeAccessionStringsByQuantifiedPeptide = new TIntObjectHashMap<Set<String>>();
 	public static final String KEY_SEPARATOR = "-";
 	public static final ProteinSequences proteinSequences = new ProteinSequences();
 
@@ -260,6 +262,8 @@ public class PCQUtils {
 			parser.addIonExclusion(IonSerieType.Y, 1);
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
+			parser.setIgnoreTaxonomies(ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
+			parser.setIgnoreACCFormat(ProteinClusterQuantParameters.getInstance().ignoreACCFormat());
 			if (quantifiedAAs != null) {
 				for (final char quantifiedAA : quantifiedAAs) {
 					parser.addQuantifiedAA(quantifiedAA);
@@ -302,6 +306,8 @@ public class PCQUtils {
 			parser.setRetrieveFastaIsoforms(lookForProteoforms);
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
+			parser.setIgnoreTaxonomies(ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
+			parser.setIgnoreACCFormat(ProteinClusterQuantParameters.getInstance().ignoreACCFormat());
 			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages, semiCleavage,
 					peptideFilterRegexp, uniprotReleasesFolder, lookForProteoforms);
 			parser.setDbIndex(fastaDBIndex);
@@ -352,6 +358,8 @@ public class PCQUtils {
 			parser.setRetrieveFastaIsoforms(lookForProteoforms);
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
+			parser.setIgnoreTaxonomies(ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
+			parser.setIgnoreACCFormat(ProteinClusterQuantParameters.getInstance().ignoreACCFormat());
 			parser.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
 					onlyOneSpectrumPerChromatographicPeakAndPerSaltStep);
 			parser.setSkipSingletons(skipSingletons);
@@ -393,7 +401,7 @@ public class PCQUtils {
 			return (SeparatedValuesParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
 		final SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, labelsByConditions,
-				numeratorLabel, denominatorLabel);
+				numeratorLabel, denominatorLabel, ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
 		try {
 			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
 			parser.setDecoyPattern(decoyRegexp);
@@ -483,6 +491,8 @@ public class PCQUtils {
 			parser.addIonExclusion(IonSerieType.Y, 1);
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
+			parser.setIgnoreTaxonomies(ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
+			parser.setIgnoreACCFormat(ProteinClusterQuantParameters.getInstance().ignoreACCFormat());
 			if (quantifiedAAs != null) {
 				for (final char quantifiedAA : quantifiedAAs) {
 					parser.addQuantifiedAA(quantifiedAA);
@@ -540,6 +550,8 @@ public class PCQUtils {
 			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
+			parser.setIgnoreTaxonomies(ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
+			parser.setIgnoreACCFormat(ProteinClusterQuantParameters.getInstance().ignoreACCFormat());
 			parser.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
 					onlyOneSpectrumPerChromatographicPeakAndPerSaltStep);
 			parser.setSkipSingletons(skipSingletons);
@@ -583,6 +595,8 @@ public class PCQUtils {
 			parser.setRetrieveFastaIsoforms(lookForProteoforms);
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
+			parser.setIgnoreACCFormat(ProteinClusterQuantParameters.getInstance().ignoreACCFormat());
+			parser.setIgnoreTaxonomies(ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
 			final DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
 					mongoProtDBName, peptideFilterRegexp);
 			parser.setDbIndex(dbIndex);
@@ -617,7 +631,7 @@ public class PCQUtils {
 			return (SeparatedValuesParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
 		final SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, labelsByConditions,
-				numeratorLabel, denominatorLabel);
+				numeratorLabel, denominatorLabel, ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
 		try {
 			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
 			parser.setDecoyPattern(decoyRegexp);
@@ -898,7 +912,13 @@ public class PCQUtils {
 				}
 				if (include) {
 					// peptide shared by protein1 and protein2
-					final String proteinAccKey = PCQUtils.getProteinNodeAccessionString(proteinNodes);
+					// final String proteinAccKey =
+					// PCQUtils.getProteinNodeAccessionString(proteinNodes);
+					// change to cache the creation of
+					// peoteinNodeAccessionString which is slow with very
+					// redundant networks
+					final String proteinAccKey = PCQUtils.getProteinNodeAccessionString(peptideNode);
+
 					if (map.containsKey(proteinAccKey)) {
 						map.get(proteinAccKey).add(peptideNode);
 					} else {
@@ -910,6 +930,24 @@ public class PCQUtils {
 			}
 		}
 		return map;
+	}
+
+	private final static TIntObjectHashMap<String> cachedProteinNodeAccessionStringsByPeptideNode = new TIntObjectHashMap<String>();
+
+	/**
+	 * Gets the proteinNodeAccessionString from a peptideNode's proteinNode set,
+	 * which is cached to speed up the process
+	 * 
+	 * @param peptideNode
+	 * @return
+	 */
+	private static String getProteinNodeAccessionString(PCQPeptideNode peptideNode) {
+		if (!cachedProteinNodeAccessionStringsByPeptideNode.containsKey(peptideNode.hashCode())) {
+			final String proteinAccKey = PCQUtils.getProteinNodeAccessionString(peptideNode.getProteinNodes());
+			cachedProteinNodeAccessionStringsByPeptideNode.put(peptideNode.hashCode(), proteinAccKey);
+			return proteinAccKey;
+		}
+		return cachedProteinNodeAccessionStringsByPeptideNode.get(peptideNode.hashCode());
 	}
 
 	/**
@@ -1608,11 +1646,12 @@ public class PCQUtils {
 
 	public static boolean peptidesShareAllProteins(QuantifiedPeptideInterface peptide1,
 			QuantifiedPeptideInterface peptide2) {
-		final Set<QuantifiedProteinInterface> proteins1 = peptide1.getQuantifiedProteins();
-		final Set<QuantifiedProteinInterface> proteins2 = peptide2.getQuantifiedProteins();
 
-		final Set<String> proteinAccs1 = PCQUtils.getAccessions(proteins1);
-		final Set<String> proteinAccs2 = PCQUtils.getAccessions(proteins2);
+		final Set<String> proteinAccs1 = PCQUtils.getAccessions(peptide1);
+		final Set<String> proteinAccs2 = PCQUtils.getAccessions(peptide2);
+		if (proteinAccs1.size() == 1 && proteinAccs2.size() == 1) {
+			return proteinAccs1.iterator().next().equals(proteinAccs2.iterator().next());
+		}
 		if (proteinAccs1.size() == proteinAccs2.size()) {
 			for (final String acc1 : proteinAccs1) {
 				if (!proteinAccs2.contains(acc1)) {
@@ -1622,6 +1661,16 @@ public class PCQUtils {
 			return true;
 		}
 		return false;
+	}
+
+	private static Set<String> getAccessions(QuantifiedPeptideInterface peptide1) {
+		if (!cachedProteinNodeAccessionStringsByQuantifiedPeptide.containsKey(peptide1.hashCode())) {
+			final Set<QuantifiedProteinInterface> quantifiedProteins = peptide1.getQuantifiedProteins();
+			final Set<String> accs = getAccessions(quantifiedProteins);
+			cachedProteinNodeAccessionStringsByQuantifiedPeptide.put(peptide1.hashCode(), accs);
+			return accs;
+		}
+		return cachedProteinNodeAccessionStringsByQuantifiedPeptide.get(peptide1.hashCode());
 	}
 
 	private static Set<String> getAccessions(Set<QuantifiedProteinInterface> proteins) {
@@ -1854,6 +1903,9 @@ public class PCQUtils {
 
 	public static boolean proteinsShareAllPeptides(Collection<QuantifiedProteinInterface> proteins1,
 			Collection<QuantifiedProteinInterface> proteins2) {
+		if (proteins1.size() == 1 && proteins2.size() == 1) {
+			return proteinsShareAllPeptides(proteins1.iterator().next(), proteins2.iterator().next());
+		}
 		final Set<QuantifiedPeptideInterface> peptides1 = new THashSet<QuantifiedPeptideInterface>();
 		for (final QuantifiedProteinInterface protein1 : proteins1) {
 			peptides1.addAll(protein1.getQuantifiedPeptides());
@@ -1862,6 +1914,21 @@ public class PCQUtils {
 		for (final QuantifiedProteinInterface protein2 : proteins2) {
 			peptides2.addAll(protein2.getQuantifiedPeptides());
 		}
+		if (peptides1.size() == peptides2.size()) {
+			for (final QuantifiedPeptideInterface peptide2 : peptides2) {
+				if (!peptides1.contains(peptide2)) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return false;
+	}
+
+	public static boolean proteinsShareAllPeptides(QuantifiedProteinInterface protein1,
+			QuantifiedProteinInterface protein2) {
+		final Set<QuantifiedPeptideInterface> peptides1 = protein1.getQuantifiedPeptides();
+		final Set<QuantifiedPeptideInterface> peptides2 = protein2.getQuantifiedPeptides();
 		if (peptides1.size() == peptides2.size()) {
 			for (final QuantifiedPeptideInterface peptide2 : peptides2) {
 				if (!peptides1.contains(peptide2)) {
