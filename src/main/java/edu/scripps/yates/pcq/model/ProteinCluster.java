@@ -567,7 +567,8 @@ public class ProteinCluster {
 		// initialize proteoform fasta parser
 		if (ProteinClusterQuantParameters.getInstance().isLookForProteoforms()) {
 			final UniprotProteoformRetriever proteoFormRetriever = new UniprotProteoformRetrieverFromXML(
-					PCQUtils.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder()));
+					PCQUtils.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder()),
+					ProteinClusterQuantParameters.getInstance().getUniprotVersion());
 			final ProteoFormFastaReader proteoformFastaParser = new ProteoFormFastaReader(
 					ProteinClusterQuantParameters.getInstance().getFastaFile().getAbsolutePath(), proteoFormRetriever);
 
