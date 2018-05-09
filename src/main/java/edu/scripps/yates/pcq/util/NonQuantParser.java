@@ -89,9 +89,6 @@ public class NonQuantParser extends AbstractQuantParser {
 		// create the peptide
 		QuantifiedPeptideInterface quantifiedPeptide = null;
 		final String peptideKey = KeyUtils.getSequenceKey(quantifiedPSM, true);
-		if (peptideKey.equals("EHALAQAELLK")) {
-			log.info(quantifiedPSM);
-		}
 		if (StaticQuantMaps.peptideMap.containsKey(peptideKey)) {
 			quantifiedPeptide = StaticQuantMaps.peptideMap.getItem(peptideKey);
 		} else {

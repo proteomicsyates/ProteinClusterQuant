@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import edu.scripps.yates.annotations.uniprot.proteoform.UniprotProteoformRetriever;
+import edu.scripps.yates.annotations.uniprot.proteoform.xml.UniprotProteoformRetrieverFromXML;
 import edu.scripps.yates.census.analysis.QuantParameters;
 import edu.scripps.yates.census.read.util.QuantificationLabel;
 import edu.scripps.yates.pcq.compare.ComparisonInput;
@@ -18,6 +20,7 @@ import edu.scripps.yates.pcq.model.IsobaricRatioType;
 import edu.scripps.yates.pcq.sanxot.SanxotRunner;
 import edu.scripps.yates.pcq.util.AnalysisInputType;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
+import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.pcq.xgmml.util.ColorManager;
 import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
 import edu.scripps.yates.pcq.xgmml.util.Shape;
@@ -104,6 +107,7 @@ public class ProteinClusterQuantParameters {
 	private boolean lookForProteoforms;
 	private boolean ignoreTaxonomies;
 	private boolean ignoreACCFormat;
+	private UniprotProteoformRetrieverFromXML uniprotProteoformRetrieverFromXML;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -1186,5 +1190,13 @@ public class ProteinClusterQuantParameters {
 
 	public void setIgnoreACCFormat(boolean ignoreACCFormat) {
 		this.ignoreACCFormat = ignoreACCFormat;
+	}
+
+	public UniprotProteoformRetriever getUniprotProteoformRetrieverFromXML() {
+		if (uniprotProteoformRetrieverFromXML == null) {
+			uniprotProteoformRetrieverFromXML = new UniprotProteoformRetrieverFromXML(
+					PCQUtils.getUniprotProteinLocalRetrieverByFolder(getUniprotReleasesFolder()), getUniprotVersion());
+		}
+		return uniprotProteoformRetrieverFromXML;
 	}
 }

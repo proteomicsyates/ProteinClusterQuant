@@ -56,6 +56,7 @@ import edu.scripps.yates.pcq.model.ProteinCluster;
 import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.xgmml.util.AlignedPeptides;
 import edu.scripps.yates.pcq.xgmml.util.AlignmentSet;
+import edu.scripps.yates.proteoform_dbindex.ProteoformDBIndexInterface;
 import edu.scripps.yates.utilities.alignment.nwalign.NWAlign;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.maths.Maths;
@@ -85,7 +86,7 @@ public class PCQUtils {
 	public static final String FDR_CONFIDENCE_SCORE_NAME = "FDR";
 	private static Map<String, QuantParser> quantParsersByFileNamesKey = new THashMap<String, QuantParser>();
 	private static Map<String, DTASelectParser> dtaSelectParsersByFileNamesKey = new THashMap<String, DTASelectParser>();
-	private static TIntObjectHashMap<Set<String>> cachedProteinNodeAccessionStringsByQuantifiedPeptide = new TIntObjectHashMap<Set<String>>();
+	private static TIntObjectHashMap<Set<String>> cachedProteinNodeKeysStringsByQuantifiedPeptide = new TIntObjectHashMap<Set<String>>();
 	public static final String KEY_SEPARATOR = "-";
 	public static final ProteinSequences proteinSequences = new ProteinSequences();
 
@@ -271,7 +272,7 @@ public class PCQUtils {
 			}
 
 			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages, semiCleavage,
-					peptideFilterRegexp, uniprotReleasesFolder, lookForProteoforms);
+					peptideFilterRegexp, uniprotReleasesFolder, uniprotVersion, lookForProteoforms);
 			parser.setDbIndex(fastaDBIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
@@ -309,7 +310,7 @@ public class PCQUtils {
 			parser.setIgnoreTaxonomies(ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
 			parser.setIgnoreACCFormat(ProteinClusterQuantParameters.getInstance().ignoreACCFormat());
 			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages, semiCleavage,
-					peptideFilterRegexp, uniprotReleasesFolder, lookForProteoforms);
+					peptideFilterRegexp, uniprotReleasesFolder, uniprotVersion, lookForProteoforms);
 			parser.setDbIndex(fastaDBIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
@@ -364,7 +365,7 @@ public class PCQUtils {
 					onlyOneSpectrumPerChromatographicPeakAndPerSaltStep);
 			parser.setSkipSingletons(skipSingletons);
 			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages, semiCleavage,
-					peptideFilterRegexp, uniprotReleasesFolder, lookForProteoforms);
+					peptideFilterRegexp, uniprotReleasesFolder, uniprotVersion, lookForProteoforms);
 			parser.setDbIndex(fastaDBIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
@@ -407,7 +408,7 @@ public class PCQUtils {
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages, semiCleavage,
-					peptideFilterRegexp, uniprotReleasesFolder, lookForProteoforms);
+					peptideFilterRegexp, uniprotReleasesFolder, uniprotVersion, lookForProteoforms);
 			parser.setDbIndex(fastaDBIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
@@ -433,7 +434,8 @@ public class PCQUtils {
 	}
 
 	public static DBIndexInterface getFastaDBIndex(File fastaFile, char[] enzymeArray, int missedCleavages,
-			boolean semicleavage, String peptideFilterRegexp, File uniprotReleasesFolder, Boolean lookForProteoforms) {
+			boolean semicleavage, String peptideFilterRegexp, File uniprotReleasesFolder, String uniprotVersion,
+			Boolean lookForProteoforms) {
 		if (fastaFile != null) {
 
 			final DBIndexSearchParams defaultDBIndexParams = DBIndexInterface.getDefaultDBIndexParams(fastaFile);
@@ -445,6 +447,7 @@ public class PCQUtils {
 			((DBIndexSearchParamsImpl) defaultDBIndexParams).setH2OPlusProtonAdded(true);
 			((DBIndexSearchParamsImpl) defaultDBIndexParams).setUniprotReleasesFolder(uniprotReleasesFolder);
 			((DBIndexSearchParamsImpl) defaultDBIndexParams).setLookProteoforms(lookForProteoforms);
+			((DBIndexSearchParamsImpl) defaultDBIndexParams).setUniprotVersion(uniprotVersion);
 			// if looking for proteoforms, not use in memory
 			final boolean inMemoryIndex = !lookForProteoforms;
 			((DBIndexSearchParamsImpl) defaultDBIndexParams).setInMemoryIndex(inMemoryIndex);
@@ -452,11 +455,25 @@ public class PCQUtils {
 				((DBIndexSearchParamsImpl) defaultDBIndexParams)
 						.setPeptideFilter(new PeptideFilterBySequence(peptideFilterRegexp));
 			}
-			final String fastaIndexKey = IndexUtil.createFullIndexFileName(defaultDBIndexParams);
+
+			final boolean useUniprot = true;
+			final boolean usePhosphosite = false;
+			final String phosphositeSpecies = null;
+			final int maxVariationsPerPeptide = 1;
+			final StringBuilder sufix = new StringBuilder(", useUniprot=").append(useUniprot)
+					.append(", usePhosphosite=").append(usePhosphosite);
+			if (usePhosphosite) {
+				sufix.append(", phosphositeSpecies=").append(phosphositeSpecies);
+			}
+			sufix.append(", maxVariationsPerPeptide=").append(maxVariationsPerPeptide);
+			final String fastaIndexKey = IndexUtil.createFullIndexFileName(defaultDBIndexParams, sufix.toString());
 			if (indexByFastaIndexKey.containsKey(fastaIndexKey)) {
 				return indexByFastaIndexKey.get(fastaIndexKey);
 			}
-			final DBIndexInterface dbIndex = new DBIndexInterface(defaultDBIndexParams);
+			((DBIndexSearchParamsImpl) defaultDBIndexParams).setFullIndexFileName(fastaIndexKey);
+			final UniprotProteinLocalRetriever uplr = getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder);
+			final DBIndexInterface dbIndex = new ProteoformDBIndexInterface(defaultDBIndexParams, useUniprot,
+					usePhosphosite, phosphositeSpecies, uplr, uniprotVersion, maxVariationsPerPeptide);
 			indexByFastaIndexKey.put(fastaIndexKey, dbIndex);
 			return dbIndex;
 		}
@@ -500,7 +517,7 @@ public class PCQUtils {
 			}
 
 			final DBIndexInterface mongoDBIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
-					mongoProtDBName, peptideFilterRegexp);
+					mongoProtDBName, peptideFilterRegexp, uniprotVersion);
 			parser.setDbIndex(mongoDBIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
@@ -517,7 +534,8 @@ public class PCQUtils {
 			return null;
 		}
 		if (!uplrMap.containsKey(uniprotReleasesFolder.getAbsolutePath())) {
-			final UniprotProteinLocalRetriever uplr = new UniprotProteinLocalRetriever(uniprotReleasesFolder, true);
+			final UniprotProteinLocalRetriever uplr = new UniprotProteinLocalRetriever(uniprotReleasesFolder, true,
+					true, true);
 			uplrMap.put(uniprotReleasesFolder.getAbsolutePath(), uplr);
 		}
 		return uplrMap.get(uniprotReleasesFolder.getAbsolutePath());
@@ -556,7 +574,7 @@ public class PCQUtils {
 					onlyOneSpectrumPerChromatographicPeakAndPerSaltStep);
 			parser.setSkipSingletons(skipSingletons);
 			final DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
-					mongoProtDBName, peptideFilterRegexp);
+					mongoProtDBName, peptideFilterRegexp, uniprotVersion);
 			parser.setDbIndex(dbIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
@@ -598,7 +616,7 @@ public class PCQUtils {
 			parser.setIgnoreACCFormat(ProteinClusterQuantParameters.getInstance().ignoreACCFormat());
 			parser.setIgnoreTaxonomies(ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
 			final DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
-					mongoProtDBName, peptideFilterRegexp);
+					mongoProtDBName, peptideFilterRegexp, uniprotVersion);
 			parser.setDbIndex(dbIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
@@ -637,7 +655,7 @@ public class PCQUtils {
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			final DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
-					mongoProtDBName, peptideFilterRegexp);
+					mongoProtDBName, peptideFilterRegexp, uniprotVersion);
 			parser.setDbIndex(dbIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
@@ -653,7 +671,7 @@ public class PCQUtils {
 	}
 
 	private static DBIndexInterface getMongoDBIndex(String mongoDBURI, String mongoMassDBName, String mongoSeqDBName,
-			String mongoProtDBName, String peptideFilterRegexp) {
+			String mongoProtDBName, String peptideFilterRegexp, String uniprotVersion) {
 
 		if (mongoDBURI != null) {
 			log.info("Using mongoDB at: " + mongoDBURI + " massDBName:" + mongoMassDBName + " seqDBName:"
@@ -664,7 +682,7 @@ public class PCQUtils {
 				peptideFilter = new PeptideFilterBySequence(peptideFilterRegexp);
 			}
 			final DBIndexSearchParamsImpl params = new DBIndexSearchParamsImpl(mongoDBURI, mongoMassDBName,
-					mongoSeqDBName, mongoProtDBName, peptideFilter);
+					mongoSeqDBName, mongoProtDBName, peptideFilter, uniprotVersion);
 			final DBIndexInterface dbIndex = new DBIndexInterface(params);
 			return dbIndex;
 		}
@@ -1647,8 +1665,8 @@ public class PCQUtils {
 	public static boolean peptidesShareAllProteins(QuantifiedPeptideInterface peptide1,
 			QuantifiedPeptideInterface peptide2) {
 
-		final Set<String> proteinAccs1 = PCQUtils.getAccessions(peptide1);
-		final Set<String> proteinAccs2 = PCQUtils.getAccessions(peptide2);
+		final Set<String> proteinAccs1 = PCQUtils.getKeys(peptide1);
+		final Set<String> proteinAccs2 = PCQUtils.getKeys(peptide2);
 		if (proteinAccs1.size() == 1 && proteinAccs2.size() == 1) {
 			return proteinAccs1.iterator().next().equals(proteinAccs2.iterator().next());
 		}
@@ -1663,20 +1681,23 @@ public class PCQUtils {
 		return false;
 	}
 
-	private static Set<String> getAccessions(QuantifiedPeptideInterface peptide1) {
-		if (!cachedProteinNodeAccessionStringsByQuantifiedPeptide.containsKey(peptide1.hashCode())) {
+	private static Set<String> getKeys(QuantifiedPeptideInterface peptide1) {
+		if (!cachedProteinNodeKeysStringsByQuantifiedPeptide.containsKey(peptide1.hashCode())) {
+			if (peptide1.containsPTMs()) {
+				log.info(peptide1);
+			}
 			final Set<QuantifiedProteinInterface> quantifiedProteins = peptide1.getQuantifiedProteins();
-			final Set<String> accs = getAccessions(quantifiedProteins);
-			cachedProteinNodeAccessionStringsByQuantifiedPeptide.put(peptide1.hashCode(), accs);
+			final Set<String> accs = getKeys(quantifiedProteins);
+			cachedProteinNodeKeysStringsByQuantifiedPeptide.put(peptide1.hashCode(), accs);
 			return accs;
 		}
-		return cachedProteinNodeAccessionStringsByQuantifiedPeptide.get(peptide1.hashCode());
+		return cachedProteinNodeKeysStringsByQuantifiedPeptide.get(peptide1.hashCode());
 	}
 
-	private static Set<String> getAccessions(Set<QuantifiedProteinInterface> proteins) {
+	private static Set<String> getKeys(Set<QuantifiedProteinInterface> proteins) {
 		final Set<String> accs = new THashSet<String>();
 		for (final QuantifiedProteinInterface protein : proteins) {
-			accs.add(protein.getAccession());
+			accs.add(protein.getKey());
 		}
 		return accs;
 	}
@@ -2618,6 +2639,9 @@ public class PCQUtils {
 	 * @return
 	 */
 	public static String getPositionsInProteinsKey(List<PositionInProtein> keys1) {
+		if (keys1 == null) {
+			return null;
+		}
 		Collections.sort(keys1, new Comparator<PositionInProtein>() {
 
 			@Override

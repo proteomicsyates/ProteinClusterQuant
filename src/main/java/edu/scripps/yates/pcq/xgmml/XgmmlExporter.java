@@ -354,9 +354,6 @@ public class XgmmlExporter {
 			}
 
 		} else {
-			if (proteinNodes.size() > 1) {
-				log.info("asdf");
-			}
 			for (final PCQProteinNode pcqProteinNode : proteinNodes) {
 				createNodesAndEdgesFromProteinNodes(pcqProteinNode, null, false, false, false, null, graph);
 			}
@@ -826,7 +823,7 @@ public class XgmmlExporter {
 		}
 		final Set<QuantifiedPeptideInterface> quantifiedPeptides = peptideNode.getQuantifiedPeptides();
 		if (!peptideNode.getKey().contentEquals(peptideNode.getFullSequence())) {
-			sb.append(peptideNode.getKey() + "\n");
+			sb.append(getSequenceAnnotated(peptideNode.getKey(), null) + "\n");
 		}
 		sb.append(getSequenceAnnotated(peptideNode) + "\n");
 
@@ -935,15 +932,18 @@ public class XgmmlExporter {
 			}
 			return sb.toString();
 		} else {
-			return peptideNode.getFullSequence();
+			return getSequenceAnnotated(peptideNode.getFullSequence(), null);
 		}
 	}
 
 	private String getSequenceAnnotated(QuantifiedPeptideInterface peptide, PositionInPeptide positionInPeptide) {
-		if (ProteinClusterQuantParameters.getInstance().isCollapseBySites()) {
+		return getSequenceAnnotated(peptide.getFullSequence(), positionInPeptide);
+	}
+
+	private String getSequenceAnnotated(String fullSequence, PositionInPeptide positionInPeptide) {
+		if (ProteinClusterQuantParameters.getInstance().isCollapseBySites() && positionInPeptide != null) {
 			final StringBuilder sb = new StringBuilder();
 
-			final String fullSequence = peptide.getFullSequence();
 			final int position = positionInPeptide.getPosition();
 			int currentposition = 0;
 			boolean isPTM = false;
@@ -952,25 +952,45 @@ public class XgmmlExporter {
 				final char charAt = fullSequence.charAt(i);
 				if (charAt == '(' || charAt == '[') {
 					isPTM = true;
+					sb.append("<b>" + charAt);
 					continue;
 				}
 				if (charAt == ')' || charAt == ']') {
 					isPTM = false;
+					sb.append(charAt + "</b>");
 					continue;
 				}
 				if (!isPTM) {
 					currentposition++;
 					if (currentposition == position) {
 						sb.append("<b>" + charAt + "</b>");
-					} else {
-						sb.append(charAt);
+						continue;
 					}
 				}
+				sb.append(charAt);
+
 			}
 
 			return sb.toString();
 		} else {
-			return peptide.getFullSequence();
+			final StringBuilder sb = new StringBuilder();
+
+			for (int i = 0; i < fullSequence.length(); i++) {
+
+				final char charAt = fullSequence.charAt(i);
+				if (charAt == '(' || charAt == '[') {
+					sb.append("<b>" + charAt);
+					continue;
+				}
+				if (charAt == ')' || charAt == ']') {
+					sb.append(charAt + "</b>");
+					continue;
+				}
+				sb.append(charAt);
+
+			}
+
+			return sb.toString();
 		}
 	}
 

@@ -15,9 +15,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 
 import edu.scripps.yates.annotations.uniprot.UniprotProteinLocalRetriever;
-import edu.scripps.yates.annotations.uniprot.proteoform.UniprotProteoformRetriever;
 import edu.scripps.yates.annotations.uniprot.proteoform.fasta.ProteoFormFastaReader;
-import edu.scripps.yates.annotations.uniprot.proteoform.xml.UniprotProteoformRetrieverFromXML;
 import edu.scripps.yates.census.read.model.IsobaricQuantifiedPeptide;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
@@ -237,11 +235,6 @@ public class ProteinCluster {
 			} else {
 				set.add(pep.getKey());
 			}
-			if (pep.getKey().equals("VTGTFIEKYDPTIEDFY")) {
-				for (final QuantifiedProteinInterface protein : pep.getQuantifiedProteins()) {
-					System.out.println(protein.getAccession());
-				}
-			}
 		}
 		// to not include the same peptide in different peptide nodes
 		final Map<QuantifiedPeptideInterface, PCQPeptideNode> peptideNodesByPeptides = new HashMap<QuantifiedPeptideInterface, PCQPeptideNode>();
@@ -251,7 +244,7 @@ public class ProteinCluster {
 				final QuantifiedPeptideInterface peptide1 = peptides.get(i);
 				final String sequence1 = peptide1.getSequence();
 				// discard if it doesn't contain any quantified aa
-				if (!PCQUtils.containsAny(sequence1, quantifiedAAs)) {
+				if (getParams().isRemoveFilteredNodes() && !PCQUtils.containsAny(sequence1, quantifiedAAs)) {
 					if (!peptideSequencesDiscarded.contains(sequence1)) {
 						peptideSequencesDiscarded.add(sequence1);
 						log.info(sequence1 + " discarded for not having one quantitation sites from '"
@@ -262,7 +255,7 @@ public class ProteinCluster {
 				}
 				// if it is not isobaric peptide and it has more than one
 				// quantified site, it cannot be distinguish, so we discard it.
-				if (!(peptide1 instanceof IsobaricQuantifiedPeptide)
+				if (getParams().isRemoveFilteredNodes() && !(peptide1 instanceof IsobaricQuantifiedPeptide)
 						&& PCQUtils.howManyContains(sequence1, quantifiedAAs) > 1) {
 					if (!peptideSequencesDiscarded.contains(sequence1)) {
 						peptideSequencesDiscarded.add(sequence1);
@@ -294,7 +287,7 @@ public class ProteinCluster {
 					final QuantifiedPeptideInterface peptide2 = peptides.get(j);
 					final String sequence2 = peptide2.getSequence();
 					// discard if it doesn't contain any quantified aa
-					if (!PCQUtils.containsAny(sequence2, quantifiedAAs)) {
+					if (getParams().isRemoveFilteredNodes() && !PCQUtils.containsAny(sequence2, quantifiedAAs)) {
 						if (!peptideSequencesDiscarded.contains(sequence2)) {
 							peptideSequencesDiscarded.add(sequence2);
 							log.info(sequence2 + " discarded for not having one quantitation sites from '"
@@ -306,7 +299,7 @@ public class ProteinCluster {
 					// if it is not isobaric peptide and it has more than one
 					// quantified site, it cannot be distinguish, so we discard
 					// it.
-					if (!(peptide2 instanceof IsobaricQuantifiedPeptide)
+					if (getParams().isRemoveFilteredNodes() && !(peptide2 instanceof IsobaricQuantifiedPeptide)
 							&& PCQUtils.howManyContains(sequence2, quantifiedAAs) > 1) {
 						if (!peptideSequencesDiscarded.contains(sequence2)) {
 							peptideSequencesDiscarded.add(sequence2);
@@ -323,10 +316,11 @@ public class ProteinCluster {
 					// - it could be shared by more than one protein
 					// - it could have more than one quantified aminoacid in its
 					// sequence
+
 					final Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = peptide2
 							.getProteinKeysByPeptideKeysForQuantifiedAAs(quantifiedAAs, uplr,
 									PCQUtils.proteinSequences);
-					if (proteinKeysByPeptide2Keys.isEmpty()) {
+					if (getParams().isRemoveFilteredNodes() && proteinKeysByPeptide2Keys.isEmpty()) {
 						if (!peptideSequencesDiscarded.contains(sequence2)) {
 							peptideSequencesDiscarded.add(sequence2);
 							// peptides without a site mapped to a protein are
@@ -566,21 +560,29 @@ public class ProteinCluster {
 		}
 		// initialize proteoform fasta parser
 		if (ProteinClusterQuantParameters.getInstance().isLookForProteoforms()) {
-			final UniprotProteoformRetriever proteoFormRetriever = new UniprotProteoformRetrieverFromXML(
-					PCQUtils.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder()),
-					ProteinClusterQuantParameters.getInstance().getUniprotVersion());
-			final ProteoFormFastaReader proteoformFastaParser = new ProteoFormFastaReader(
-					ProteinClusterQuantParameters.getInstance().getFastaFile().getAbsolutePath(), proteoFormRetriever);
+			final ProteoFormFastaReader proteoformFastaParser = new ProteoFormFastaReader(proteinMap.keySet(),
+					getParams().getUniprotProteoformRetrieverFromXML());
 
-			final ProgressCounter counter = new ProgressCounter(proteoformFastaParser.getNumberFastas(),
-					ProgressPrintingType.PERCENTAGE_STEPS, 0);
+			int numberFastas = 0;
+			try {
+				numberFastas = proteoformFastaParser.getNumberFastas();
+			} catch (final IOException e) {
+				// it is because it is using an iterator for the proteoforms, so
+				// we dont know how many are
+			}
+			int c = 0;
+			final ProgressCounter counter = new ProgressCounter(numberFastas, ProgressPrintingType.PERCENTAGE_STEPS, 0);
 			final Iterator<Fasta> proteoFormFastaIterator = proteoformFastaParser.getProteoFormFastaIterator();
 			while (proteoFormFastaIterator.hasNext()) {
+				c++;
 				final Fasta fasta = proteoFormFastaIterator.next();
 
 				final String printIfNecessary = counter.printIfNecessary();
-				if (!"".equals(printIfNecessary)) {
+				if (numberFastas > 0 && !"".equals(printIfNecessary)) {
 					log.info("Reading proteoforms " + printIfNecessary);
+				}
+				if (c % 100 == 0) {
+					log.debug("Reading proteoforms " + c);
 				}
 				// fasta accession
 				// >sp|ACC|
@@ -592,6 +594,10 @@ public class ProteinCluster {
 					fastaAccession = fastaAccession.substring(0, fastaAccession.indexOf("|"));
 				}
 
+				// grab all the protein sequences to then used them in the
+				// creation of peptides nodes, mapping peptides to this proteins
+				// we dont need to create the protein nodes, since the protein
+				// variants should be already included in the quantifiedProteins
 				if (proteinMap.containsKey(fastaAccession)) {
 					PCQUtils.proteinSequences.put(fastaAccession, fasta.getSequence());
 					if (PCQUtils.proteinSequences.size() == proteinMap.size()) {
