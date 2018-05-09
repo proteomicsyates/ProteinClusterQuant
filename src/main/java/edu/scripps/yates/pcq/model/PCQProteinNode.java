@@ -120,7 +120,7 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 	@Override
 	public String toString() {
 		final StringBuilder sb = new StringBuilder();
-		sb.append(getAccession() + "': ");
+		sb.append(getKey() + "': ");
 		final List<PCQPeptideNode> list = new ArrayList<PCQPeptideNode>();
 		list.addAll(getPeptideNodes());
 		Collections.sort(list, new Comparator<PCQPeptideNode>() {
