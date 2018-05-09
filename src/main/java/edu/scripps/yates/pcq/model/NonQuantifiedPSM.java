@@ -20,7 +20,7 @@ public class NonQuantifiedPSM extends QuantifiedPSM {
 	private final DTASelectPSM psm;
 
 	public NonQuantifiedPSM(DTASelectPSM psm) throws NumberFormatException, IOException {
-		super(psm.getSequence().getSequence(), null, null, Integer.valueOf(psm.getScan()), psm.getChargeState(),
+		super(psm.getSequence().getRawSequence(), null, null, Integer.valueOf(psm.getScan()), psm.getChargeState(),
 				psm.getRawFileName(), false);
 		this.psm = psm;
 	}
@@ -42,11 +42,11 @@ public class NonQuantifiedPSM extends QuantifiedPSM {
 
 	@Override
 	public List<StringPosition> getPtms() {
-		List<StringPosition> ret = new ArrayList<StringPosition>();
+		final List<StringPosition> ret = new ArrayList<StringPosition>();
 		final List<DTASelectModification> modifications = psm.getModifications();
 		if (modifications != null) {
-			for (DTASelectModification dtaSelectModification : modifications) {
-				StringPosition stringposition = new StringPosition(getSequence(),
+			for (final DTASelectModification dtaSelectModification : modifications) {
+				final StringPosition stringposition = new StringPosition(getSequence(),
 						dtaSelectModification.getModPosition());
 				ret.add(stringposition);
 			}
