@@ -69,6 +69,7 @@ import edu.scripps.yates.utilities.sequence.PositionInProtein;
 import edu.scripps.yates.utilities.strings.StringUtils;
 import edu.scripps.yates.utilities.util.Pair;
 import edu.scripps.yates.utilities.util.StringPosition;
+import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.set.hash.THashSet;
@@ -775,13 +776,13 @@ public class PCQUtils {
 	 * @param cond2
 	 * @return
 	 */
-	public static List<Double> getSharedIndividualPeptideRatioValues(PCQProteinNode proteinNode1,
+	public static TDoubleArrayList getSharedIndividualPeptideRatioValues(PCQProteinNode proteinNode1,
 			PCQProteinNode proteinNode2, QuantCondition cond1, QuantCondition cond2,
 			boolean onlySharedByTheseTwoProteins, boolean skipDiscarded) {
 		final Set<PCQPeptideNode> sharedPeptideNodes = getSharedPeptideNodeSet(proteinNode1, proteinNode2,
 				onlySharedByTheseTwoProteins, skipDiscarded);
 
-		final List<Double> ratioValues = new ArrayList<Double>();
+		final TDoubleArrayList ratioValues = new TDoubleArrayList();
 
 		for (final PCQPeptideNode peptideNode : sharedPeptideNodes) {
 			if (skipDiscarded && peptideNode.isDiscarded()) {
@@ -2009,14 +2010,14 @@ public class PCQUtils {
 				return Double.NaN;
 			}
 			// return an average of the non infinities
-			final List<Double> nonInfinityNonNanValues = new ArrayList<Double>();
+			final TDoubleArrayList nonInfinityNonNanValues = new TDoubleArrayList();
 			for (final Double ratioValue : ratioValues) {
 				if (!ratioValue.isInfinite() && !ratioValue.isNaN()) {
 					nonInfinityNonNanValues.add(ratioValue);
 				}
 			}
 			// report the average
-			return Maths.mean(nonInfinityNonNanValues.toArray(new Double[0]));
+			return Maths.mean(nonInfinityNonNanValues);
 		}
 	}
 
@@ -2044,14 +2045,14 @@ public class PCQUtils {
 				return Double.NaN;
 			}
 			// return an average of the non infinities
-			final List<Double> nonInfinityNonNanValues = new ArrayList<Double>();
+			final TDoubleArrayList nonInfinityNonNanValues = new TDoubleArrayList();
 			for (final Double ratioValue : ratioValues) {
 				if (!ratioValue.isInfinite() && !ratioValue.isNaN()) {
 					nonInfinityNonNanValues.add(ratioValue);
 				}
 			}
 			// report the stdev
-			return Maths.stddev(nonInfinityNonNanValues.toArray(new Double[0]));
+			return Maths.stddev(nonInfinityNonNanValues);
 		}
 	}
 

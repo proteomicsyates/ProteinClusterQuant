@@ -1188,7 +1188,7 @@ public class XgmmlExporter {
 		String label_sufix = "";
 		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 		if (pepRatio != null) {
-			if (pepRatio instanceof IonCountRatio && !pepRatio.getLog2Ratio(cond1, cond2).isNaN()) {
+			if (pepRatio instanceof IonCountRatio && !Double.isNaN(pepRatio.getLog2Ratio(cond1, cond2))) {
 				attributes.put("normLightIons", new AttributeValueType(((IonCountRatio) pepRatio).getIonCount(cond1)));
 				attributes.put("normHeavyIons", new AttributeValueType(((IonCountRatio) pepRatio).getIonCount(cond2)));
 			}

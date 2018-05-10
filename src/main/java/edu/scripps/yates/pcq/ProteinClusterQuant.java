@@ -81,6 +81,7 @@ import edu.scripps.yates.utilities.proteomicsmodel.Score;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import edu.scripps.yates.utilities.sequence.PositionInProtein;
 import edu.scripps.yates.utilities.strings.StringUtils;
+import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.hash.THashSet;
 
@@ -2004,7 +2005,7 @@ public class ProteinClusterQuant {
 					// ratios of the peptide nodes.
 
 					for (final String replicateName : replicateNameList) {
-						final Set<Double> ratioValues = new THashSet<Double>();
+						final TDoubleArrayList ratioValues = new TDoubleArrayList();
 
 						final QuantRatio pepRatio = PCQUtils.getRepresentativeRatioForPeptideNodes(
 								cluster.getPeptideNodes(), cond1, cond2, replicateName, true);
@@ -2019,12 +2020,7 @@ public class ProteinClusterQuant {
 						if (ratioValues.isEmpty()) {
 							numClustersSkippedNotHavingGoodRatios++;
 						} else {
-							final double[] ratios = new double[ratioValues.size()];
-							final int index = 0;
-							for (final double ratioValue : ratioValues) {
-								ratios[index] = ratioValue;
-							}
-							ratioMean = meanCalculator.evaluate(ratios);
+							ratioMean = ratioValues.sum() / ratioValues.size();
 						}
 						ratioMeans.add(ratioMean);
 					}
@@ -2157,7 +2153,7 @@ public class ProteinClusterQuant {
 		int numPeptideNodesWithTwoTax = 0;
 		int numPeptideNodesWithMoreTax = 0;
 		int numPeptideNodesDiscarded = 0;
-		final List<Double> peptideNodesVariances = new ArrayList<Double>();
+		final TDoubleArrayList peptideNodesVariances = new TDoubleArrayList();
 		// List<ProteinPairPValue> ranking = new ArrayList<ProteinPairPValue>();
 		try {
 			final String outputPrefix = params.getOutputPrefix();
@@ -2175,7 +2171,7 @@ public class ProteinClusterQuant {
 
 			log.info("Classifying cases...");
 			// to calculate the mean and std of ratios
-			final List<Double> peptideNodeConsensusRatios = new ArrayList<Double>();
+			final TDoubleArrayList peptideNodeConsensusRatios = new TDoubleArrayList();
 			ProgressCounter counter = new ProgressCounter(clusterSet.size(), ProgressPrintingType.EVERY_STEP, 0);
 			for (final ProteinCluster cluster : clusterSet) {
 				counter.increment();
@@ -2473,12 +2469,16 @@ public class ProteinClusterQuant {
 
 			stats.append(
 					"Number of Peptides NOT found in DB: " + AbstractQuantParser.peptidesMissingInDB.size() + "\n");
-			final double mean = Maths.mean(peptideNodeConsensusRatios.toArray(new Double[0]));
-			final double stdev = Maths.stddev(peptideNodeConsensusRatios.toArray(new Double[0]));
+			double mean = Double.NaN;
+			double stdev = Double.NaN;
+			if (!peptideNodeConsensusRatios.isEmpty()) {
+				mean = peptideNodeConsensusRatios.sum() / peptideNodeConsensusRatios.size();
+				stdev = Maths.stddev(peptideNodeConsensusRatios.toArray());
+			}
 			stats.append("Average of peptide node ratios: " + mean + "\n");
 			stats.append("Standard deviation of peptide node ratios: " + stdev + "\n");
 			if (!peptideNodesVariances.isEmpty()) {
-				final double meanVariance = Maths.mean(peptideNodesVariances.toArray(new Double[0]));
+				final double meanVariance = peptideNodesVariances.sum() / peptideNodesVariances.size();
 				stats.append("Average of peptide node variance: " + meanVariance + "\n");
 			}
 			// print to console
