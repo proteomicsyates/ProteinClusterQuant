@@ -110,6 +110,11 @@
 			<artifactId>proteoform_dbindex</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
+		<dependency>
+			<groupId>edu.scripps.yates</groupId>
+			<artifactId>utilities</artifactId>
+			<version>1.5-SNAPSHOT</version>
+		</dependency>
 	</dependencies>
 	<repositories>
 		<repository>
