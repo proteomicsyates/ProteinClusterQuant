@@ -5,8 +5,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -237,8 +235,8 @@ public class ProteinCluster {
 			}
 		}
 		// to not include the same peptide in different peptide nodes
-		final Map<QuantifiedPeptideInterface, PCQPeptideNode> peptideNodesByPeptides = new HashMap<QuantifiedPeptideInterface, PCQPeptideNode>();
-		final Set<String> peptideSequencesDiscarded = new HashSet<String>();
+		final Map<QuantifiedPeptideInterface, PCQPeptideNode> peptideNodesByPeptides = new THashMap<QuantifiedPeptideInterface, PCQPeptideNode>();
+		final Set<String> peptideSequencesDiscarded = new THashSet<String>();
 		if (peptides.size() > 1) {
 			for (int i = 0; i < peptides.size(); i++) {
 				final QuantifiedPeptideInterface peptide1 = peptides.get(i);
@@ -559,8 +557,9 @@ public class ProteinCluster {
 			}
 		}
 		// initialize proteoform fasta parser
-		if (ProteinClusterQuantParameters.getInstance().isLookForProteoforms()) {
-			final ProteoFormFastaReader proteoformFastaParser = new ProteoFormFastaReader(proteinMap.keySet(),
+		if (getParams().isLookForProteoforms()) {
+			final ProteoFormFastaReader proteoformFastaParser = new ProteoFormFastaReader(
+					getParams().getFastaFile().getAbsolutePath(), proteinMap.keySet(),
 					getParams().getUniprotProteoformRetrieverFromXML());
 
 			int numberFastas = 0;
@@ -572,11 +571,13 @@ public class ProteinCluster {
 			}
 			int c = 0;
 			final ProgressCounter counter = new ProgressCounter(numberFastas, ProgressPrintingType.PERCENTAGE_STEPS, 0);
-			final Iterator<Fasta> proteoFormFastaIterator = proteoformFastaParser.getProteoFormFastaIterator();
+			final Iterator<Fasta> proteoFormFastaIterator = proteoformFastaParser.getFastas();
 			while (proteoFormFastaIterator.hasNext()) {
 				c++;
 				final Fasta fasta = proteoFormFastaIterator.next();
-
+				if (fasta.getAccession().contains("P04434")) {
+					log.info("asdf");
+				}
 				final String printIfNecessary = counter.printIfNecessary();
 				if (numberFastas > 0 && !"".equals(printIfNecessary)) {
 					log.info("Reading proteoforms " + printIfNecessary);
@@ -596,8 +597,9 @@ public class ProteinCluster {
 
 				// grab all the protein sequences to then used them in the
 				// creation of peptides nodes, mapping peptides to this proteins
-				// we dont need to create the protein nodes, since the protein
-				// variants should be already included in the quantifiedProteins
+				// we dont need to create the protein nodes from variants, since
+				// the protein variants should be already included in the
+				// quantifiedProteins
 				if (proteinMap.containsKey(fastaAccession)) {
 					PCQUtils.proteinSequences.put(fastaAccession, fasta.getSequence());
 					if (PCQUtils.proteinSequences.size() == proteinMap.size()) {
@@ -802,7 +804,7 @@ public class ProteinCluster {
 		proteinPairs.clear();
 		discardedProteinPairs.clear();
 		// if
-		// (ProteinClusterQuantParameters.getInstance().isCollapseIndistinguishableProteins())
+		// (getParams().isCollapseIndistinguishableProteins())
 		// {
 		// createPairsCollapsingIndistinguisibleProteins(gAM);
 		// } else {
