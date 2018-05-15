@@ -94,6 +94,16 @@
 			<groupId>edu.scripps.yates</groupId>
 			<artifactId>pint.annotations</artifactId>
 			<version>1.0.1-SNAPSHOT</version>
+			<exclusions>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-classic</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-core</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>edu.scripps.yates</groupId>
