@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -37,21 +38,22 @@ public class SanxotRunner {
 	public static final long DEFAULT_TIMEOUT = 1000 * 60 * 20;// 20 min
 
 	public SanxotRunner(ProteinClusterQuant pcq, QuantificationType quantType, File workingFolder,
-			QuantCondition condition1, QuantCondition condition2, File fastaFile, QuantParameters quantParameters)
-			throws FileNotFoundException {
-		ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+			QuantCondition condition1, QuantCondition condition2, File fastaFile, QuantParameters quantParameters,
+			Set<String> peptideInclusionList) throws FileNotFoundException {
+		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 
 		quantAnalysis = new QuantAnalysis(quantType, workingFolder, condition1, condition2,
 				ANALYSIS_LEVEL_OUTCOME.PEPTIDE);
 		// set the ratio name
 		quantParameters.setRatioName(PCQUtils.getRatioNameByAnalysisType());
 		quantAnalysis.setQuantParameters(quantParameters);
-		for (ExperimentFiles experimentFiles : params.getInputQuantificationFileNames()) {
-			QuantExperiment quantExperiment = new QuantExperiment(experimentFiles.getExperimentName());
-			for (String replicateFileName : experimentFiles.getRelicateFileNames()) {
-				Map<QuantCondition, QuantificationLabel> labelsByConditions = pcq
+		for (final ExperimentFiles experimentFiles : params.getInputQuantificationFileNames()) {
+			final QuantExperiment quantExperiment = new QuantExperiment(experimentFiles.getExperimentName());
+			for (final String replicateFileName : experimentFiles.getRelicateFileNames()) {
+				final Map<QuantCondition, QuantificationLabel> labelsByConditions = pcq
 						.getLabelsByConditions(replicateFileName);
-				QuantParser quantParser = getQuantParser(replicateFileName, labelsByConditions);
+				final QuantParser quantParser = getQuantParser(replicateFileName, labelsByConditions,
+						peptideInclusionList);
 				final QuantReplicate replicate = new QuantReplicate(replicateFileName, quantParser, labelsByConditions);
 				quantExperiment.addReplicate(replicate);
 			}
@@ -76,9 +78,10 @@ public class SanxotRunner {
 	}
 
 	private QuantParser getQuantParser(String replicateFileName,
-			Map<QuantCondition, QuantificationLabel> labelsByConditions) throws FileNotFoundException {
-		QuantParser parser = PCQUtils.getQuantParser(ProteinClusterQuantParameters.getInstance(), labelsByConditions,
-				replicateFileName);
+			Map<QuantCondition, QuantificationLabel> labelsByConditions, Set<String> peptideInclusionList)
+			throws FileNotFoundException {
+		final QuantParser parser = PCQUtils.getQuantParser(ProteinClusterQuantParameters.getInstance(),
+				labelsByConditions, replicateFileName, true, peptideInclusionList, false);
 		return parser;
 	}
 
@@ -102,7 +105,7 @@ public class SanxotRunner {
 		final String commandString = commandLine.toString();
 		log.info("Running: " + commandString);
 
-		ProcessExecutorHandler handler = new ProcessExecutorHandler() {
+		final ProcessExecutorHandler handler = new ProcessExecutorHandler() {
 
 			@Override
 			public void onStandardOutput(String msg) {
@@ -154,7 +157,7 @@ public class SanxotRunner {
 				log.info("Trying to fix the problem by forzing variance to 0 (Using -f v0)");
 				integratingCommandLine = SanXotInterfaze.getIntegrationCommandLine(relatFile, dataFile, infoFile,
 						prefix, 0.0, workingFolder, quantParameters);
-				Long newExitCode = runCommand(integratingCommandLine, DEFAULT_TIMEOUT);
+				final Long newExitCode = runCommand(integratingCommandLine, DEFAULT_TIMEOUT);
 				if (newExitCode.longValue() != 0) {
 					if (newExitCode.longValue() == ProcessExecutor.TIMEOUT_ERROR_CODE) {
 						log.warn(message);
@@ -166,7 +169,7 @@ public class SanxotRunner {
 				throw new IllegalArgumentException("Some error happen while integration process");
 			}
 		}
-		IntegrationResultWrapper integrationResults = new IntegrationResultWrapper(workingFolder, prefix, -1, -1);
+		final IntegrationResultWrapper integrationResults = new IntegrationResultWrapper(workingFolder, prefix, -1, -1);
 
 		log.info("Integration performed. Integration file at:"
 				+ integrationResults.getHigherLevelDataFile().getAbsolutePath());
@@ -179,13 +182,14 @@ public class SanxotRunner {
 			throws IOException, InterruptedException, ExecutionException {
 		final String msg = "Removing outliers...";
 		log.info(msg);
-		CommandLine removeOutlierCommandLine = SanXotInterfaze.getRemoveOutliersCommandLine(relatFile, prefix, dataFile,
-				infoFile, workingFolder, quantParameters);
+		final CommandLine removeOutlierCommandLine = SanXotInterfaze.getRemoveOutliersCommandLine(relatFile, prefix,
+				dataFile, infoFile, workingFolder, quantParameters);
 
-		Long exitCode = runCommand(removeOutlierCommandLine, DEFAULT_TIMEOUT);
+		final Long exitCode = runCommand(removeOutlierCommandLine, DEFAULT_TIMEOUT);
 		if (exitCode.longValue() != 0)
 			throw new IllegalArgumentException("Some error happen while outlier removal process");
-		OutlierRemovalResultWrapper outliersRemovalResults = new OutlierRemovalResultWrapper(workingFolder, prefix);
+		final OutlierRemovalResultWrapper outliersRemovalResults = new OutlierRemovalResultWrapper(workingFolder,
+				prefix);
 
 		log.info("Outlier removal performed. New relation file at:"
 				+ outliersRemovalResults.getRelatFile().getAbsolutePath());

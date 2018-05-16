@@ -575,9 +575,6 @@ public class ProteinCluster {
 			while (proteoFormFastaIterator.hasNext()) {
 				c++;
 				final Fasta fasta = proteoFormFastaIterator.next();
-				if (fasta.getAccession().contains("P04434")) {
-					log.info("asdf");
-				}
 				final String printIfNecessary = counter.printIfNecessary();
 				if (numberFastas > 0 && !"".equals(printIfNecessary)) {
 					log.info("Reading proteoforms " + printIfNecessary);

@@ -223,7 +223,8 @@ public class PCQUtils {
 			QuantificationLabel denominatorLabel, char[] enzymeArray, int missedCleavages, boolean semiCleavage,
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs,
-			Boolean lookForProteoforms, String discardDecoyRegexp) throws FileNotFoundException {
+			Boolean lookForProteoforms, boolean useFasta, Set<String> peptideInclusionList, boolean forceCreation)
+			throws FileNotFoundException {
 
 		final List<Map<QuantCondition, QuantificationLabel>> list = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
 		for (int i = 0; i < fileNames.length; i++) {
@@ -232,7 +233,7 @@ public class PCQUtils {
 		return getCensusChroParser(fastaFile, inputFileFolder, fileNames, list, numeratorLabel, denominatorLabel,
 				enzymeArray, missedCleavages, semiCleavage, uniprotReleasesFolder, uniprotVersion, decoyRegexp,
 				ignoreNotFoundPeptidesInDB, distinguishModifiedPeptides, peptideFilterRegexp, quantifiedAAs,
-				lookForProteoforms, discardDecoyRegexp);
+				lookForProteoforms, peptideInclusionList, useFasta, forceCreation);
 	}
 
 	public static CensusChroParser getCensusChroParser(File fastaFile, File inputFilefolder, String[] fileNames,
@@ -240,7 +241,8 @@ public class PCQUtils {
 			QuantificationLabel denominatorLabel, char[] enzymeArray, int missedCleavages, boolean semiCleavage,
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs,
-			Boolean lookForProteoforms, String discardDecoyRegexp) throws FileNotFoundException {
+			Boolean lookForProteoforms, Set<String> peptideInclusionList, boolean useFasta, boolean forceCreation)
+			throws FileNotFoundException {
 
 		final List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 		// Set parser (6 files) to peptides
@@ -252,7 +254,7 @@ public class PCQUtils {
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (CensusChroParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
 
@@ -271,10 +273,12 @@ public class PCQUtils {
 					parser.addQuantifiedAA(quantifiedAA);
 				}
 			}
-
-			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages, semiCleavage,
-					peptideFilterRegexp, uniprotReleasesFolder, uniprotVersion, lookForProteoforms, discardDecoyRegexp);
-			parser.setDbIndex(fastaDBIndex);
+			if (useFasta) {
+				final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages,
+						semiCleavage, peptideFilterRegexp, uniprotReleasesFolder, uniprotVersion, lookForProteoforms,
+						decoyRegexp, peptideInclusionList);
+				parser.setDbIndex(fastaDBIndex);
+			}
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
 
@@ -287,7 +291,8 @@ public class PCQUtils {
 	private static DTASelectParser getDTASelectParser(File fastaFile, File inputFilefolder, String[] fileNames,
 			char[] enzymeArray, int missedCleavages, boolean semiCleavage, File uniprotReleasesFolder,
 			String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB, String peptideFilterRegexp,
-			boolean lookForProteoforms, String discardDecoyRegexp) throws FileNotFoundException {
+			boolean lookForProteoforms, boolean useFasta, Set<String> peptideInclusionList, boolean forceCreation)
+			throws FileNotFoundException {
 
 		// Set parser (6 files) to peptides
 		final Map<String, RemoteSSHFileReference> xmlFiles = new THashMap<String, RemoteSSHFileReference>();
@@ -299,7 +304,7 @@ public class PCQUtils {
 			xmlFiles.put(fileName, new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (dtaSelectParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (forceCreation && dtaSelectParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return dtaSelectParsersByFileNamesKey.get(fileNamesKey);
 		}
 
@@ -310,9 +315,12 @@ public class PCQUtils {
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
 			parser.setIgnoreTaxonomies(ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
 			parser.setIgnoreACCFormat(ProteinClusterQuantParameters.getInstance().ignoreACCFormat());
-			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages, semiCleavage,
-					peptideFilterRegexp, uniprotReleasesFolder, uniprotVersion, lookForProteoforms, discardDecoyRegexp);
-			parser.setDbIndex(fastaDBIndex);
+			if (useFasta) {
+				final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages,
+						semiCleavage, peptideFilterRegexp, uniprotReleasesFolder, uniprotVersion, lookForProteoforms,
+						decoyRegexp, peptideInclusionList);
+				parser.setDbIndex(fastaDBIndex);
+			}
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
 
@@ -336,7 +344,8 @@ public class PCQUtils {
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep, boolean skipSingletons,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs,
-			Boolean lookForProteoforms, String discardDecoyRegexp) throws FileNotFoundException {
+			Boolean lookForProteoforms, Set<String> peptideInclusionList, boolean useFasta, boolean forceCreation)
+			throws FileNotFoundException {
 
 		// Set parser (6 files) to peptides
 		final List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
@@ -349,7 +358,7 @@ public class PCQUtils {
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (!forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (CensusOutParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
 		final CensusOutParser parser = new CensusOutParser(xmlFiles, labelsByConditions, numeratorLabel,
@@ -365,9 +374,12 @@ public class PCQUtils {
 			parser.setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
 					onlyOneSpectrumPerChromatographicPeakAndPerSaltStep);
 			parser.setSkipSingletons(skipSingletons);
-			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages, semiCleavage,
-					peptideFilterRegexp, uniprotReleasesFolder, uniprotVersion, lookForProteoforms, discardDecoyRegexp);
-			parser.setDbIndex(fastaDBIndex);
+			if (useFasta) {
+				final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages,
+						semiCleavage, peptideFilterRegexp, uniprotReleasesFolder, uniprotVersion, lookForProteoforms,
+						decoyRegexp, peptideInclusionList);
+				parser.setDbIndex(fastaDBIndex);
+			}
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
 			if (quantifiedAAs != null) {
@@ -387,8 +399,8 @@ public class PCQUtils {
 			QuantificationLabel numeratorLabel, QuantificationLabel denominatorLabel, char[] enzymeArray,
 			int missedCleavages, boolean semiCleavage, File uniprotReleasesFolder, String uniprotVersion,
 			String decoyRegexp, boolean ignoreNotFoundPeptidesInDB, boolean distinguishModifiedPeptides,
-			String peptideFilterRegexp, char[] quantifiedAAs, Boolean lookForProteoforms, String discardDecoyRegexp)
-			throws FileNotFoundException {
+			String peptideFilterRegexp, char[] quantifiedAAs, Boolean lookForProteoforms,
+			Set<String> peptideInclusionList, boolean useFasta, boolean forceCreation) throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		final List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -400,7 +412,7 @@ public class PCQUtils {
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (SeparatedValuesParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
 		final SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, labelsByConditions,
@@ -409,9 +421,12 @@ public class PCQUtils {
 			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
-			final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages, semiCleavage,
-					peptideFilterRegexp, uniprotReleasesFolder, uniprotVersion, lookForProteoforms, discardDecoyRegexp);
-			parser.setDbIndex(fastaDBIndex);
+			if (useFasta) {
+				final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages,
+						semiCleavage, peptideFilterRegexp, uniprotReleasesFolder, uniprotVersion, lookForProteoforms,
+						decoyRegexp, peptideInclusionList);
+				parser.setDbIndex(fastaDBIndex);
+			}
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
 			if (quantifiedAAs != null) {
@@ -437,7 +452,7 @@ public class PCQUtils {
 
 	public static DBIndexInterface getFastaDBIndex(File fastaFile, char[] enzymeArray, int missedCleavages,
 			boolean semicleavage, String peptideFilterRegexp, File uniprotReleasesFolder, String uniprotVersion,
-			Boolean lookForProteoforms, String discardDecoyRegexp) {
+			Boolean lookForProteoforms, String discardDecoyRegexp, Set<String> peptideInclusionList) {
 		if (fastaFile != null) {
 
 			final DBIndexSearchParams defaultDBIndexParams = DBIndexInterface.getDefaultDBIndexParams(fastaFile);
@@ -476,7 +491,8 @@ public class PCQUtils {
 			((DBIndexSearchParamsImpl) defaultDBIndexParams).setFullIndexFileName(fastaIndexKey);
 			final UniprotProteinLocalRetriever uplr = getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder);
 			final DBIndexInterface dbIndex = new ProteoformDBIndexInterface(defaultDBIndexParams, useUniprot,
-					usePhosphosite, phosphositeSpecies, uplr, uniprotVersion, maxVariationsPerPeptide);
+					usePhosphosite, phosphositeSpecies, uplr, uniprotVersion, maxVariationsPerPeptide,
+					peptideInclusionList);
 			indexByFastaIndexKey.put(fastaIndexKey, dbIndex);
 			return dbIndex;
 		}
@@ -488,7 +504,7 @@ public class PCQUtils {
 			List<Map<QuantCondition, QuantificationLabel>> labelsByConditions, QuantificationLabel numeratorLabel,
 			QuantificationLabel denominatorLabel, File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp,
 			boolean ignoreNotFoundPeptidesInDB, boolean distinguishModifiedPeptides, String peptideFilterRegexp,
-			char[] quantifiedAAs, String discardDecoyRegexp) throws FileNotFoundException {
+			char[] quantifiedAAs, boolean forceCreation) throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		final List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -500,7 +516,7 @@ public class PCQUtils {
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (CensusChroParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
 		final CensusChroParser parser = new CensusChroParser(xmlFiles, labelsByConditions, numeratorLabel,
@@ -520,7 +536,7 @@ public class PCQUtils {
 			}
 
 			final DBIndexInterface mongoDBIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
-					mongoProtDBName, peptideFilterRegexp, uniprotVersion, discardDecoyRegexp);
+					mongoProtDBName, peptideFilterRegexp, uniprotVersion, decoyRegexp);
 			parser.setDbIndex(mongoDBIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
@@ -550,7 +566,7 @@ public class PCQUtils {
 			QuantificationLabel denominatorLabel, File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp,
 			boolean ignoreNotFoundPeptidesInDB, boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep,
 			boolean skipSingletons, boolean distinguishModifiedPeptides, String peptideFilterRegexp,
-			char[] quantifiedAAs, String discardDecoyRegexp) throws FileNotFoundException {
+			char[] quantifiedAAs, boolean forceCreation) throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		final List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -562,7 +578,7 @@ public class PCQUtils {
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (CensusOutParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
 		final CensusOutParser parser = new CensusOutParser(xmlFiles, labelsByConditions, numeratorLabel,
@@ -577,7 +593,7 @@ public class PCQUtils {
 					onlyOneSpectrumPerChromatographicPeakAndPerSaltStep);
 			parser.setSkipSingletons(skipSingletons);
 			final DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
-					mongoProtDBName, peptideFilterRegexp, uniprotVersion, discardDecoyRegexp);
+					mongoProtDBName, peptideFilterRegexp, uniprotVersion, decoyRegexp);
 			parser.setDbIndex(dbIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
@@ -596,7 +612,7 @@ public class PCQUtils {
 	private static DTASelectParser getDTASelectParserUsingMongoDBIndex(String mongoDBURI, String mongoMassDBName,
 			String mongoSeqDBName, String mongoProtDBName, File inputFilefolder, String[] fileNames,
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
-			String peptideFilterRegexp, boolean lookForProteoforms, String discardDecoyRegexp)
+			String peptideFilterRegexp, boolean lookForProteoforms, boolean forceCreation)
 			throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		final Map<String, RemoteSSHFileReference> xmlFiles = new THashMap<String, RemoteSSHFileReference>();
@@ -609,7 +625,7 @@ public class PCQUtils {
 			xmlFiles.put(fileName, new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (dtaSelectParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (forceCreation && dtaSelectParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return dtaSelectParsersByFileNamesKey.get(fileNamesKey);
 		}
 		final DTASelectParser parser = new DTASelectParser(xmlFiles);
@@ -620,7 +636,7 @@ public class PCQUtils {
 			parser.setIgnoreACCFormat(ProteinClusterQuantParameters.getInstance().ignoreACCFormat());
 			parser.setIgnoreTaxonomies(ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
 			final DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
-					mongoProtDBName, peptideFilterRegexp, uniprotVersion, discardDecoyRegexp);
+					mongoProtDBName, peptideFilterRegexp, uniprotVersion, decoyRegexp);
 			parser.setDbIndex(dbIndex);
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
@@ -636,8 +652,8 @@ public class PCQUtils {
 			String[] fileNames, String separator, List<Map<QuantCondition, QuantificationLabel>> labelsByConditions,
 			QuantificationLabel numeratorLabel, QuantificationLabel denominatorLabel, File uniprotReleasesFolder,
 			String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
-			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs,
-			String discardDecoyRegexp) throws FileNotFoundException {
+			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs, boolean useFasta,
+			boolean forceCreation) throws FileNotFoundException {
 		// Set parser (6 files) to peptides
 		final List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -649,7 +665,7 @@ public class PCQUtils {
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (SeparatedValuesParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
 		final SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, labelsByConditions,
@@ -658,9 +674,11 @@ public class PCQUtils {
 			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
-			final DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
-					mongoProtDBName, peptideFilterRegexp, uniprotVersion, discardDecoyRegexp);
-			parser.setDbIndex(dbIndex);
+			if (useFasta) {
+				final DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
+						mongoProtDBName, peptideFilterRegexp, uniprotVersion, decoyRegexp);
+				parser.setDbIndex(dbIndex);
+			}
 			parser.enableProteinMergingBySecondaryAccessions(
 					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
 			if (quantifiedAAs != null) {
@@ -1729,23 +1747,25 @@ public class PCQUtils {
 	}
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
-			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList) throws FileNotFoundException {
-		return getQuantParser(params, labelsByConditionsList, params.getQuantInputFileNamesArray());
+			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList, boolean useFasta,
+			Set<String> peptideInclusionList, boolean forceCreation) throws FileNotFoundException {
+		return getQuantParser(params, labelsByConditionsList, params.getQuantInputFileNamesArray(), useFasta,
+				peptideInclusionList, forceCreation);
 	}
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
-			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList, final String[] inputFileNamesArray)
-			throws FileNotFoundException {
+			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList, final String[] inputFileNamesArray,
+			boolean useFasta, Set<String> peptideInclusionList, boolean forceCreation) throws FileNotFoundException {
 		log.debug("Getting input file parser");
 		if (params.getAnalysisInputType() == AnalysisInputType.CENSUS_CHRO) {
-			if (params.getMongoDBURI() != null) {
+			if (params.getMongoDBURI() != null && useFasta) {
 				return PCQUtils.getCensusChroParserUsingMongoDBIndex(params.getMongoDBURI(),
 						params.getMongoMassDBName(), params.getMongoSeqDBName(), params.getMongoProtDBName(),
 						params.getInputFileFolder(), inputFileNamesArray, labelsByConditionsList,
 						params.getNumeratorLabel(), params.getDenominatorLabel(), params.getUniprotReleasesFolder(),
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
 						!params.isIgnorePTMs(), params.getPeptideFilterRegexp(), params.getAaQuantified(),
-						params.getDecoyRegexp());
+						forceCreation);
 			} else {
 				return PCQUtils.getCensusChroParser(params.getFastaFile(), params.getInputFileFolder(),
 						inputFileNamesArray, labelsByConditionsList, params.getNumeratorLabel(),
@@ -1753,10 +1773,10 @@ public class PCQUtils {
 						params.isSemiCleavage(), params.getUniprotReleasesFolder(), params.getUniprotVersion(),
 						params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(), !params.isIgnorePTMs(),
 						params.getPeptideFilterRegexp(), params.getAaQuantified(), params.isLookForProteoforms(),
-						params.getDecoyRegexp());
+						peptideInclusionList, useFasta, forceCreation);
 			}
 		} else if (params.getAnalysisInputType() == AnalysisInputType.CENSUS_OUT) {
-			if (params.getMongoDBURI() != null) {
+			if (params.getMongoDBURI() != null && useFasta) {
 				final CensusOutParser parser = PCQUtils.getCensusOutParserUsingMongoDBIndex(params.getMongoDBURI(),
 						params.getMongoMassDBName(), params.getMongoSeqDBName(), params.getMongoProtDBName(),
 						params.getInputFileFolder(), inputFileNamesArray, labelsByConditionsList,
@@ -1764,7 +1784,7 @@ public class PCQUtils {
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
 						params.isOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(), params.isSkipSingletons(),
 						!params.isIgnorePTMs(), params.getPeptideFilterRegexp(), params.getAaQuantified(),
-						params.getDecoyRegexp());
+						forceCreation);
 
 				return parser;
 			} else {
@@ -1775,7 +1795,7 @@ public class PCQUtils {
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
 						params.isOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(), params.isSkipSingletons(),
 						!params.isIgnorePTMs(), params.getPeptideFilterRegexp(), params.getAaQuantified(),
-						params.isLookForProteoforms(), params.getDecoyRegexp());
+						params.isLookForProteoforms(), peptideInclusionList, useFasta, forceCreation);
 
 				return parser;
 			}
@@ -1787,7 +1807,7 @@ public class PCQUtils {
 						params.getSeparator(), labelsByConditionsList, params.getNumeratorLabel(),
 						params.getDenominatorLabel(), params.getUniprotReleasesFolder(), params.getUniprotVersion(),
 						params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(), !params.isIgnorePTMs(),
-						params.getPeptideFilterRegexp(), params.getAaQuantified(), params.getDecoyRegexp());
+						params.getPeptideFilterRegexp(), params.getAaQuantified(), useFasta, forceCreation);
 
 				return parser;
 			} else {
@@ -1797,7 +1817,7 @@ public class PCQUtils {
 						params.getMissedCleavages(), params.isSemiCleavage(), params.getUniprotReleasesFolder(),
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
 						!params.isIgnorePTMs(), params.getPeptideFilterRegexp(), params.getAaQuantified(),
-						params.isLookForProteoforms(), params.getDecoyRegexp());
+						params.isLookForProteoforms(), peptideInclusionList, useFasta, forceCreation);
 
 				return parser;
 			}
@@ -1806,43 +1826,46 @@ public class PCQUtils {
 
 	}
 
-	public static DTASelectParser getDTASelectParser(ProteinClusterQuantParameters params)
-			throws FileNotFoundException {
+	public static DTASelectParser getDTASelectParser(ProteinClusterQuantParameters params, boolean useFasta,
+			Set<String> peptideInclusionList, boolean forceCreation) throws FileNotFoundException {
 		if (params.getIdentificationInputFileNamesArray() != null
 				&& params.getIdentificationInputFileNamesArray().length > 0) {
-			return getDTASelectParser(params, params.getIdentificationInputFileNamesArray());
+			return getDTASelectParser(params, params.getIdentificationInputFileNamesArray(), useFasta,
+					peptideInclusionList, forceCreation);
 		}
 		return null;
 	}
 
 	public static DTASelectParser getDTASelectParser(ProteinClusterQuantParameters params,
-			final String[] inputFileNamesArray) throws FileNotFoundException {
+			final String[] inputFileNamesArray, boolean useFasta, Set<String> peptideInclusionList,
+			boolean forceCreation) throws FileNotFoundException {
 		log.debug("Getting input file parser");
 
-		if (params.getMongoDBURI() != null) {
+		if (params.getMongoDBURI() != null && useFasta) {
 			return getDTASelectParserUsingMongoDBIndex(params.getMongoDBURI(), params.getMongoMassDBName(),
 					params.getMongoSeqDBName(), params.getMongoProtDBName(), params.getInputFileFolder(),
 					inputFileNamesArray, params.getUniprotReleasesFolder(), params.getUniprotVersion(),
 					params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(), params.getPeptideFilterRegexp(),
-					params.isLookForProteoforms(), params.getDecoyRegexp());
+					params.isLookForProteoforms(), forceCreation);
 		} else {
 			return getDTASelectParser(params.getFastaFile(), params.getInputFileFolder(), inputFileNamesArray,
 					params.getEnzymeArray(), params.getMissedCleavages(), params.isSemiCleavage(),
 					params.getUniprotReleasesFolder(), params.getUniprotVersion(), params.getDecoyRegexp(),
 					params.isIgnoreNotFoundPeptidesInDB(), params.getPeptideFilterRegexp(),
-					params.isLookForProteoforms(), params.getDecoyRegexp());
+					params.isLookForProteoforms(), useFasta, peptideInclusionList, forceCreation);
 		}
 	}
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
-			Map<QuantCondition, QuantificationLabel> labelsByConditions, String inputFileName)
-			throws FileNotFoundException {
+			Map<QuantCondition, QuantificationLabel> labelsByConditions, String inputFileName, boolean usefasta,
+			Set<String> peptideInclusionList, boolean forceCreation) throws FileNotFoundException {
 		log.debug("Getting input file parser");
 		final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
 		labelsByConditionsList.add(labelsByConditions);
 		final String[] inputFileNamesArray = new String[1];
 		inputFileNamesArray[0] = inputFileName;
-		return getQuantParser(params, labelsByConditionsList, inputFileNamesArray);
+		return getQuantParser(params, labelsByConditionsList, inputFileNamesArray, usefasta, peptideInclusionList,
+				forceCreation);
 	}
 
 	/**

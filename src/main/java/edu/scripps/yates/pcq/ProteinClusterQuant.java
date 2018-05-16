@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
@@ -199,12 +200,13 @@ public class ProteinClusterQuant {
 		clusterSet = new THashSet<ProteinCluster>();
 
 		try {
+			final Set<String> peptideInclusionList = getPeptideInclusionList();
 			final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
 					params.getNumeratorLabel(), params.getDenominatorLabel());
 			// try to get an quantParser
-			quantParser = PCQUtils.getQuantParser(params, labelsByConditionsList);
+			quantParser = PCQUtils.getQuantParser(params, labelsByConditionsList, true, peptideInclusionList, true);
 			// try to get an dtaSelectParser
-			idParser = PCQUtils.getDTASelectParser(params);
+			idParser = PCQUtils.getDTASelectParser(params, true, peptideInclusionList, true);
 			log.info("Reading input files...");
 
 			Map<String, QuantifiedPeptideInterface> pepMap = new THashMap<String, QuantifiedPeptideInterface>();
@@ -313,7 +315,7 @@ public class ProteinClusterQuant {
 			if (params.isPerformRatioIntegration()) {
 				// calculating ratios up to peptide_exp_rep level
 				SanXotAnalysisResult peptideRepSanxotResult = null;
-				peptideRepSanxotResult = calculatePeptideExperimentReplicateRatios();
+				peptideRepSanxotResult = calculatePeptideExperimentReplicateRatios(peptideInclusionList);
 
 				// calculating consensus ratios up to peptide_node_exp_rep
 				final SanXotAnalysisResult peptideNodeRepSanxotResult = calculatePeptideNodeExperimentReplicateRatios(
@@ -368,6 +370,25 @@ public class ProteinClusterQuant {
 			log.error(e.getMessage());
 		}
 
+	}
+
+	private Set<String> getPeptideInclusionList() throws IOException {
+		final Set<String> peptideInclusionList = new THashSet<String>();
+		final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
+				params.getNumeratorLabel(), params.getDenominatorLabel());
+		// try to get an quantParser
+		final QuantParser quantParserTMP = PCQUtils.getQuantParser(params, labelsByConditionsList, false, null, true);
+		if (quantParserTMP != null) {
+			peptideInclusionList.addAll(quantParserTMP.getPeptideMap().values().parallelStream()
+					.map(peptide -> peptide.getSequence()).collect(Collectors.toSet()));
+		}
+		// try to get an dtaSelectParser
+		final DTASelectParser idParserTMP = PCQUtils.getDTASelectParser(params, false, null, true);
+		if (idParserTMP != null) {
+			peptideInclusionList.addAll(idParserTMP.getDTASelectPSMsByPSMID().values().parallelStream()
+					.map(psm -> psm.getSequence().getSequence()).collect(Collectors.toSet()));
+		}
+		return peptideInclusionList;
 	}
 
 	private void printPSMRatiosFile() {
@@ -1528,11 +1549,12 @@ public class ProteinClusterQuant {
 	 * @return
 	 * @throws IOException
 	 */
-	private SanXotAnalysisResult calculatePeptideExperimentReplicateRatios() throws IOException {
+	private SanXotAnalysisResult calculatePeptideExperimentReplicateRatios(Set<String> peptideInclusionList)
+			throws IOException {
 		log.info("Running SanXot algorithm for integrating quantitative ratios");
 		final long t1 = System.currentTimeMillis();
 		final SanxotRunner sanxotRunner = new SanxotRunner(this, getQuantType(), getParams().getTemporalOutputFolder(),
-				cond1, cond2, getParams().getFastaFile(), getParams().getQuantParameters());
+				cond1, cond2, getParams().getFastaFile(), getParams().getQuantParameters(), peptideInclusionList);
 		final SanXotAnalysisResult result = sanxotRunner.run();
 		final String time = DatesUtil.getDescriptiveTimeFromMillisecs(System.currentTimeMillis() - t1);
 		log.info("Sanxot run finished in " + time);

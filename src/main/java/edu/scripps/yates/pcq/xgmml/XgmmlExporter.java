@@ -1042,11 +1042,9 @@ public class XgmmlExporter {
 	}
 
 	private String getIonCountRatioTooltip(IonCountRatio ionCountRatio, Set<QuantifiedPeptideInterface> peptides) {
-		final Double log2Ratio = ionCountRatio.getLog2Ratio(cond1, cond2);
-		if (log2Ratio != null) {
-			return getIsobaricPeptidesTooltip(formatNumberMoreDecimals(log2Ratio), peptides);
-		}
-		return null;
+		final double log2Ratio = ionCountRatio.getLog2Ratio(cond1, cond2);
+		return getIsobaricPeptidesTooltip(formatNumberMoreDecimals(log2Ratio), peptides);
+
 	}
 
 	private String formatNumber(Double number) {
