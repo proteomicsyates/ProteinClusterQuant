@@ -15,6 +15,7 @@ import edu.scripps.yates.census.read.model.StaticQuantMaps;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
+import edu.scripps.yates.dbindex.DBIndexStoreException;
 import edu.scripps.yates.dbindex.IndexedProtein;
 import edu.scripps.yates.dbindex.util.PeptideNotFoundInDBIndexException;
 import edu.scripps.yates.dtaselectparser.DTASelectParser;
@@ -61,11 +62,13 @@ public class NonQuantParser extends AbstractQuantParser {
 			}
 		} catch (final IOException e) {
 			e.printStackTrace();
+		} catch (final DBIndexStoreException e) {
+			e.printStackTrace();
 		}
 
 	}
 
-	private void processPSM(DTASelectPSM psm) throws IOException {
+	private void processPSM(DTASelectPSM psm) throws IOException, DBIndexStoreException {
 
 		final String experimentKey = psm.getRawFileName();
 
@@ -92,9 +95,6 @@ public class NonQuantParser extends AbstractQuantParser {
 		if (StaticQuantMaps.peptideMap.containsKey(peptideKey)) {
 			quantifiedPeptide = StaticQuantMaps.peptideMap.getItem(peptideKey);
 		} else {
-			if (quantifiedPSM.getFullSequence().equals("PNS(114.042927)VPQE(14.01565)LAATTEKTEPNSQEDKNDGGK")) {
-				log.info(quantifiedPSM);
-			}
 			quantifiedPeptide = new QuantifiedPeptide(quantifiedPSM, isIgnoreTaxonomies());
 		}
 		StaticQuantMaps.peptideMap.addItem(quantifiedPeptide);

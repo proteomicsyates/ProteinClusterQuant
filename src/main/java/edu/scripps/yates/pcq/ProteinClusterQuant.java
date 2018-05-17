@@ -29,6 +29,9 @@ import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 import org.apache.log4j.Logger;
 
+import com.compomics.dbtoolkit.io.implementations.FASTADBLoader;
+import com.compomics.util.protein.Protein;
+
 import edu.scripps.yates.annotations.uniprot.UniprotProteinLocalRetriever;
 import edu.scripps.yates.annotations.uniprot.xml.Entry;
 import edu.scripps.yates.census.analysis.QuantAnalysis;
@@ -73,6 +76,7 @@ import edu.scripps.yates.pcq.xgmml.util.AlignedPeptides;
 import edu.scripps.yates.pcq.xgmml.util.AlignmentSet;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.dates.DatesUtil;
+import edu.scripps.yates.utilities.fasta.FastaParser;
 import edu.scripps.yates.utilities.maths.Maths;
 import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.model.enums.CombinationType;
@@ -210,8 +214,10 @@ public class ProteinClusterQuant {
 			log.info("Reading input files...");
 
 			Map<String, QuantifiedPeptideInterface> pepMap = new THashMap<String, QuantifiedPeptideInterface>();
+			final Set<String> inputProteinAccs = new THashSet<String>();
 			if (quantParser != null) {
 				pepMap.putAll(quantParser.getPeptideMap());
+				inputProteinAccs.addAll(quantParser.getProteinMap().keySet());
 			}
 
 			if (idParser != null) {
@@ -229,6 +235,7 @@ public class ProteinClusterQuant {
 					}
 				}
 				pepMap.putAll(nonQuantPeptideMap);
+				inputProteinAccs.addAll(nonQuantParser.getProteinMap().keySet());
 			}
 			if (params.isIgnorePTMs()) {
 				// remove modified peptides
@@ -241,6 +248,29 @@ public class ProteinClusterQuant {
 			// make aligment
 			if (params.isMakeAlignments()) {
 				makePeptideAlignments(peptideList);
+			}
+			// this has to be done when not lookng for proteoforms
+			// when looking to proteoforms, the sequences are grabbed at
+			// ProteinCluster.createProteinNodes()
+			if (!params.isLookForProteoforms()) {
+				// grab all the protein sequences to then used them in the
+				// creation of peptides nodes, mapping peptides to this proteins
+				// we dont need to create the protein nodes from variants, since
+				// the protein variants should be already included in the
+				// quantifiedProteins
+				final FASTADBLoader loader = new FASTADBLoader();
+				loader.load(getParams().getFastaFile().getAbsolutePath());
+				Protein protein = null;
+				while ((protein = loader.nextProtein()) != null) {
+					final String fastaAccession = FastaParser.getACC(protein.getHeader().getRawHeader())
+							.getFirstelement();
+					if (fastaAccession.contains("Q92925-2")) {
+						log.info(FastaParser.getACC(protein.getHeader().getRawHeader()));
+					}
+					if (inputProteinAccs.contains(fastaAccession)) {
+						PCQUtils.proteinSequences.put(fastaAccession, protein.getSequence().getSequence());
+					}
+				}
 			}
 
 			int numClusters = 0;
@@ -388,6 +418,7 @@ public class ProteinClusterQuant {
 			peptideInclusionList.addAll(idParserTMP.getDTASelectPSMsByPSMID().values().parallelStream()
 					.map(psm -> psm.getSequence().getSequence()).collect(Collectors.toSet()));
 		}
+		log.info(peptideInclusionList.size() + " different peptides in the input files that will be indexed now...");
 		return peptideInclusionList;
 	}
 
@@ -767,9 +798,10 @@ public class ProteinClusterQuant {
 	 *            a map containing {@link SanxotQuantResult} by each
 	 *            peptideNodeKey. Note that it can be null, and therefore the
 	 *            output table will not have the FDR column
+	 * @throws IOException
 	 */
 	private void printFinalFile(Set<ProteinCluster> clusterSet,
-			Map<String, SanxotQuantResult> ratioStatsByPeptideNodeKey) {
+			Map<String, SanxotQuantResult> ratioStatsByPeptideNodeKey) throws IOException {
 
 		final Map<String, PCQPeptideNode> peptideNodesByNodeID = new THashMap<String, PCQPeptideNode>();
 		for (final ProteinCluster cluster : clusterSet) {
@@ -1584,7 +1616,7 @@ public class ProteinClusterQuant {
 		log.info("TEMP folder deleted.");
 	}
 
-	private void exportToXGMML(Set<ProteinCluster> clusterSet) {
+	private void exportToXGMML(Set<ProteinCluster> clusterSet) throws IOException {
 		final Map<String, Entry> annotatedProteins = getAnnotatedProteins();
 		final XgmmlExporter exporter = new XgmmlExporter();
 		exporter.exportToXGMMLUsingNodes(clusterSet, annotatedProteins, cond1, cond2);
@@ -1967,7 +1999,7 @@ public class ProteinClusterQuant {
 		// }
 	}
 
-	private void printPSEAQuantFiles(Set<ProteinCluster> clusterSet) {
+	private void printPSEAQuantFiles(Set<ProteinCluster> clusterSet) throws IOException {
 
 		final Map<String, Entry> annotatedProteins = getAnnotatedProteins();
 
@@ -2106,7 +2138,7 @@ public class ProteinClusterQuant {
 		}
 	}
 
-	public Map<String, Entry> getAnnotatedProteins() {
+	public Map<String, Entry> getAnnotatedProteins() throws IOException {
 		if (annotatedProteins == null) {
 			if (getParams().getUniprotReleasesFolder() != null) {
 
