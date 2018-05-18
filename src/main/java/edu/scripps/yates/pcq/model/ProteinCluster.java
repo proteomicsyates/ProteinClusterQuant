@@ -20,6 +20,8 @@ import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 import edu.scripps.yates.pcq.filter.PCQFilter;
 import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
+import edu.scripps.yates.pcq.util.DiscardedPeptidesSet;
+import edu.scripps.yates.pcq.util.DiscardedPeptidesSet.DISCARD_REASON;
 import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.pcq.xgmml.util.AlignedPeptides;
 import edu.scripps.yates.pcq.xgmml.util.AlignmentSet;
@@ -222,6 +224,10 @@ public class ProteinCluster {
 	 * @param quantifiedAAs
 	 */
 	private void createPeptideNodesByQuantifiedSites(char[] quantifiedAAs) {
+		final StringBuilder quantifiedAAsString = new StringBuilder();
+		for (final char c : quantifiedAAs) {
+			quantifiedAAsString.append(c);
+		}
 		final UniprotProteinLocalRetriever uplr = PCQUtils
 				.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
 		final List<QuantifiedPeptideInterface> peptides = new ArrayList<QuantifiedPeptideInterface>();
@@ -244,6 +250,8 @@ public class ProteinCluster {
 				// discard if it doesn't contain any quantified aa
 				if (getParams().isRemoveFilteredNodes() && !PCQUtils.containsAny(sequence1, quantifiedAAs)) {
 					if (!peptideSequencesDiscarded.contains(sequence1)) {
+						DiscardedPeptidesSet.getInstance().add(peptide1, DISCARD_REASON.PEPTIDE_WITH_NO_QUANT_SITE,
+								"quant site(s): " + quantifiedAAsString);
 						peptideSequencesDiscarded.add(sequence1);
 						log.info(sequence1 + " discarded for not having one quantitation sites from '"
 								+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
@@ -257,6 +265,8 @@ public class ProteinCluster {
 						&& PCQUtils.howManyContains(sequence1, quantifiedAAs) > 1) {
 					if (!peptideSequencesDiscarded.contains(sequence1)) {
 						peptideSequencesDiscarded.add(sequence1);
+						DiscardedPeptidesSet.getInstance().add(peptide1, DISCARD_REASON.AMBIGOUS_QUANT,
+								"quant site(s): " + quantifiedAAsString);
 						log.info(sequence1 + " discarded for having ambiguous quantitation sites from "
 								+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
 					}
@@ -276,6 +286,7 @@ public class ProteinCluster {
 					// peptides without a site mapped to a protein are discarded
 					if (!peptideSequencesDiscarded.contains(sequence1)) {
 						peptideSequencesDiscarded.add(sequence1);
+						DiscardedPeptidesSet.getInstance().add(peptide1, DISCARD_REASON.PEPTIDE_WITH_NO_PROTEIN);
 						log.warn("Peptide '" + sequence1 + "' cannot be mapped to any protein sequence");
 					}
 					individualQuantifiedPeptideSet.remove(peptide1);
@@ -287,6 +298,9 @@ public class ProteinCluster {
 					// discard if it doesn't contain any quantified aa
 					if (getParams().isRemoveFilteredNodes() && !PCQUtils.containsAny(sequence2, quantifiedAAs)) {
 						if (!peptideSequencesDiscarded.contains(sequence2)) {
+							DiscardedPeptidesSet.getInstance().add(peptide2, DISCARD_REASON.PEPTIDE_WITH_NO_QUANT_SITE,
+									"quant site(s): " + quantifiedAAsString);
+
 							peptideSequencesDiscarded.add(sequence2);
 							log.info(sequence2 + " discarded for not having one quantitation sites from '"
 									+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
@@ -300,6 +314,8 @@ public class ProteinCluster {
 					if (getParams().isRemoveFilteredNodes() && !(peptide2 instanceof IsobaricQuantifiedPeptide)
 							&& PCQUtils.howManyContains(sequence2, quantifiedAAs) > 1) {
 						if (!peptideSequencesDiscarded.contains(sequence2)) {
+							DiscardedPeptidesSet.getInstance().add(peptide2, DISCARD_REASON.AMBIGOUS_QUANT,
+									"quant site(s): " + quantifiedAAsString);
 							peptideSequencesDiscarded.add(sequence2);
 							log.info(sequence2 + " discarded for having ambiguous quantitation sites from '"
 									+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
@@ -320,6 +336,7 @@ public class ProteinCluster {
 									PCQUtils.proteinSequences);
 					if (getParams().isRemoveFilteredNodes() && proteinKeysByPeptide2Keys.isEmpty()) {
 						if (!peptideSequencesDiscarded.contains(sequence2)) {
+							DiscardedPeptidesSet.getInstance().add(peptide2, DISCARD_REASON.PEPTIDE_WITH_NO_PROTEIN);
 							peptideSequencesDiscarded.add(sequence2);
 							// peptides without a site mapped to a protein are
 							// discarded

@@ -68,6 +68,9 @@ import edu.scripps.yates.pcq.params.PropertiesReader;
 import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.sanxot.SanxotRunner;
 import edu.scripps.yates.pcq.util.AnalysisInputType;
+import edu.scripps.yates.pcq.util.DiscardedPeptide;
+import edu.scripps.yates.pcq.util.DiscardedPeptidesSet;
+import edu.scripps.yates.pcq.util.DiscardedPeptidesSet.DISCARD_REASON;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
 import edu.scripps.yates.pcq.util.NonQuantParser;
 import edu.scripps.yates.pcq.util.PCQUtils;
@@ -264,9 +267,6 @@ public class ProteinClusterQuant {
 				while ((protein = loader.nextProtein()) != null) {
 					final String fastaAccession = FastaParser.getACC(protein.getHeader().getRawHeader())
 							.getFirstelement();
-					if (fastaAccession.contains("Q92925-2")) {
-						log.info(FastaParser.getACC(protein.getHeader().getRawHeader()));
-					}
 					if (inputProteinAccs.contains(fastaAccession)) {
 						PCQUtils.proteinSequences.put(fastaAccession, protein.getSequence().getSequence());
 					}
@@ -385,6 +385,9 @@ public class ProteinClusterQuant {
 			// export to XGMML format
 			exportToXGMML(clusterSet);
 
+			// export discarded Peptides
+			printDiscardedPeptides();
+
 			// rename TEMP output folder to output folder
 			moveResultsToFinalFolder();
 
@@ -398,6 +401,42 @@ public class ProteinClusterQuant {
 		} catch (final ExecutionException e) {
 			e.printStackTrace();
 			log.error(e.getMessage());
+		}
+
+	}
+
+	private void printDiscardedPeptides() {
+		FileWriter out = null;
+		try {
+			final ProteinClusterQuantParameters params = getParams();
+			final File outputFileFolder = params.getTemporalOutputFolder();
+			final String outputPrefix = params.getOutputPrefix();
+			final String outputSuffix = params.getOutputSuffix();
+			final String fileName = outputPrefix + "_discardedPeptides_" + outputSuffix + ".txt";
+			final DiscardedPeptidesSet discardedPeptideSet = DiscardedPeptidesSet.getInstance();
+			log.info("Printing " + discardedPeptideSet.size() + "+ discarded peptides at file : '" + fileName + "'");
+			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName);
+
+			// header
+			out.write("Peptide" + "\t" + "Reason" + "\t" + "Additional info\n");
+			// iterate over all of them
+			for (final DiscardedPeptide discardedPeptide : discardedPeptideSet) {
+				out.write(discardedPeptide.getPeptide().getKey() + "\t" + discardedPeptide.getReason());
+				if (discardedPeptide.getAdditionalDescription() != null) {
+					out.write("\t" + discardedPeptide.getAdditionalDescription());
+				}
+				out.write("\n");
+			}
+		} catch (final IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (out != null) {
+				try {
+					out.close();
+				} catch (final IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 
 	}
@@ -644,7 +683,7 @@ public class ProteinClusterQuant {
 			final UniprotProteinLocalRetriever uplr = PCQUtils
 					.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
 
-			final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+			final ProteinClusterQuantParameters params = getParams();
 			final File outputFileFolder = params.getTemporalOutputFolder();
 			final String outputPrefix = params.getOutputPrefix();
 			final String outputSuffix = params.getOutputSuffix();
@@ -781,6 +820,7 @@ public class ProteinClusterQuant {
 			}
 		}
 		for (final QuantifiedPeptideInterface peptide : peptidesToRemove) {
+			DiscardedPeptidesSet.getInstance().add(peptide, DISCARD_REASON.CONTAINING_PTM);
 			final QuantifiedPeptideInterface removed = pepMap.remove(peptide.getKey());
 			log.info(peptide.getKey() + " discarded for having a PTM");
 			if (removed == null) {
@@ -1727,11 +1767,14 @@ public class ProteinClusterQuant {
 				log.info(printIfNecessary + " peptides clustered");
 			}
 			if (params.isIgnorePTMs() && peptide.containsPTMs()) {
+				DiscardedPeptidesSet.getInstance().add(peptide, DISCARD_REASON.CONTAINING_PTM);
 				log.info(peptide.getKey() + " discarded for containing a PTM");
 				continue;
 			}
 			// discard it if it is not conected to any protein
 			if (peptide.getQuantifiedProteins().isEmpty()) {
+				DiscardedPeptidesSet.getInstance().add(peptide, DISCARD_REASON.PEPTIDE_WITH_NO_PROTEIN);
+
 				log.warn(peptide.getSequence() + " peptide ignored because it is not connected to any protein");
 				continue;
 			}

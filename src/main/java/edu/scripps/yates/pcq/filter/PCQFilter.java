@@ -12,6 +12,8 @@ import edu.scripps.yates.pcq.model.PCQPeptideNode;
 import edu.scripps.yates.pcq.model.PCQProteinNode;
 import edu.scripps.yates.pcq.model.ProteinCluster;
 import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
+import edu.scripps.yates.pcq.util.DiscardedPeptidesSet;
+import edu.scripps.yates.pcq.util.DiscardedPeptidesSet.DISCARD_REASON;
 import gnu.trove.set.hash.THashSet;
 
 public abstract class PCQFilter {
@@ -22,11 +24,11 @@ public abstract class PCQFilter {
 	public void filter(ProteinCluster cluster) {
 		final Set<PCQProteinNode> proteinNodes = cluster.getProteinNodes();
 		final Iterator<PCQProteinNode> proteinNodesIterator = proteinNodes.iterator();
-		Set<PCQProteinNode> discardedProteinNodes = new THashSet<PCQProteinNode>();
+		final Set<PCQProteinNode> discardedProteinNodes = new THashSet<PCQProteinNode>();
 		// final int originalSize = cluster.getProteinNodes().size();
 		// log.debug("Filtering " + originalSize + " protein nodes");
 		while (proteinNodesIterator.hasNext()) {
-			PCQProteinNode pcqProteinNode = proteinNodesIterator.next();
+			final PCQProteinNode pcqProteinNode = proteinNodesIterator.next();
 			if (!filterNonQuantifiedNodes() && !pcqProteinNode.isQuantified()) {
 				continue;
 			}
@@ -42,10 +44,10 @@ public abstract class PCQFilter {
 		}
 
 		// this is only populated if params.isRemoveFilteredNodes is true
-		for (PCQProteinNode pcqProteinNode : discardedProteinNodes) {
+		for (final PCQProteinNode pcqProteinNode : discardedProteinNodes) {
 			// remove individual proteins from cluster
 			final Set<QuantifiedProteinInterface> individualProteins = pcqProteinNode.getQuantifiedProteins();
-			for (QuantifiedProteinInterface protein : individualProteins) {
+			for (final QuantifiedProteinInterface protein : individualProteins) {
 				cluster.getProteinSet().remove(protein);
 			}
 			pcqProteinNode.removeProteinsFromPeptidesInNode();
@@ -55,12 +57,12 @@ public abstract class PCQFilter {
 		// log.info(originalSize - cluster.getProteinNodes().size() + " protein
 		// nodes where discarded");
 		// }
-		Set<PCQPeptideNode> discardedPeptideNodes = new THashSet<PCQPeptideNode>();
+		final Set<PCQPeptideNode> discardedPeptideNodes = new THashSet<PCQPeptideNode>();
 		final Iterator<PCQPeptideNode> peptideNodesIterator = cluster.getPeptideNodes().iterator();
 		// final int originalSize2 = cluster.getPeptideNodes().size();
 		// log.debug("Filtering " + originalSize2 + " peptide nodes");
 		while (peptideNodesIterator.hasNext()) {
-			PCQPeptideNode pcqPeptideNode = peptideNodesIterator.next();
+			final PCQPeptideNode pcqPeptideNode = peptideNodesIterator.next();
 			if (!filterNonQuantifiedNodes() && !pcqPeptideNode.isQuantified()) {
 				continue;
 			}
@@ -77,12 +79,15 @@ public abstract class PCQFilter {
 		}
 
 		// this is only populated if params.isRemoveFilteredNodes() is true
-		for (PCQPeptideNode peptideNode : discardedPeptideNodes) {
+		for (final PCQPeptideNode peptideNode : discardedPeptideNodes) {
 			// remove individual peptides from cluster
 			final Iterator<QuantifiedPeptideInterface> peptidesFromPeptideNode = peptideNode.getQuantifiedPeptides()
 					.iterator();
 			while (peptidesFromPeptideNode.hasNext()) {
-				QuantifiedPeptideInterface peptide = peptidesFromPeptideNode.next();
+				final QuantifiedPeptideInterface peptide = peptidesFromPeptideNode.next();
+				DiscardedPeptidesSet.getInstance().add(peptide, DISCARD_REASON.DISCARDED_BY_FILTER,
+						"By filter: " + this.getClass().getName());
+
 				final Iterator<QuantifiedPSMInterface> psmsFromPeptide = peptide.getQuantifiedPSMs().iterator();
 				while (psmsFromPeptide.hasNext()) {
 					final QuantifiedPSMInterface psm = psmsFromPeptide.next();
@@ -130,7 +135,7 @@ public abstract class PCQFilter {
 				// viceversa
 				final Iterator<PCQProteinNode> proteinNodesFromPeptideNode = peptideNode.getProteinNodes().iterator();
 				while (proteinNodesFromPeptideNode.hasNext()) {
-					PCQProteinNode proteinNode = proteinNodesFromPeptideNode.next();
+					final PCQProteinNode proteinNode = proteinNodesFromPeptideNode.next();
 					proteinNode.getPeptideNodes().remove(peptideNode);
 					// if protein node has no peptide nodes, remove from cluster
 					if (proteinNode.getPeptideNodes().isEmpty()) {
