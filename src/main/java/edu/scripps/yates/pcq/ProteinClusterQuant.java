@@ -498,7 +498,7 @@ public class ProteinClusterQuant {
 						if (!sequence.equals(sequence2)) {
 							return sequence.compareTo(sequence2);
 						} else {
-							return o1.getPSMIdentifier().compareTo(o2.getPSMIdentifier());
+							return o1.getIdentifier().compareTo(o2.getIdentifier());
 						}
 					}
 				});
