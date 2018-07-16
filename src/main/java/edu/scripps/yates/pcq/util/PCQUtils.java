@@ -2616,9 +2616,11 @@ public class PCQUtils {
 
 		final Set<String> taxonomies = proteinNode.getTaxonomies();
 		final List<String> list = new ArrayList<String>();
-		for (final String tax : taxonomies) {
-			if (tax != null) {
-				list.add(tax);
+		if (taxonomies != null) {
+			for (final String tax : taxonomies) {
+				if (tax != null) {
+					list.add(tax);
+				}
 			}
 		}
 		Collections.sort(list);
