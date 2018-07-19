@@ -1199,4 +1199,9 @@ public class ProteinClusterQuantParameters {
 		}
 		return uniprotProteoformRetrieverFromXML;
 	}
+
+	// TODO
+	public int getMaxNumPTMsPerProtein() {
+		return 2;
+	}
 }

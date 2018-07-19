@@ -34,6 +34,7 @@ import com.compomics.util.protein.Protein;
 
 import edu.scripps.yates.annotations.uniprot.UniprotProteinLocalRetriever;
 import edu.scripps.yates.annotations.uniprot.xml.Entry;
+import edu.scripps.yates.annotations.util.UniprotEntryUtil;
 import edu.scripps.yates.census.analysis.QuantAnalysis;
 import edu.scripps.yates.census.analysis.QuantAnalysis.ANALYSIS_LEVEL_OUTCOME;
 import edu.scripps.yates.census.analysis.QuantCondition;
@@ -211,9 +212,10 @@ public class ProteinClusterQuant {
 			final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
 					params.getNumeratorLabel(), params.getDenominatorLabel());
 			// try to get an quantParser
-			quantParser = PCQUtils.getQuantParser(params, labelsByConditionsList, true, peptideInclusionList, true);
+			final boolean useFasta = true;
+			quantParser = PCQUtils.getQuantParser(params, labelsByConditionsList, useFasta, peptideInclusionList, true);
 			// try to get an dtaSelectParser
-			idParser = PCQUtils.getDTASelectParser(params, true, peptideInclusionList, true);
+			idParser = PCQUtils.getDTASelectParser(params, useFasta, peptideInclusionList, true);
 			log.info("Reading input files...");
 
 			Map<String, QuantifiedPeptideInterface> pepMap = new THashMap<String, QuantifiedPeptideInterface>();
@@ -224,26 +226,24 @@ public class ProteinClusterQuant {
 			}
 
 			if (idParser != null) {
+				// using static maps, the nonQuantParser will not create new
+				// objects for already created peptides in quant, so I can all
+				// them all to the pepMap
 				final NonQuantParser nonQuantParser = new NonQuantParser(idParser);
-
-				// add the peptides to the map
-				final Map<String, QuantifiedPeptideInterface> nonQuantPeptideMap = nonQuantParser.getPeptideMap();
-				for (final String peptideKey : nonQuantPeptideMap.keySet()) {
-					if (pepMap.containsKey(peptideKey)) {
-						final QuantifiedPeptideInterface quantifiedPeptideInterface = pepMap.get(peptideKey);
-						final QuantifiedPeptideInterface nonQuantifiedPeptide = nonQuantPeptideMap.get(peptideKey);
-						if (quantifiedPeptideInterface != nonQuantifiedPeptide) {
-							log.info(nonQuantifiedPeptide + "\t" + quantifiedPeptideInterface);
-						}
-					}
-				}
-				pepMap.putAll(nonQuantPeptideMap);
+				pepMap.putAll(nonQuantParser.getPeptideMap());
 				inputProteinAccs.addAll(nonQuantParser.getProteinMap().keySet());
 			}
+
 			if (params.isIgnorePTMs()) {
 				// remove modified peptides
 				removePTMPeptides(pepMap);
 			}
+			log.info("DEBUGGING");
+			final QuantifiedPeptideInterface quantifiedPeptideInterface = pepMap.get("FEELCSDLFR");
+			final Set<QuantRatio> ratios = quantifiedPeptideInterface.getRatios();
+			final QuantRatio ratio = ratios.iterator().next();
+			System.out.println(ratio.getNonLogRatio("cond1", "cond2"));
+			log.info("DEBUGGING FINISHED");
 			// List to hold all peptides
 			final List<QuantifiedPeptideInterface> peptideList = new ArrayList<QuantifiedPeptideInterface>();
 			peptideList.addAll(pepMap.values());
@@ -261,21 +261,40 @@ public class ProteinClusterQuant {
 				// we dont need to create the protein nodes from variants, since
 				// the protein variants should be already included in the
 				// quantifiedProteins
-				final FASTADBLoader loader = new FASTADBLoader();
-				loader.load(getParams().getFastaFile().getAbsolutePath());
-				Protein protein = null;
-				while ((protein = loader.nextProtein()) != null) {
-					final String fastaAccession = FastaParser.getACC(protein.getHeader().getRawHeader())
-							.getFirstelement();
-					if (inputProteinAccs.contains(fastaAccession)) {
-						PCQUtils.proteinSequences.put(fastaAccession, protein.getSequence().getSequence());
+				if (getParams().getFastaFile() != null) {
+					// using FAsta file:
+
+					log.info("Reading protein sequences from FASTA file...");
+					final FASTADBLoader loader = new FASTADBLoader();
+					loader.load(getParams().getFastaFile().getAbsolutePath());
+					Protein protein = null;
+					while ((protein = loader.nextProtein()) != null) {
+						final String fastaAccession = FastaParser.getACC(protein.getHeader().getRawHeader())
+								.getFirstelement();
+						if (inputProteinAccs.contains(fastaAccession)) {
+							PCQUtils.proteinSequences.put(fastaAccession, protein.getSequence().getSequence());
+						}
 					}
+					log.info(PCQUtils.proteinSequences.size() + " protein sequences readed from FASTA file");
+				} else {
+					log.info("Retrieving protein sequences from Uniprot...");
+					annotatedProteins = getAnnotatedProteins();
+					for (final String acc : annotatedProteins.keySet()) {
+						final Entry uniprotEntry = annotatedProteins.get(acc);
+						final String proteinSequence = UniprotEntryUtil.getProteinSequence(uniprotEntry);
+						if (proteinSequence != null && !"".equals(proteinSequence)) {
+							PCQUtils.proteinSequences.put(acc, proteinSequence);
+						}
+					}
+					log.info(PCQUtils.proteinSequences.size() + " protein sequences retrieved from Uniprot");
+
 				}
 			}
 
 			int numClusters = 0;
 			int i = 0;
 			while (i < 1) {
+
 				separatePTMProteinsAndPeptides(pepMap);
 				clusterSet = createClusters(pepMap);
 
@@ -414,7 +433,7 @@ public class ProteinClusterQuant {
 			final String outputSuffix = params.getOutputSuffix();
 			final String fileName = outputPrefix + "_discardedPeptides_" + outputSuffix + ".txt";
 			final DiscardedPeptidesSet discardedPeptideSet = DiscardedPeptidesSet.getInstance();
-			log.info("Printing " + discardedPeptideSet.size() + "+ discarded peptides at file : '" + fileName + "'");
+			log.info("Printing " + discardedPeptideSet.size() + " discarded peptides at file : '" + fileName + "'");
 			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName);
 
 			// header
@@ -446,13 +465,15 @@ public class ProteinClusterQuant {
 		final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
 				params.getNumeratorLabel(), params.getDenominatorLabel());
 		// try to get an quantParser
-		final QuantParser quantParserTMP = PCQUtils.getQuantParser(params, labelsByConditionsList, false, null, true);
+		final boolean useFasta = false;
+		final QuantParser quantParserTMP = PCQUtils.getQuantParser(params, labelsByConditionsList, useFasta, null,
+				true);
 		if (quantParserTMP != null) {
 			peptideInclusionList.addAll(quantParserTMP.getPeptideMap().values().parallelStream()
 					.map(peptide -> peptide.getSequence()).collect(Collectors.toSet()));
 		}
 		// try to get an dtaSelectParser
-		final DTASelectParser idParserTMP = PCQUtils.getDTASelectParser(params, false, null, true);
+		final DTASelectParser idParserTMP = PCQUtils.getDTASelectParser(params, useFasta, null, true);
 		if (idParserTMP != null) {
 			peptideInclusionList.addAll(idParserTMP.getDTASelectPSMsByPSMID().values().parallelStream()
 					.map(psm -> psm.getSequence().getSequence()).collect(Collectors.toSet()));
@@ -802,7 +823,7 @@ public class ProteinClusterQuant {
 	}
 
 	private void removePTMPeptides(Map<String, QuantifiedPeptideInterface> pepMap) {
-		log.info("Removing peptides with PTMs...");
+		log.info("Removing peptides with PTMs from a list of " + pepMap.size() + " peptides...");
 		final Set<QuantifiedPeptideInterface> peptidesToRemove = new THashSet<QuantifiedPeptideInterface>();
 		for (final String peptideKey : pepMap.keySet()) {
 			final QuantifiedPeptideInterface peptide = pepMap.get(peptideKey);
@@ -1886,7 +1907,7 @@ public class ProteinClusterQuant {
 		int numProteinNodes = 0;
 		int numPeptideNodes = 0;
 		for (final ProteinCluster proteinCluster : clusterSet) {
-			proteinCluster.createNodes();
+			proteinCluster.createNodes(getAnnotatedProteins());
 			numProteinNodes += proteinCluster.getProteinNodes().size();
 			numPeptideNodes += proteinCluster.getPeptideNodes().size();
 		}
@@ -1905,12 +1926,32 @@ public class ProteinClusterQuant {
 	 * @param pepMap
 	 */
 	private void separatePTMProteinsAndPeptides(Map<String, QuantifiedPeptideInterface> pepMap) {
+		log.info("Separating protein nodes for proteins with PTMs");
 		if (params.isIgnorePTMs()) {
 			return;
 		}
 		final Set<QuantifiedProteinInterface> individualProteins = PCQUtils.getProteinsFromPeptides(pepMap.values());
 		final Map<String, QuantifiedProteinInterface> newProteins = new THashMap<String, QuantifiedProteinInterface>();
+		final ProgressCounter counter = new ProgressCounter(individualProteins.size(),
+				ProgressPrintingType.PERCENTAGE_STEPS, 1);
 		for (final QuantifiedProteinInterface protein : individualProteins) {
+			counter.increment();
+			final String printIfNecessary = counter.printIfNecessary();
+			if (!"".equals(printIfNecessary)) {
+				log.info(printIfNecessary);
+			}
+
+			int numPeptidesWithPTMs = 0;
+			for (final QuantifiedPeptideInterface peptide : protein.getQuantifiedPeptides()) {
+
+				if (peptide.containsPTMs()) {
+					numPeptidesWithPTMs++;
+				}
+			}
+			if (numPeptidesWithPTMs > getParams().getMaxNumPTMsPerProtein()) {
+				continue;
+			}
+
 			final List<QuantifiedPeptideInterface> ptmPeptides = new ArrayList<QuantifiedPeptideInterface>();
 			for (final QuantifiedPeptideInterface peptide : protein.getQuantifiedPeptides()) {
 
@@ -1957,7 +1998,9 @@ public class ProteinClusterQuant {
 					// protein group
 					proteinPTM.setProteinGroup(protein.getProteinGroup());
 					// taxonomy
-					proteinPTM.setTaxonomy(protein.getTaxonomies().iterator().next());
+					if (!protein.getTaxonomies().isEmpty()) {
+						proteinPTM.setTaxonomy(protein.getTaxonomies().iterator().next());
+					}
 					// set discarded
 					proteinPTM.setDiscarded(protein.isDiscarded());
 					// add all non modified peptides for now...
@@ -2269,7 +2312,7 @@ public class ProteinClusterQuant {
 			log.info("Classifying cases...");
 			// to calculate the mean and std of ratios
 			final TDoubleArrayList peptideNodeConsensusRatios = new TDoubleArrayList();
-			ProgressCounter counter = new ProgressCounter(clusterSet.size(), ProgressPrintingType.EVERY_STEP, 0);
+			ProgressCounter counter = new ProgressCounter(clusterSet.size(), ProgressPrintingType.PERCENTAGE_STEPS, 0);
 			for (final ProteinCluster cluster : clusterSet) {
 				counter.increment();
 				boolean containsSignificantPeptideNodes = false;

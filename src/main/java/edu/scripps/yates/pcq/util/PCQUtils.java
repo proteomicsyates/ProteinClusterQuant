@@ -254,7 +254,7 @@ public class PCQUtils {
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (!forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (CensusChroParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
 
@@ -304,7 +304,7 @@ public class PCQUtils {
 			xmlFiles.put(fileName, new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (forceCreation && dtaSelectParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (!forceCreation && dtaSelectParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return dtaSelectParsersByFileNamesKey.get(fileNamesKey);
 		}
 
@@ -412,7 +412,7 @@ public class PCQUtils {
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (!forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (SeparatedValuesParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
 		final SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, labelsByConditions,
@@ -516,7 +516,7 @@ public class PCQUtils {
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (!forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (CensusChroParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
 		final CensusChroParser parser = new CensusChroParser(xmlFiles, labelsByConditions, numeratorLabel,
@@ -578,7 +578,7 @@ public class PCQUtils {
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (!forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (CensusOutParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
 		final CensusOutParser parser = new CensusOutParser(xmlFiles, labelsByConditions, numeratorLabel,
@@ -625,7 +625,7 @@ public class PCQUtils {
 			xmlFiles.put(fileName, new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (forceCreation && dtaSelectParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (!forceCreation && dtaSelectParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return dtaSelectParsersByFileNamesKey.get(fileNamesKey);
 		}
 		final DTASelectParser parser = new DTASelectParser(xmlFiles);
@@ -665,7 +665,7 @@ public class PCQUtils {
 			xmlFiles.add(new RemoteSSHFileReference(inputXmlFile));
 		}
 		final String fileNamesKey = getFileNamesKey(fileNames);
-		if (forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
+		if (!forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (SeparatedValuesParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
 		final SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, labelsByConditions,

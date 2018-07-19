@@ -84,7 +84,7 @@ public class XgmmlExporter {
 	private static final String COUNT_RATIO = "countRatio";
 	private static final String FINAL_RATIO = "finalRatio";
 	private static int numProteinNodes = 1;
-	private static final Map<String, String> numProteinByProteinNodeID = new THashMap<String, String>();
+	private static final Map<String, String> numProteinByProteinNodeLabel = new THashMap<String, String>();
 	private static final Set<String> ratioAttributes = new THashSet<String>();
 	private static final String WEIGHT = "Weight";
 	private static final String VARIANCE = "Variance";
@@ -236,6 +236,9 @@ public class XgmmlExporter {
 				}
 				if (valid) {
 					if (isFiltered) {
+						if (params.getColorNonRegulated() != null) {
+							node2.getGraphics().setFill(ColorGenerator.getHexString(params.getColorNonRegulated()));
+						}
 						continue;
 					}
 					if (!significantlyRegulated && params.getColorNonRegulated() != null) {
@@ -259,6 +262,10 @@ public class XgmmlExporter {
 								params.getColorRatioMax());
 
 						node2.getGraphics().setFill(ColorGenerator.getHexString(color));
+					}
+				} else {
+					if (params.getColorNonRegulated() != null) {
+						node2.getGraphics().setFill(ColorGenerator.getHexString(params.getColorNonRegulated()));
 					}
 				}
 
@@ -467,22 +474,21 @@ public class XgmmlExporter {
 					false, ProteinClusterQuantParameters.getInstance().isRemoveFilteredNodes());
 
 			for (final PCQPeptideNode uniquePeptideNode_U1 : peptidesNodesU1) {
-				final String peptidesSequenceString_U1 = uniquePeptideNode_U1.getKey();
+				final String nodeID = uniquePeptideNode_U1.getKey();
 				// System.out.println(uniquePeptideNode_U1);
-				if (!visitedPeptideKeys.containsKey(peptidesSequenceString_U1)) {
-					final String nodeID = uniquePeptideNode_U1.getKey();
+				if (!visitedPeptideKeys.containsKey(nodeID)) {
+
 					final String label = formatNumber(
 							PCQUtils.getLog2RatioValue(PCQUtils.getRepresentativeRatioForPeptideNode(
 									uniquePeptideNode_U1, cond1, cond2, null, true), cond1, cond2));
 					final Node node = createNodeFromPeptideNode(nodeID, label,
 							getPeptideNodeTooltip(label, uniquePeptideNode_U1), uniquePeptideNode_U1, outlineColorU1);
 					graph.getNode().add(node);
-					visitedPeptideKeys.put(peptidesSequenceString_U1, node);
+					visitedPeptideKeys.put(nodeID, node);
 				}
 				// set highLight color anyway
 				if (outlineColorU1.equals(colorManager.getHighlightColor())) {
-					setNodeOutlineColor(visitedPeptideKeys.get(peptidesSequenceString_U1),
-							colorManager.getHighlightColor());
+					setNodeOutlineColor(visitedPeptideKeys.get(nodeID), colorManager.getHighlightColor());
 				}
 
 			}
@@ -600,6 +606,9 @@ public class XgmmlExporter {
 
 				if (!visitedPeptideKeys.containsKey(peptidesSequenceString_U2)) {
 					final String nodeID = uniquePeptides_U2.getKey();
+					if (nodeID.equals("FEELCSDLFR")) {
+						log.info("Check");
+					}
 					final String label = formatNumber(PCQUtils.getLog2RatioValue(
 							PCQUtils.getRepresentativeRatioForPeptideNode(uniquePeptides_U2, cond1, cond2, null, true),
 							cond1, cond2));
@@ -1099,12 +1108,21 @@ public class XgmmlExporter {
 		return PCQUtils.getPeptideNodesSequenceString(peptides);
 	}
 
-	private String getUniqueID(PCQProteinNode protein) {
-		if (ProteinClusterQuantParameters.getInstance().getProteinLabel() == ProteinNodeLabel.ACC) {
-			return protein.getKey();
-		} else {
-			return getProteinNameString(protein);
-		}
+	private String getUniqueID(PCQProteinNode proteinNode) {
+		// I disabled all others because otherwise there is going to be more
+		// than one node with the same id, which leads to inconsistencies.
+		//
+		//
+		// if (ProteinClusterQuantParameters.getInstance().getProteinLabel() ==
+		// ProteinNodeLabel.ACC) {
+		return proteinNode.getKey();
+		// } else if
+		// (ProteinClusterQuantParameters.getInstance().getProteinLabel() ==
+		// ProteinNodeLabel.GENE) {
+		// return getGeneString(proteinNode);
+		// } else {
+		// return getProteinNameString(proteinNode);
+		// }
 	}
 
 	/**
@@ -1124,18 +1142,18 @@ public class XgmmlExporter {
 		}
 	}
 
-	private static String controlProteinNodeIDLength(String id) {
+	private static String controlProteinNodeLabelLength(String id) {
 		try {
-			if (numProteinByProteinNodeID.containsKey(id)) {
-				return numProteinByProteinNodeID.get(id);
+			if (numProteinByProteinNodeLabel.containsKey(id)) {
+				return numProteinByProteinNodeLabel.get(id);
 			}
 
 			if (id.length() > 100) {
 				final String string2 = "Prot_" + numProteinNodes;
-				numProteinByProteinNodeID.put(id, string2);
+				numProteinByProteinNodeLabel.put(id, string2);
 				return string2;
 			} else {
-				numProteinByProteinNodeID.put(id, id);
+				numProteinByProteinNodeLabel.put(id, id);
 				return id;
 			}
 		} finally {
@@ -1150,6 +1168,7 @@ public class XgmmlExporter {
 		final Map<String, AttributeValueType> attributes = new THashMap<String, AttributeValueType>();
 		attributes.put("PeptideSequences", new AttributeValueType(sequenceString));
 		attributes.put(PCQ_ID, new AttributeValueType(nodeID));
+		attributes.put("shared name", new AttributeValueType(nodeID));
 		final int numIndividualProteins = PCQUtils.getIndividualProteinsMap(peptideNode).size();
 		attributes.put("numProteins", new AttributeValueType(numIndividualProteins));
 		attributes.put("numPsms", new AttributeValueType(peptideNode.getQuantifiedPSMs().size()));
@@ -1257,6 +1276,7 @@ public class XgmmlExporter {
 
 	private Node createNodeFromProteinNode(PCQProteinNode proteinNode,
 			Collection<Classification2Case> classification2Cases, Color outlineColor) {
+
 		final Map<String, AttributeValueType> attributes = new THashMap<String, AttributeValueType>();
 		attributes.put("UniprotKB", new AttributeValueType(proteinNode.getKey(), AttType.string));
 		int numdifferentAccs = 1;
@@ -1264,6 +1284,7 @@ public class XgmmlExporter {
 			numdifferentAccs = proteinNode.getKey().split(PCQUtils.PROTEIN_ACC_SEPARATOR).length;
 		}
 		attributes.put(IS_FILTERED, new AttributeValueType(getNumFromBoolean(proteinNode.isDiscarded())));
+		attributes.put("shared name", new AttributeValueType(getUniqueID(proteinNode)));
 		attributes.put("numProteins", new AttributeValueType(numdifferentAccs));
 		attributes.put("isProtein", new AttributeValueType(getNumFromBoolean(true)));
 		attributes.put("containsPTMs", new AttributeValueType(getNumFromBoolean(proteinNode.containsPTMs())));
@@ -1271,30 +1292,39 @@ public class XgmmlExporter {
 				new AttributeValueType(proteinNode.getQuantifiedPeptides().size()));
 
 		attributes.put("numPsmsInProtein", new AttributeValueType(proteinNode.getQuantifiedPSMs().size()));
-		attributes.put("numConnectedPeptideNodes", new AttributeValueType(proteinNode.getQuantifiedPeptides().size()));
+		attributes.put("numConnectedPeptideNodes", new AttributeValueType(proteinNode.getPeptideNodes().size()));
 
-		// chack uniprot columsn
+		// check uniprot columns
+		final THashMap<String, String> uniprotAnnotations = new THashMap<String, String>();
 		final List<UniprotAnnotationColumn> uniprotAnnotationColumns = ProteinClusterQuantParameters.getInstance()
 				.getUniprotAnnotationColumns();
 		if (!uniprotAnnotationColumns.isEmpty()) {
 			for (final UniprotAnnotationColumn uniprotAnnotationColumn : uniprotAnnotationColumns) {
-				final StringBuilder sb = new StringBuilder();
+				final List<String> valuesForProteinNode = new ArrayList<String>();
 				for (final QuantifiedProteinInterface protein : proteinNode.getQuantifiedProteins()) {
 
 					final List<String> valuesForProtein = uniprotAnnotationColumn
 							.getValuesForProtein(protein.getAccession(), annotatedProteins);
 					for (final String value : valuesForProtein) {
-						if (!"".equals(sb.toString())) {
-							sb.append(" ");
+						if (!valuesForProteinNode.contains(value)) {
+							valuesForProteinNode.add(value);
 						}
-						sb.append(value);
 					}
 				}
-				if (!"".equals(sb.toString())) {
-					attributes.put(uniprotAnnotationColumn.getColumnName(),
-							new AttributeValueType(sb.toString(), AttType.string));
+				Collections.sort(valuesForProteinNode);
+				final StringBuilder sb = new StringBuilder();
+				for (final String value : valuesForProteinNode) {
+					if (!"".equals(sb.toString())) {
+						sb.append(", ");
+					}
+					sb.append(value);
 				}
+				attributes.put(uniprotAnnotationColumn.getColumnName(),
+						new AttributeValueType(sb.toString(), AttType.string));
+				uniprotAnnotations.put(uniprotAnnotationColumn.getColumnName(), sb.toString());
+
 			}
+
 		}
 
 		// StringBuilder classification1String = new StringBuilder();
@@ -1376,23 +1406,26 @@ public class XgmmlExporter {
 			attributes.put("conclusiveProtein", new AttributeValueType("0"));
 		}
 
-		final String label = controlProteinNodeIDLength(getProteinNodeLabel(proteinNode));
+		final String label = controlProteinNodeLabelLength(getProteinNodeLabel(proteinNode));
 		final Node node = createNode(getUniqueID(proteinNode), label, attributes);
 
 		final String tooltipText = getProteinNodeTooltip(proteinNode, geneString, classification2Cases,
-				classification2StringTooltip);
+				classification2StringTooltip, uniprotAnnotations);
 
 		final String tooltip = getHtml(tooltipText);
-		node.setGraphics(createGraphicsNode(node.getLabel(), tooltip,
-				ProteinClusterQuantParameters.getInstance().getProteinNodeShape(),
-				ProteinClusterQuantParameters.getInstance().getProteinNodeHeight(),
-				ProteinClusterQuantParameters.getInstance().getProteinNodeWidth(), outlineColor,
-				getFillColorByTaxonomy(proteinNode), labelColor, borderType));
+		node.setGraphics(
+
+				createGraphicsNode(node.getLabel(), tooltip,
+						ProteinClusterQuantParameters.getInstance().getProteinNodeShape(),
+						ProteinClusterQuantParameters.getInstance().getProteinNodeHeight(),
+						ProteinClusterQuantParameters.getInstance().getProteinNodeWidth(), outlineColor,
+						getFillColorByTaxonomy(proteinNode), labelColor, borderType));
 		return node;
 	}
 
 	private String getProteinNodeTooltip(PCQProteinNode proteinNode, String geneString,
-			Collection<Classification2Case> classification2Cases, StringBuilder classification2String) {
+			Collection<Classification2Case> classification2Cases, StringBuilder classification2String,
+			THashMap<String, String> uniprotAnnotations) {
 		final StringBuilder tooltipText = new StringBuilder("<b>Protein ACC(s):</b>\n")
 				.append(proteinNode.getKey().replace(" ", "\n")).append("\n<b>Protein name(s):</b>\n ")
 				.append(proteinNode.getDescription().replace(PCQUtils.PROTEIN_DESCRIPTION_SEPARATOR, "\n"));
@@ -1403,6 +1436,12 @@ public class XgmmlExporter {
 		if (proteinNode.getTaxonomies() != null && !proteinNode.getTaxonomies().isEmpty()) {
 			tooltipText.append("\n<b>TAX:</b> ").append(PCQUtils.getSpeciesString(proteinNode.getTaxonomies()))
 					.append("\n<b>Gene name:</b> ").append(geneString);
+		}
+		if (uniprotAnnotations != null) {
+			for (final String annotation : uniprotAnnotations.keySet()) {
+				final String string2 = uniprotAnnotations.get(annotation);
+				tooltipText.append("\n<b>").append(annotation).append(":</b> ").append(string2);
+			}
 		}
 		return tooltipText.toString();
 	}
@@ -1591,6 +1630,7 @@ public class XgmmlExporter {
 
 	private Edge createEdge(int edgeID, String label, String tooltip, Map<String, AttributeValueType> attributes3,
 			String sourceID, String targetID, Color edgeColor) {
+
 		final Edge edge = factory.createGraphEdge();
 		edge.setId(edgeID);
 		edge.setLabel(label);
@@ -1659,17 +1699,20 @@ public class XgmmlExporter {
 		for (final String attName : attributes.keySet()) {
 			final AttributeValueType attValue = attributes.get(attName);
 
-			node.getAtt().add(createNodeAtt(attName, attValue.getValue().toString(), attValue.getType().name()));
+			node.getAtt().add(createNodeAtt(attName, attValue.getValue().toString(), attValue.getType().name(),
+					attValue.getType().getAssociatedCyType().name()));
 
 		}
 		return node;
 	}
 
-	private edu.scripps.yates.pcq.xgmml.jaxb.Graph.Node.Att createNodeAtt(String name, String value, String type) {
+	private edu.scripps.yates.pcq.xgmml.jaxb.Graph.Node.Att createNodeAtt(String name, String value, String type,
+			String cyType) {
 		final edu.scripps.yates.pcq.xgmml.jaxb.Graph.Node.Att ret = factory.createGraphNodeAtt();
 		ret.setName(name);
 		ret.setValue(value);
 		ret.setType(type);
+		ret.setCyType(cyType);
 		return ret;
 
 	}

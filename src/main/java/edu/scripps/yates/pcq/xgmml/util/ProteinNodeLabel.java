@@ -4,8 +4,8 @@ public enum ProteinNodeLabel {
 	ACC, ID, GENE;
 
 	public static ProteinNodeLabel getFrom(String property) {
-		for (ProteinNodeLabel label : ProteinNodeLabel.values()) {
-			if (label.name().equalsIgnoreCase(property)) {
+		for (final ProteinNodeLabel label : ProteinNodeLabel.values()) {
+			if (label.name().equals(property.trim())) {
 				return label;
 			}
 		}

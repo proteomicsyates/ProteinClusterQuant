@@ -211,8 +211,8 @@ public class Graph {
 	 *
 	 *
 	 * <p>
-	 * Objects of the following type(s) are allowed in the list {@link Graph.Att
-	 * }
+	 * Objects of the following type(s) are allowed in the list
+	 * {@link Graph.Att }
 	 *
 	 *
 	 */
@@ -1344,6 +1344,8 @@ public class Graph {
 			protected String value;
 			@XmlAttribute(name = "type")
 			protected String type;
+			@XmlAttribute(name = "cy:type")
+			protected String cyType;
 
 			/**
 			 * Gets the value of the name property.
@@ -1406,6 +1408,14 @@ public class Graph {
 			 */
 			public void setType(String value) {
 				type = value;
+			}
+
+			public String getCyType() {
+				return cyType;
+			}
+
+			public void setCyType(String cyType) {
+				this.cyType = cyType;
 			}
 
 		}

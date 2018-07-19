@@ -4,11 +4,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 import edu.scripps.yates.annotations.uniprot.xml.Entry;
 import edu.scripps.yates.utilities.fasta.FastaParser;
 import edu.scripps.yates.utilities.jaxb.xpathquery.JAXBXPathQuery;
 
 public class UniprotAnnotationColumn {
+	private final static Logger log = Logger.getLogger(UniprotAnnotationColumn.class);
 	private final String columnName;
 	private final String xpath;
 	private final String subXpath;
@@ -20,11 +23,11 @@ public class UniprotAnnotationColumn {
 	 */
 	public UniprotAnnotationColumn(String triplet) {
 		if (triplet.contains(",")) {
-			String[] split = triplet.split(",");
+			final String[] split = triplet.split(",");
 			if (split.length == 3) {
-				this.xpath = split[0].trim();
-				this.subXpath = split[1].trim();
-				this.columnName = split[2].trim();
+				xpath = split[0].trim();
+				subXpath = split[1].trim();
+				columnName = split[2].trim();
 				checkValues();
 				return;
 			}
@@ -55,11 +58,13 @@ public class UniprotAnnotationColumn {
 	}
 
 	public List<String> getValuesForProtein(String acc, Map<String, Entry> annotatedProteins) {
-		String uniProtACC = FastaParser.getUniProtACC(acc);
+		final String uniProtACC = FastaParser.getUniProtACC(acc);
 		if (uniProtACC != null && annotatedProteins.containsKey(uniProtACC)) {
-			Entry entry = annotatedProteins.get(uniProtACC);
-			List<String> results = JAXBXPathQuery.query(entry, this.xpath, this.subXpath);
+			final Entry entry = annotatedProteins.get(uniProtACC);
+
+			final List<String> results = JAXBXPathQuery.query(entry, xpath, subXpath);
 			return results;
+
 		}
 		return Collections.emptyList();
 	}

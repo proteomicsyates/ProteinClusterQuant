@@ -14,6 +14,7 @@ import org.apache.log4j.Logger;
 
 import edu.scripps.yates.annotations.uniprot.UniprotProteinLocalRetriever;
 import edu.scripps.yates.annotations.uniprot.proteoform.fasta.ProteoFormFastaReader;
+import edu.scripps.yates.annotations.uniprot.xml.Entry;
 import edu.scripps.yates.census.read.model.IsobaricQuantifiedPeptide;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
@@ -69,9 +70,11 @@ public class ProteinCluster {
 	 * By calling this function, the cluster will reorganize by collapsing the
 	 * nodes properly and calculating the ratios accordingly
 	 * 
+	 * @param annotatedProteins
+	 * 
 	 * @throws IOException
 	 */
-	public void createNodes() throws IOException {
+	public void createNodes(Map<String, Entry> annotatedProteins) throws IOException {
 		// reset nodes
 		// removes all nodes in the cluster and clear all maps
 		resetNodes();
@@ -90,6 +93,11 @@ public class ProteinCluster {
 
 		// connect protein and peptide nodes
 		connectProteinAndPeptideNodes();
+
+		// set description and taxonomy if they dont have it
+		for (final PCQProteinNode proteinNode : getProteinNodes()) {
+			proteinNode.annotateProteinsIfNecessary(annotatedProteins);
+		}
 
 	}
 
@@ -132,6 +140,9 @@ public class ProteinCluster {
 		peptides.addAll(individualQuantifiedPeptideSet);
 		final Set<String> set = new THashSet<String>();
 		for (final QuantifiedPeptideInterface pep : peptides) {
+			if (pep.getSequence().equals("FEELCSDLFR")) {
+				log.info(pep);
+			}
 			if (set.contains(pep.getKey())) {
 				log.info("Inconsistency error. 2 peptides with the same key cannot exist!");
 			} else {
@@ -141,6 +152,9 @@ public class ProteinCluster {
 		if (peptides.size() > 1) {
 			for (int i = 0; i < peptides.size(); i++) {
 				final QuantifiedPeptideInterface peptide1 = peptides.get(i);
+				if (peptide1.getSequence().equals("FEELCSDLFR")) {
+					log.info(peptide1);
+				}
 				for (int j = i + 1; j < peptides.size(); j++) {
 					final QuantifiedPeptideInterface peptide2 = peptides.get(j);
 					if (getParams().isCollapseIndistinguishablePeptides()

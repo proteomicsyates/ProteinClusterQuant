@@ -5,8 +5,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import edu.scripps.yates.annotations.uniprot.xml.Entry;
+import edu.scripps.yates.annotations.util.UniprotEntryUtil;
+import edu.scripps.yates.census.read.model.QuantifiedProtein;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
@@ -72,7 +76,7 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 	@Override
 	public String getKey() {
 		if (key == null) {
-			key = PCQUtils.getKeyString(getQuantifiedProteins());
+			key = PCQUtils.getAccessionString(getQuantifiedProteins());
 		}
 		return key;
 	}
@@ -83,16 +87,39 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 
 	}
 
+	/**
+	 * Sets description and taxonomy of proteins if they don't have it (it could
+	 * be because they have been read from a TSV file with just Accession)
+	 * 
+	 * @param annotatedProteins
+	 */
+	public void annotateProteinsIfNecessary(Map<String, Entry> annotatedProteins) {
+		for (final QuantifiedProteinInterface protein : proteinSet) {
+			if (annotatedProteins.containsKey(protein.getAccession()) && protein instanceof QuantifiedProtein) {
+				final QuantifiedProtein quantprotein = (QuantifiedProtein) protein;
+				final Entry entry = annotatedProteins.get(protein.getAccession());
+				if (protein.getDescription() == null || "".equals(protein.getDescription())) {
+					quantprotein.setDescription(UniprotEntryUtil.getProteinDescription(entry));
+				}
+				if (protein.getTaxonomies() == null || protein.getTaxonomies().isEmpty()) {
+					quantprotein.setTaxonomy(UniprotEntryUtil.getTaxonomy(entry));
+				}
+			}
+		}
+	}
+
 	public Set<String> getTaxonomies() {
 		if (!ProteinClusterQuantParameters.getInstance().ignoreTaxonomies()) {
 			if (taxonomies == null) {
-				taxonomies = new THashSet<String>();
 				final List<String> sortedTaxonomies = PCQUtils.getSortedTaxonomies(proteinSet);
 				for (final String taxonomy : sortedTaxonomies) {
-					if (taxonomy != null)
+					if (taxonomy != null) {
+						if (taxonomies == null) {
+							taxonomies = new THashSet<String>();
+						}
 						taxonomies.add(taxonomy);
+					}
 				}
-
 			}
 		}
 		return taxonomies;
