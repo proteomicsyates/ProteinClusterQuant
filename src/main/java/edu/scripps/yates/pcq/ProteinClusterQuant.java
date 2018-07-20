@@ -633,8 +633,8 @@ public class ProteinClusterQuant {
 
 			// header
 			out.write("Raw file " + "\t" + "Num PSMs" + "\t" + "Num Peptides" + "\t" + "Sequence" + "\t" + "Protein(s)"
-					+ "\t" + "Ratio Name" + "\t" + "Log2Ratio" + "\t" + "Ratio Score Name" + "\t"
-					+ "Ratio Score Value");
+					+ "\t" + "Genes" + "\t" + "Species" + "\t" + "Ratio Name" + "\t" + "Log2Ratio" + "\t"
+					+ "Ratio Score Name" + "\t" + "Ratio Score Value");
 			if (params.isCollapseBySites()) {
 				out.write("\t" + "QuantSitePositionInProtein(s)" + "\t" + "Quant site");
 			}
@@ -663,13 +663,19 @@ public class ProteinClusterQuant {
 					continue;
 				}
 				final String accessionString = PCQUtils.getAccessionString(peptideNode.getQuantifiedProteins());
+
+				final String geneNameString = PCQUtils.getGeneNameString(annotatedProteins,
+						peptideNode.getProteinNodes(), null, params.isPrintOnlyFirstGene(), true);
+
+				final String speciesString = PCQUtils.getSpeciesString(annotatedProteins, peptideNode.getProteinNodes(),
+						null, true);
 				final QuantRatio quantRatio = PCQUtils.getRepresentativeRatioForPeptideNode(peptideNode, cond1, cond2,
 						null, true);
 
 				out.write(peptideNode.getRawFileNames().iterator().next() + "\t"
 						+ peptideNode.getQuantifiedPSMs().size() + "\t" + peptideNode.getQuantifiedPeptides().size()
-						+ "\t" + peptideNode.getFullSequence() + "\t" + accessionString + "\t"
-						+ quantRatio.getDescription() + "\t"
+						+ "\t" + peptideNode.getFullSequence() + "\t" + accessionString + "\t" + geneNameString + "\t"
+						+ speciesString + "\t" + quantRatio.getDescription() + "\t"
 						+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)));
 				if (quantRatio.getAssociatedConfidenceScore() != null) {
 					out.write("\t" + quantRatio.getAssociatedConfidenceScore().getScoreName() + "\t"
@@ -955,6 +961,9 @@ public class ProteinClusterQuant {
 		// geneNameString
 		sb.append("genes");
 		sb.append(sep);
+		// protein accessions
+		sb.append("ACCs");
+		sb.append(sep);
 		// species
 		sb.append("species");
 		sb.append(sep);
@@ -1009,6 +1018,9 @@ public class ProteinClusterQuant {
 		sb.append(sep);
 		// geneNameString
 		sb.append(geneNameString);
+		sb.append(sep);
+		// accession
+		sb.append(PCQUtils.getAccessionString(peptideNode.getQuantifiedProteins()));
 		sb.append(sep);
 		// species
 		sb.append(speciesString);
