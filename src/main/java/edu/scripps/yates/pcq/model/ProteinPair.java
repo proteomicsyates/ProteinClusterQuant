@@ -210,7 +210,7 @@ public class ProteinPair {
 									classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.CASE6);
 								}
 								return;
-							} catch (final NotEnoughMeasurementsExcetion e) {
+							} catch (final NotEnoughMeasurementsException e) {
 								// log.info("asdf");
 							}
 						}
@@ -301,7 +301,7 @@ public class ProteinPair {
 									classification2Cases.put(sharedPeptidesProteinKey, Classification2Case.CASE6);
 								}
 								return;
-							} catch (final NotEnoughMeasurementsExcetion e) {
+							} catch (final NotEnoughMeasurementsException e) {
 								log.debug(e.getMessage());
 							}
 						}
@@ -353,7 +353,7 @@ public class ProteinPair {
 	 */
 	private void classifyPairByclassification1(List<Double> threeCombined, List<Double> pepRatProt1,
 			List<Double> pepRatShared, List<Double> pepRatProt2, String sharedPeptidesProteinKey, QuantCondition cond1,
-			QuantCondition cond2) throws IOException, NotEnoughMeasurementsExcetion {
+			QuantCondition cond2) throws IOException, NotEnoughMeasurementsException {
 
 		final boolean hasRatiosAndINF = PCQUtils.hasRatiosAndINF(threeCombined);
 		Classification1Case classification1Case = Classification1Case.CASE4;
@@ -442,10 +442,10 @@ public class ProteinPair {
 	 * @return 1 if unique peptides of protein1 are outliers, 0 if there is no
 	 *         outliers and 2 if unique peptides of protein2 are outliers, or 3
 	 *         if both unique peptides are outliers
-	 * @throws NotEnoughMeasurementsExcetion
+	 * @throws NotEnoughMeasurementsException
 	 */
 	private int outlierTestUniquePeptides(List<Double> threeCombined, List<Double> pepRatProt1,
-			List<Double> pepRatShared, List<Double> pepRatProt2) throws NotEnoughMeasurementsExcetion {
+			List<Double> pepRatShared, List<Double> pepRatProt2) throws NotEnoughMeasurementsException {
 		final List<Double> populationValues = new ArrayList<Double>();
 		double valueToTest;
 		int ret = 0;
@@ -479,11 +479,11 @@ public class ProteinPair {
 	 * @param valueToTest
 	 * @param populationSets
 	 * @return
-	 * @throws NotEnoughMeasurementsExcetion
+	 * @throws NotEnoughMeasurementsException
 	 */
 
 	final private boolean outlierTest(Double valueToTest, List<Double>... populationSets)
-			throws NotEnoughMeasurementsExcetion {
+			throws NotEnoughMeasurementsException {
 
 		final List<Double> populationValues = new ArrayList<Double>();
 		boolean outlier = false;
@@ -503,7 +503,7 @@ public class ProteinPair {
 				outlier = true;
 			}
 		} else {
-			throw new NotEnoughMeasurementsExcetion();
+			throw new NotEnoughMeasurementsException();
 		}
 		return outlier;
 	}

@@ -8,6 +8,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -1160,4 +1161,8 @@ public class ProteinCluster {
 		return peptideNodesByPeptideNodeKey;
 	}
 
+	@Override
+	public int hashCode() {
+		return Objects.hash(getClusterID());
+	}
 }
