@@ -1673,10 +1673,15 @@ public class ProteinClusterQuant {
 			return QuantificationType.ISOTOPOLOGUES;
 		} else if (inputType == AnalysisInputType.CENSUS_OUT) {
 			return QuantificationType.SILAC;
-		} else
+		} else {
+			if (QuantificationLabel.isTMT(getParams().getNumeratorLabel())) {
+				return QuantificationType.iTRAQ;
+			} else if (QuantificationLabel.isN15(getParams().getNumeratorLabel())) {
+				return QuantificationType.N15;
+			}
 			// if (inputType == InputType.SEPARATED_VALUES) {
 			return QuantificationType.UNKNOWN;
-		// }
+		}
 	}
 
 	private void moveResultsToFinalFolder() throws IOException {
