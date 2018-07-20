@@ -1,6 +1,6 @@
 package edu.scripps.yates.pcq.model;
 
-public class NotEnoughMeasurementsExcetion extends Exception {
+public class NotEnoughMeasurementsException extends Exception {
 
 	/**
 	 *
