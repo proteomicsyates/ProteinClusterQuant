@@ -1938,10 +1938,11 @@ public class ProteinClusterQuant {
 	 * @param pepMap
 	 */
 	private void separatePTMProteinsAndPeptides(Map<String, QuantifiedPeptideInterface> pepMap) {
-		log.info("Separating protein nodes for proteins with PTMs");
 		if (params.isIgnorePTMs()) {
 			return;
 		}
+		log.info("Separating protein nodes taking into account proteins with PTMs");
+
 		final Set<QuantifiedProteinInterface> individualProteins = PCQUtils.getProteinsFromPeptides(pepMap.values());
 		final Map<String, QuantifiedProteinInterface> newProteins = new THashMap<String, QuantifiedProteinInterface>();
 		final ProgressCounter counter = new ProgressCounter(individualProteins.size(),
