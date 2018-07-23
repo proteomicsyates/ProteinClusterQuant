@@ -11,6 +11,7 @@ import java.util.Set;
 import edu.scripps.yates.annotations.uniprot.xml.Entry;
 import edu.scripps.yates.annotations.util.UniprotEntryUtil;
 import edu.scripps.yates.census.read.model.QuantifiedProtein;
+import edu.scripps.yates.census.read.model.QuantifiedProteinFromDBIndexEntry;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
@@ -93,16 +94,32 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 	 * 
 	 * @param annotatedProteins
 	 */
-	public void annotateProteinsIfNecessary(Map<String, Entry> annotatedProteins) {
+	public void annotateProteins(Map<String, Entry> annotatedProteins) {
 		for (final QuantifiedProteinInterface protein : proteinSet) {
-			if (annotatedProteins.containsKey(protein.getAccession()) && protein instanceof QuantifiedProtein) {
-				final QuantifiedProtein quantprotein = (QuantifiedProtein) protein;
-				final Entry entry = annotatedProteins.get(protein.getAccession());
-				if (protein.getDescription() == null || "".equals(protein.getDescription())) {
+			if (annotatedProteins.containsKey(protein.getAccession())) {
+				if (protein instanceof QuantifiedProtein) {
+
+					final QuantifiedProtein quantprotein = (QuantifiedProtein) protein;
+					final Entry entry = annotatedProteins.get(protein.getAccession());
+					// if (protein.getDescription() == null ||
+					// "".equals(protein.getDescription())) {
 					quantprotein.setDescription(UniprotEntryUtil.getProteinDescription(entry));
-				}
-				if (protein.getTaxonomies() == null || protein.getTaxonomies().isEmpty()) {
+					// }
+					// if (protein.getTaxonomies() == null ||
+					// protein.getTaxonomies().isEmpty()) {
 					quantprotein.setTaxonomy(UniprotEntryUtil.getTaxonomy(entry));
+					// }
+				} else if (protein instanceof QuantifiedProteinFromDBIndexEntry) {
+					final QuantifiedProteinFromDBIndexEntry quantprotein = (QuantifiedProteinFromDBIndexEntry) protein;
+					final Entry entry = annotatedProteins.get(protein.getAccession());
+					// if (protein.getDescription() == null ||
+					// "".equals(protein.getDescription())) {
+					quantprotein.setDescription(UniprotEntryUtil.getProteinDescription(entry));
+					// }
+					// if (protein.getTaxonomies() == null ||
+					// protein.getTaxonomies().isEmpty()) {
+					quantprotein.setTaxonomy(UniprotEntryUtil.getTaxonomy(entry));
+					// }
 				}
 			}
 		}
