@@ -16,6 +16,8 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
+import com.google.common.collect.Iterables;
+
 import edu.scripps.yates.annotations.uniprot.UniprotProteinLocalRetriever;
 import edu.scripps.yates.annotations.uniprot.xml.Entry;
 import edu.scripps.yates.annotations.uniprot.xml.GeneNameType;
@@ -421,6 +423,8 @@ public class PCQUtils {
 			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
+			parser.setIgnoreTaxonomies(ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
+			parser.setIgnoreACCFormat(ProteinClusterQuantParameters.getInstance().ignoreACCFormat());
 			if (useFasta) {
 				final DBIndexInterface fastaDBIndex = getFastaDBIndex(fastaFile, enzymeArray, missedCleavages,
 						semiCleavage, peptideFilterRegexp, uniprotReleasesFolder, uniprotVersion, lookForProteoforms,
@@ -674,6 +678,8 @@ public class PCQUtils {
 			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
 			parser.setDecoyPattern(decoyRegexp);
 			parser.setIgnoreNotFoundPeptidesInDB(ignoreNotFoundPeptidesInDB);
+			parser.setIgnoreTaxonomies(ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
+			parser.setIgnoreACCFormat(ProteinClusterQuantParameters.getInstance().ignoreACCFormat());
 			if (useFasta) {
 				final DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
 						mongoProtDBName, peptideFilterRegexp, uniprotVersion, decoyRegexp);
@@ -715,7 +721,7 @@ public class PCQUtils {
 	public static boolean shareAtLeastOnePeptideNode(PCQProteinNode proteinNode1, PCQProteinNode proteinNode2,
 			boolean skipDiscardedPeptideNodes) {
 
-		final Set<PCQPeptideNode> peptideNodes1 = proteinNode1.getPeptideNodes();
+		final List<PCQPeptideNode> peptideNodes1 = proteinNode1.getPeptideNodes();
 		for (final PCQPeptideNode peptideNode : peptideNodes1) {
 			if (skipDiscardedPeptideNodes && peptideNode.isDiscarded()) {
 				continue;
@@ -729,7 +735,7 @@ public class PCQUtils {
 
 	public static boolean shareAtLeastOnePeptideBySimilarity(PCQProteinNode proteinNode1, PCQProteinNode proteinNode2,
 			AlignmentSet peptideAlignments, boolean skipDiscardedPeptideNodes) {
-		final Set<PCQPeptideNode> peptideNodes1 = proteinNode1.getPeptideNodes();
+		final List<PCQPeptideNode> peptideNodes1 = proteinNode1.getPeptideNodes();
 
 		for (final PCQPeptideNode peptideNode1 : peptideNodes1) {
 			if (skipDiscardedPeptideNodes && peptideNode1.isDiscarded()) {
@@ -766,8 +772,8 @@ public class PCQUtils {
 
 	public static Set<PCQPeptideNode> getSharedPeptideNodeSet(PCQProteinNode proteinNode1, PCQProteinNode proteinNode2,
 			boolean onlysharedByThisToProteins, boolean skipDiscarded) {
-		final Set<PCQPeptideNode> peptideNodes1 = proteinNode1.getPeptideNodes();
-		final Set<PCQPeptideNode> peptideNodes2 = proteinNode2.getPeptideNodes();
+		final List<PCQPeptideNode> peptideNodes1 = proteinNode1.getPeptideNodes();
+		final List<PCQPeptideNode> peptideNodes2 = proteinNode2.getPeptideNodes();
 		final Set<PCQPeptideNode> ret = new THashSet<PCQPeptideNode>();
 		for (final PCQPeptideNode peptideNode1 : peptideNodes1) {
 			if (skipDiscarded && peptideNode1.isDiscarded()) {
@@ -861,15 +867,15 @@ public class PCQUtils {
 	 * @param onlySharedByTheseTwoProteins
 	 * @return
 	 */
-	public static Map<String, Set<PCQPeptideNode>> getSharedPeptideNodesByProteinNode(PCQProteinNode proteinNode1,
+	public static Map<String, List<PCQPeptideNode>> getSharedPeptideNodesByProteinNode(PCQProteinNode proteinNode1,
 			PCQProteinNode proteinNode2, boolean onlySharedByTheseTwoProteins, boolean skipDiscarded) {
 
-		final Set<PCQPeptideNode> peptidesNodes1 = proteinNode1.getPeptideNodes();
-		final Set<PCQPeptideNode> peptidesNodes2 = proteinNode2.getPeptideNodes();
+		final List<PCQPeptideNode> peptidesNodes1 = proteinNode1.getPeptideNodes();
+		final List<PCQPeptideNode> peptidesNodes2 = proteinNode2.getPeptideNodes();
 		final Set<PCQPeptideNode> totalPeptideNodes = new THashSet<PCQPeptideNode>();
 		totalPeptideNodes.addAll(peptidesNodes1);
 		totalPeptideNodes.addAll(peptidesNodes2);
-		final Map<String, Set<PCQPeptideNode>> map = new THashMap<String, Set<PCQPeptideNode>>();
+		final Map<String, List<PCQPeptideNode>> map = new THashMap<String, List<PCQPeptideNode>>();
 		for (final PCQPeptideNode peptideNode : totalPeptideNodes) {
 			if (skipDiscarded && peptideNode.isDiscarded()) {
 				continue;
@@ -892,9 +898,12 @@ public class PCQUtils {
 						}
 						final String proteinAccKey = proteinNode.getKey();
 						if (map.containsKey(proteinAccKey)) {
-							map.get(proteinAccKey).add(peptideNode);
+							final List<PCQPeptideNode> list = map.get(proteinAccKey);
+							if (!list.contains(peptideNode)) {
+								list.add(peptideNode);
+							}
 						} else {
-							final Set<PCQPeptideNode> set = new THashSet<PCQPeptideNode>();
+							final List<PCQPeptideNode> set = new ArrayList<PCQPeptideNode>();
 							set.add(peptideNode);
 							map.put(proteinAccKey, set);
 						}
@@ -904,6 +913,53 @@ public class PCQUtils {
 			}
 		}
 		return map;
+	}
+
+	/**
+	 * Get the shared peptides between protein1 and protein2. Each peptide will
+	 * be mapped to the proteins that are mapped.
+	 *
+	 * @param proteinNode1
+	 * @param proteinNode2
+	 * @param onlySharedByTheseTwoProteins
+	 * @return
+	 */
+	public static int getNumSharedPeptideNodesByProteinNode(PCQProteinNode proteinNode1, PCQProteinNode proteinNode2,
+			boolean onlySharedByTheseTwoProteins, boolean skipDiscarded) {
+
+		final List<PCQPeptideNode> peptidesNodes1 = proteinNode1.getPeptideNodes();
+		final List<PCQPeptideNode> peptidesNodes2 = proteinNode2.getPeptideNodes();
+		final Iterable<PCQPeptideNode> concatenatedLists = Iterables.concat(peptidesNodes1, peptidesNodes2);
+		final Set<String> set = new THashSet<String>();
+		for (final PCQPeptideNode peptideNode : concatenatedLists) {
+			if (skipDiscarded && peptideNode.isDiscarded()) {
+				continue;
+			}
+			final Set<PCQProteinNode> proteinNodes = peptideNode.getProteinNodes();
+			if (proteinNodes.contains(proteinNode1) && proteinNodes.contains(proteinNode2)) {
+				boolean include = false;
+				if (onlySharedByTheseTwoProteins) {
+					if (proteinNodes.size() == 2) {
+						include = true;
+					}
+				} else {
+					include = true;
+				}
+				if (include) {
+					// peptide shared by protein1 and protein2
+					for (final PCQProteinNode proteinNode : proteinNodes) {
+						if (skipDiscarded && proteinNode.isDiscarded()) {
+							continue;
+						}
+						final String proteinAccKey = proteinNode.getKey();
+						set.add(proteinAccKey);
+
+					}
+
+				}
+			}
+		}
+		return set.size();
 	}
 
 	/**
@@ -931,8 +987,8 @@ public class PCQUtils {
 		if (proteinNode1 == null || proteinNode2 == null) {
 			return map;
 		}
-		final Set<PCQPeptideNode> peptideNodes1 = proteinNode1.getPeptideNodes();
-		final Set<PCQPeptideNode> peptideNodes2 = proteinNode2.getPeptideNodes();
+		final List<PCQPeptideNode> peptideNodes1 = proteinNode1.getPeptideNodes();
+		final List<PCQPeptideNode> peptideNodes2 = proteinNode2.getPeptideNodes();
 		final Set<PCQPeptideNode> totalPeptideNodes = new THashSet<PCQPeptideNode>();
 		totalPeptideNodes.addAll(peptideNodes1);
 		totalPeptideNodes.addAll(peptideNodes2);
@@ -1924,7 +1980,7 @@ public class PCQUtils {
 	 */
 	public static Set<PCQPeptideNode> getUniquePeptideNodes(PCQProteinNode proteinNode1, PCQProteinNode proteinNode2,
 			boolean uniquePepOnly, boolean skipDiscarded) {
-		final Set<PCQPeptideNode> peptideNodes1 = proteinNode1.getPeptideNodes();
+		final List<PCQPeptideNode> peptideNodes1 = proteinNode1.getPeptideNodes();
 		final Set<PCQPeptideNode> ret = new THashSet<PCQPeptideNode>();
 
 		for (final PCQPeptideNode peptideNode1 : peptideNodes1) {
