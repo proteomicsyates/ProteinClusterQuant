@@ -8,7 +8,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
@@ -97,7 +96,7 @@ public class ProteinCluster {
 
 		// set description and taxonomy if they dont have it
 		for (final PCQProteinNode proteinNode : getProteinNodes()) {
-			proteinNode.annotateProteinsIfNecessary(annotatedProteins);
+			proteinNode.annotateProteins(annotatedProteins);
 		}
 
 	}
@@ -588,6 +587,7 @@ public class ProteinCluster {
 				proteinMap.put(protein.getKey(), set);
 			}
 		}
+
 		// initialize proteoform fasta parser
 		if (getParams().isLookForProteoforms()) {
 			final ProteoFormFastaReader proteoformFastaParser = new ProteoFormFastaReader(
@@ -1161,8 +1161,8 @@ public class ProteinCluster {
 		return peptideNodesByPeptideNodeKey;
 	}
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(getClusterID());
-	}
+	// @Override
+	// public int hashCode() {
+	// return Objects.hash(getClusterID());
+	// }
 }
