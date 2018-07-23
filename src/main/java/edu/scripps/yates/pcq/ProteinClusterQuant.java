@@ -211,6 +211,7 @@ public class ProteinClusterQuant {
 			final Set<String> peptideInclusionList = getPeptideInclusionList();
 			final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
 					params.getNumeratorLabel(), params.getDenominatorLabel());
+
 			// try to get an quantParser
 			final boolean useFasta = true;
 			quantParser = PCQUtils.getQuantParser(params, labelsByConditionsList, useFasta, peptideInclusionList, true);
@@ -238,12 +239,7 @@ public class ProteinClusterQuant {
 				// remove modified peptides
 				removePTMPeptides(pepMap);
 			}
-			log.info("DEBUGGING");
-			final QuantifiedPeptideInterface quantifiedPeptideInterface = pepMap.get("FEELCSDLFR");
-			final Set<QuantRatio> ratios = quantifiedPeptideInterface.getRatios();
-			final QuantRatio ratio = ratios.iterator().next();
-			System.out.println(ratio.getNonLogRatio("cond1", "cond2"));
-			log.info("DEBUGGING FINISHED");
+
 			// List to hold all peptides
 			final List<QuantifiedPeptideInterface> peptideList = new ArrayList<QuantifiedPeptideInterface>();
 			peptideList.addAll(pepMap.values());
@@ -2447,7 +2443,7 @@ public class ProteinClusterQuant {
 					numSignificantClusters++;
 				}
 			}
-			counter = new ProgressCounter(clusterSet.size(), ProgressPrintingType.EVERY_STEP, 0);
+			counter = new ProgressCounter(clusterSet.size(), ProgressPrintingType.PERCENTAGE_STEPS, 1);
 
 			// iterate over cluster set (for each cluster)
 			for (final ProteinCluster cluster : clusterSet) {
