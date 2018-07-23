@@ -32,6 +32,8 @@ public class NonQuantParser extends AbstractQuantParser {
 
 	public NonQuantParser(DTASelectParser dtaSelectParser) throws PatternSyntaxException, IOException {
 		this.dtaSelectParser = dtaSelectParser;
+		enableProteinMergingBySecondaryAccessions(dtaSelectParser.getUniprotProteinLocalRetriever(),
+				dtaSelectParser.getUniprotVersion());
 		setDbIndex(dtaSelectParser.getDBIndex());
 		setDecoyPattern(dtaSelectParser.getDecoyPattern());
 		setIgnoreNotFoundPeptidesInDB(dtaSelectParser.isIgnoreNotFoundPeptidesInDB());
@@ -47,6 +49,7 @@ public class NonQuantParser extends AbstractQuantParser {
 	@Override
 	protected void process() {
 		try {
+			processed = false;
 			final Map<String, DTASelectPSM> psms = dtaSelectParser.getDTASelectPSMsByPSMID();
 			// wrapping dtaselect psms to PCQ
 			log.info("Wrapping " + psms.size() + " PSMs from DTASelect parser into PCQ");
@@ -60,6 +63,7 @@ public class NonQuantParser extends AbstractQuantParser {
 				processPSM(psm);
 
 			}
+			processed = true;
 		} catch (final IOException e) {
 			e.printStackTrace();
 		} catch (final DBIndexStoreException e) {
