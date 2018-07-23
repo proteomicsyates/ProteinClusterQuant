@@ -1,6 +1,5 @@
 package edu.scripps.yates.pcq.model;
 
-import java.util.Objects;
 import java.util.Set;
 
 import edu.scripps.yates.census.read.model.interfaces.HasKey;
@@ -12,6 +11,7 @@ import gnu.trove.set.hash.THashSet;
 
 public abstract class AbstractNode<T extends QuantifiedItem> implements QuantifiedItem, HasKey {
 	private boolean discarded;
+	private final int hashCode = -1;;
 
 	public abstract Set<QuantifiedPSMInterface> getQuantifiedPSMs();
 
@@ -78,8 +78,11 @@ public abstract class AbstractNode<T extends QuantifiedItem> implements Quantifi
 		return false;
 	}
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(getKey());
-	}
+	// @Override
+	// public int hashCode() {
+	// if (hashCode == -1) {
+	// hashCode = Objects.hash(getKey());
+	// }
+	// return hashCode;
+	// }
 }
