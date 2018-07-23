@@ -29,7 +29,7 @@ import gnu.trove.set.hash.THashSet;
 public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 	// private final static Logger log = Logger.getLogger(PCQProteinNode.class);
 	private final Set<QuantifiedProteinInterface> proteinSet = new THashSet<QuantifiedProteinInterface>();
-	private final Set<PCQPeptideNode> peptideNodes = new THashSet<PCQPeptideNode>();
+	private final List<PCQPeptideNode> peptideNodes = new ArrayList<PCQPeptideNode>();
 	private Set<String> taxonomies;
 	private final ProteinCluster proteinCluster;
 	private ProteinPair proteinPair;
@@ -54,7 +54,7 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 		this.proteinCluster = proteinCluster;
 	}
 
-	public Set<PCQPeptideNode> getPeptideNodes() {
+	public List<PCQPeptideNode> getPeptideNodes() {
 		return peptideNodes;
 	}
 
@@ -168,6 +168,9 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 	}
 
 	public boolean addPeptideNode(PCQPeptideNode peptideNode) {
+		if (peptideNodes.contains(peptideNode)) {
+			return false;
+		}
 		return peptideNodes.add(peptideNode);
 	}
 
@@ -215,7 +218,7 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 			return true;
 		} else {
 			// return true if all peptide nodes are discarded
-			final Set<PCQPeptideNode> peptideNodes2 = getPeptideNodes();
+			final List<PCQPeptideNode> peptideNodes2 = getPeptideNodes();
 			for (final PCQPeptideNode pcqPeptideNode : peptideNodes2) {
 				if (!pcqPeptideNode.isDiscarded()) {
 					return false;
