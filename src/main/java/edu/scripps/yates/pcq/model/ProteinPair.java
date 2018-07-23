@@ -422,9 +422,9 @@ public class ProteinPair {
 
 	private boolean isSharedPeptideNodeSharedByOtherProteinNodeOutOfThePair(QuantCondition cond1,
 			QuantCondition cond2) {
-		final Map<String, Set<PCQPeptideNode>> sharedPeptides = PCQUtils
-				.getSharedPeptideNodesByProteinNode(proteinNode1, proteinNode2, false, true);
-		if (sharedPeptides.size() > 2) {
+		final int sharedPeptides = PCQUtils.getNumSharedPeptideNodesByProteinNode(proteinNode1, proteinNode2, false,
+				true);
+		if (sharedPeptides > 2) {
 			return true;
 		}
 		return false;
@@ -729,6 +729,8 @@ public class ProteinPair {
 	}
 
 	public int getNumSharedNodes() {
-		return PCQUtils.getSharedPeptideNodesByProteinNode(proteinNode1, proteinNode2, false, true).size();
+		return PCQUtils.getNumSharedPeptideNodesByProteinNode(proteinNode1, proteinNode2, false, true);
+		// return PCQUtils.getSharedPeptideNodesByProteinNode(proteinNode1,
+		// proteinNode2, false, true).size();
 	}
 }
