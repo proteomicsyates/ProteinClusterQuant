@@ -53,6 +53,8 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 
 	private final Map<QuantifiedPeptideInterface, PositionInPeptide> positionInPeptideByPeptide = new THashMap<QuantifiedPeptideInterface, PositionInPeptide>();
 
+	private Set<QuantifiedPSMInterface> quantPSMs;
+
 	public PCQPeptideNode(ProteinCluster proteinCluster, Collection<QuantifiedPeptideInterface> peptideCollection) {
 		peptideSet.addAll(peptideCollection);
 		this.proteinCluster = proteinCluster;
@@ -193,11 +195,13 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 
 	@Override
 	public Set<QuantifiedPSMInterface> getQuantifiedPSMs() {
-		final Set<QuantifiedPSMInterface> ret = new THashSet<QuantifiedPSMInterface>();
-		for (final QuantifiedPeptideInterface peptide : getQuantifiedPeptides()) {
-			ret.addAll(peptide.getQuantifiedPSMs());
+		if (quantPSMs == null) {
+			quantPSMs = new THashSet<QuantifiedPSMInterface>();
+			for (final QuantifiedPeptideInterface peptide : getQuantifiedPeptides()) {
+				quantPSMs.addAll(peptide.getQuantifiedPSMs());
+			}
 		}
-		return ret;
+		return quantPSMs;
 	}
 
 	@Override
