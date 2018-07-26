@@ -628,9 +628,9 @@ public class ProteinClusterQuant {
 			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName);
 
 			// header
-			out.write("Raw file " + "\t" + "Num PSMs" + "\t" + "Num Peptides" + "\t" + "Sequence" + "\t" + "Protein(s)"
-					+ "\t" + "Genes" + "\t" + "Species" + "\t" + "Ratio Name" + "\t" + "Log2Ratio" + "\t"
-					+ "Ratio Score Name" + "\t" + "Ratio Score Value");
+			out.write("Raw file " + "\t" + "Unique" + "\t" + "Num PSMs" + "\t" + "Num Peptides" + "\t" + "Sequence"
+					+ "\t" + "Protein(s)" + "\t" + "Genes" + "\t" + "Species" + "\t" + "Ratio Name" + "\t" + "Log2Ratio"
+					+ "\t" + "Ratio Score Name" + "\t" + "Ratio Score Value");
 			if (params.isCollapseBySites()) {
 				out.write("\t" + "QuantSitePositionInProtein(s)" + "\t" + "Quant site");
 			}
@@ -655,7 +655,7 @@ public class ProteinClusterQuant {
 
 				out.write("\n");
 				if (peptideNode.isDiscarded()) {
-					out.write("FILTERED\t" + "\t" + "\t" + peptideNode.getFullSequence());
+					out.write("FILTERED\t" + "\t" + "\t" + "\t" + peptideNode.getFullSequence());
 					continue;
 				}
 				final String accessionString = PCQUtils.getAccessionString(peptideNode.getQuantifiedProteins());
@@ -667,8 +667,8 @@ public class ProteinClusterQuant {
 						null, true);
 				final QuantRatio quantRatio = PCQUtils.getRepresentativeRatioForPeptideNode(peptideNode, cond1, cond2,
 						null, true);
-
-				out.write(peptideNode.getRawFileNames().iterator().next() + "\t"
+				final boolean unique = peptideNode.getProteinNodes().size() == 1;
+				out.write(peptideNode.getRawFileNames().iterator().next() + "\t" + unique + "\t"
 						+ peptideNode.getQuantifiedPSMs().size() + "\t" + peptideNode.getQuantifiedPeptides().size()
 						+ "\t" + peptideNode.getFullSequence() + "\t" + accessionString + "\t" + geneNameString + "\t"
 						+ speciesString + "\t" + quantRatio.getDescription() + "\t"
