@@ -66,7 +66,7 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 		return ret;
 	}
 
-	private String getAccession() {
+	public String getAccessionString() {
 
 		return PCQUtils.getAccessionString(getQuantifiedProteins());
 
@@ -75,7 +75,7 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 	@Override
 	public String getKey() {
 		if (key == null) {
-			key = PCQUtils.getAccessionString(getQuantifiedProteins());
+			key = PCQUtils.getKeyString(getQuantifiedProteins());
 		}
 		return key;
 	}
@@ -103,7 +103,7 @@ public class PCQProteinNode extends AbstractNode<QuantifiedProteinInterface> {
 				// }
 				// if (protein.getTaxonomies() == null ||
 				// protein.getTaxonomies().isEmpty()) {
-				protein.setTaxonomy(UniprotEntryUtil.getTaxonomy(entry));
+				protein.setTaxonomy(UniprotEntryUtil.getTaxonomyName(entry));
 				// }
 
 			}
