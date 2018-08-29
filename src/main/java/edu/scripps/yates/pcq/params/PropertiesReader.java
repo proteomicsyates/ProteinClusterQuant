@@ -195,6 +195,20 @@ public class PropertiesReader {
 		}
 		params.setAaQuantified(aaQuantified);
 
+		if (properties.containsKey("collapsePeptidesByPTMs")) {
+			final String collapsePeptidesByPTMsString = properties.getProperty("collapsePeptidesByPTMs");
+			try {
+				params.setCollapseByPTMs(Boolean.valueOf(collapsePeptidesByPTMsString));
+			} catch (final Exception e) {
+				throw new IllegalArgumentException("collapsePeptidesByPTMs is not recognized as '"
+						+ collapsePeptidesByPTMsString + ". Posible values are TRUE or FALSE");
+			}
+		}
+		if (params.isCollapseBySites() && params.isCollapseByPTMs()) {
+			throw new IllegalArgumentException(
+					"collapsePeptidesBySites and collapsePeptidesByPTMs cannot be used at the same time");
+		}
+
 		if (properties.containsKey("isobaricRatioType")) {
 			final String property = properties.getProperty("isobaricRatioType", false);
 			try {
