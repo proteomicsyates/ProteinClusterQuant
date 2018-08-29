@@ -14,7 +14,7 @@ import edu.scripps.yates.dtaselectparser.util.DTASelectModification;
 import edu.scripps.yates.dtaselectparser.util.DTASelectPSM;
 import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.proteomicsmodel.Amount;
-import edu.scripps.yates.utilities.util.StringPosition;
+import edu.scripps.yates.utilities.sequence.PTMInPeptide;
 
 public class NonQuantifiedPSM extends QuantifiedPSM {
 	private final DTASelectPSM psm;
@@ -41,14 +41,15 @@ public class NonQuantifiedPSM extends QuantifiedPSM {
 	}
 
 	@Override
-	public List<StringPosition> getPtms() {
-		final List<StringPosition> ret = new ArrayList<StringPosition>();
+	public List<PTMInPeptide> getPtms() {
+		final List<PTMInPeptide> ret = new ArrayList<PTMInPeptide>();
 		final List<DTASelectModification> modifications = psm.getModifications();
 		if (modifications != null) {
 			for (final DTASelectModification dtaSelectModification : modifications) {
-				final StringPosition stringposition = new StringPosition(getSequence(),
-						dtaSelectModification.getModPosition());
-				ret.add(stringposition);
+				final PTMInPeptide ptm = new PTMInPeptide(dtaSelectModification.getModPosition(),
+						dtaSelectModification.getAa(), getSequence(), dtaSelectModification.getModificationShift());
+
+				ret.add(ptm);
 			}
 		}
 		return ret;
