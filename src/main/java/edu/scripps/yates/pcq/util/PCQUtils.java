@@ -19,11 +19,13 @@ import org.apache.log4j.Logger;
 import com.google.common.collect.Iterables;
 
 import edu.scripps.yates.annotations.uniprot.UniprotProteinLocalRetriever;
+import edu.scripps.yates.annotations.uniprot.UniprotProteinRetriever;
 import edu.scripps.yates.annotations.uniprot.xml.Entry;
 import edu.scripps.yates.annotations.uniprot.xml.GeneNameType;
 import edu.scripps.yates.annotations.uniprot.xml.GeneType;
 import edu.scripps.yates.annotations.uniprot.xml.OrganismNameType;
 import edu.scripps.yates.annotations.uniprot.xml.OrganismType;
+import edu.scripps.yates.annotations.util.UniprotEntryUtil;
 import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.read.CensusChroParser;
 import edu.scripps.yates.census.read.CensusOutParser;
@@ -58,6 +60,7 @@ import edu.scripps.yates.pcq.model.ProteinCluster;
 import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.xgmml.util.AlignedPeptides;
 import edu.scripps.yates.pcq.xgmml.util.AlignmentSet;
+import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
 import edu.scripps.yates.proteoform_dbindex.ProteoformDBIndexInterface;
 import edu.scripps.yates.utilities.alignment.nwalign.NWAlign;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
@@ -66,11 +69,13 @@ import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.progresscounter.ProgressCounter;
 import edu.scripps.yates.utilities.progresscounter.ProgressPrintingType;
 import edu.scripps.yates.utilities.remote.RemoteSSHFileReference;
+import edu.scripps.yates.utilities.sequence.PTMInPeptide;
+import edu.scripps.yates.utilities.sequence.PTMInProtein;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import edu.scripps.yates.utilities.sequence.PositionInProtein;
+import edu.scripps.yates.utilities.sequence.ProteinSequenceUtils;
 import edu.scripps.yates.utilities.strings.StringUtils;
 import edu.scripps.yates.utilities.util.Pair;
-import edu.scripps.yates.utilities.util.StringPosition;
 import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
@@ -92,6 +97,26 @@ public class PCQUtils {
 	private static TIntObjectHashMap<Set<String>> cachedProteinNodeKeysStringsByQuantifiedPeptide = new TIntObjectHashMap<Set<String>>();
 	public static final String KEY_SEPARATOR = "-";
 	public static final ProteinSequences proteinSequences = new ProteinSequences();
+	public static String[] PTM_CODES = { "*", "@", "^", "&", "#", "%", "!" };
+	private static Map<Double, String> ptmCodesByDeltaMass = new THashMap<Double, String>();
+
+	public static String getPTMCodeByDeltaMass(double delta) {
+		if (!ptmCodesByDeltaMass.containsKey(delta)) {
+			// look for a new one
+			final Collection<String> usedPTMCodes = ptmCodesByDeltaMass.values();
+			for (final String PTM_CODE : PTM_CODES) {
+				if (!usedPTMCodes.contains(PTM_CODE)) {
+					ptmCodesByDeltaMass.put(delta, PTM_CODE);
+					break;
+				}
+			}
+		}
+		return ptmCodesByDeltaMass.get(delta);
+	}
+
+	public static Map<Double, String> getPTMCodesByDeltaMass() {
+		return ptmCodesByDeltaMass;
+	}
 
 	public static AlignmentSet alignPeptides(List<QuantifiedPeptideInterface> peptideList, QuantCondition cond1,
 			QuantCondition cond2, FileWriter alignmentLogFile) throws IOException {
@@ -1529,7 +1554,7 @@ public class PCQUtils {
 			if (skipDiscarded && proteinNode.isDiscarded()) {
 				continue;
 			}
-			final String accession = proteinNode.getKey();
+			final String accession = PCQUtils.getAccessionString(proteinNode.getItemsInNode());
 			if (accession.contains(PROTEIN_ACC_SEPARATOR)) {
 				final String[] split = accession.split(PROTEIN_ACC_SEPARATOR);
 				for (final String string : split) {
@@ -1552,10 +1577,10 @@ public class PCQUtils {
 			if (skipDiscarded && proteinNode.isDiscarded()) {
 				continue;
 			}
-			final String rawAcc = proteinNode.getKey();
+			final String rawAcc = PCQUtils.getAccessionString(proteinNode.getItemsInNode());
 			final List<String> accs = new ArrayList<String>();
-			if (rawAcc.contains(" ")) {
-				final String[] split = rawAcc.split(" ");
+			if (rawAcc.contains(PROTEIN_ACC_SEPARATOR)) {
+				final String[] split = rawAcc.split(PROTEIN_ACC_SEPARATOR);
 				for (final String string : split) {
 					accs.add(string);
 				}
@@ -1611,8 +1636,8 @@ public class PCQUtils {
 		for (final String rawAcc : proteinNodeMap.keySet()) {
 
 			final List<String> accs = new ArrayList<String>();
-			if (rawAcc.contains(" ")) {
-				final String[] split = rawAcc.split(" ");
+			if (rawAcc.contains(PROTEIN_ACC_SEPARATOR)) {
+				final String[] split = rawAcc.split(PROTEIN_ACC_SEPARATOR);
 				for (final String string : split) {
 					accs.add(string);
 				}
@@ -1719,7 +1744,7 @@ public class PCQUtils {
 				final String peptideKey = quantifiedPeptide.getKey();
 				if (map.containsKey(peptideKey)) {
 					throw new IllegalArgumentException(
-							"peptide key cannot be repeated. There is an incosistence b etween how Census parser is reading PSMs and creating peptides and how the peptideKey is created here");
+							"peptide key cannot be repeated. There  is an incosistence between how Census parser is reading PSMs and creating peptides and how the peptideKey is created here");
 				}
 				map.put(peptideKey, quantifiedPeptide);
 			}
@@ -2214,8 +2239,8 @@ public class PCQUtils {
 			}
 		} else {
 			// only for collapseBySites=TRUE
-			final Set<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> isobaricpeptidesAndPositionsInPeptides = new THashSet<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>>();
-			final Set<Pair<QuantifiedPeptideInterface, PositionInPeptide>> peptidesAndPositionsInPeptides = new THashSet<Pair<QuantifiedPeptideInterface, PositionInPeptide>>();
+			final Set<Pair<IsobaricQuantifiedPeptide, List<PositionInPeptide>>> isobaricpeptidesAndPositionsInPeptides = new THashSet<Pair<IsobaricQuantifiedPeptide, List<PositionInPeptide>>>();
+			final Set<Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>> peptidesAndPositionsInPeptides = new THashSet<Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>>();
 			//
 			if (params.isCollapseBySites()) {
 				for (final PCQPeptideNode peptideNode : peptideNodes) {
@@ -2224,11 +2249,11 @@ public class PCQUtils {
 					}
 					for (final QuantifiedPeptideInterface peptide : peptideNode.getQuantifiedPeptides()) {
 						if (peptide instanceof IsobaricQuantifiedPeptide) {
-							final Pair<IsobaricQuantifiedPeptide, PositionInPeptide> pair = new Pair<IsobaricQuantifiedPeptide, PositionInPeptide>(
+							final Pair<IsobaricQuantifiedPeptide, List<PositionInPeptide>> pair = new Pair<IsobaricQuantifiedPeptide, List<PositionInPeptide>>(
 									(IsobaricQuantifiedPeptide) peptide, peptideNode.getPositionInPeptide(peptide));
 							isobaricpeptidesAndPositionsInPeptides.add(pair);
 						} else {
-							final Pair<QuantifiedPeptideInterface, PositionInPeptide> pair = new Pair<QuantifiedPeptideInterface, PositionInPeptide>(
+							final Pair<QuantifiedPeptideInterface, List<PositionInPeptide>> pair = new Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>(
 									peptide, peptideNode.getPositionInPeptide(peptide));
 							peptidesAndPositionsInPeptides.add(pair);
 						}
@@ -2369,17 +2394,19 @@ public class PCQUtils {
 	private static QuantRatio getAverageRatioForSiteSpecificPeptideNode(PCQPeptideNode peptideNode,
 			QuantCondition cond1, QuantCondition cond2) {
 		final List<QuantRatio> toAverage = new ArrayList<QuantRatio>();
-		final List<Pair<QuantifiedPeptideInterface, PositionInPeptide>> peptidesWithPositionsInPeptide = peptideNode
+		final List<Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>> peptidesWithPositionsInPeptide = peptideNode
 				.getPeptidesWithPositionsInPeptide();
-		for (final Pair<QuantifiedPeptideInterface, PositionInPeptide> pair : peptidesWithPositionsInPeptide) {
+		for (final Pair<QuantifiedPeptideInterface, List<PositionInPeptide>> pair : peptidesWithPositionsInPeptide) {
 			final QuantifiedPeptideInterface peptide = pair.getFirstelement();
-			final int positionInPeptide = pair.getSecondElement().getPosition();
-			final List<QuantRatio> ratios = QuantUtils.getRatiosByName(peptide, getRatioNameByAnalysisType());
-			for (final QuantRatio quantRatio : ratios) {
-				final Integer quantifiedSitePositionInPeptide = quantRatio.getQuantifiedSitePositionInPeptide();
-				if (quantifiedSitePositionInPeptide != null
-						&& quantifiedSitePositionInPeptide.equals(positionInPeptide)) {
-					toAverage.add(quantRatio);
+			for (final PositionInPeptide positionInPeptideObj : pair.getSecondElement()) {
+				final int positionInPeptide = positionInPeptideObj.getPosition();
+				final List<QuantRatio> ratios = QuantUtils.getRatiosByName(peptide, getRatioNameByAnalysisType());
+				for (final QuantRatio quantRatio : ratios) {
+					final Integer quantifiedSitePositionInPeptide = quantRatio.getQuantifiedSitePositionInPeptide();
+					if (quantifiedSitePositionInPeptide != null
+							&& quantifiedSitePositionInPeptide.equals(positionInPeptide)) {
+						toAverage.add(quantRatio);
+					}
 				}
 			}
 		}
@@ -2412,15 +2439,17 @@ public class PCQUtils {
 			QuantCondition cond1, QuantCondition cond2) {
 		final List<QuantRatio> toAverage = new ArrayList<QuantRatio>();
 
-		final List<Pair<QuantifiedPeptideInterface, PositionInPeptide>> peptidesWithPositionsInPeptide = peptideNode
+		final List<Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>> peptidesWithPositionsInPeptide = peptideNode
 				.getPeptidesWithPositionsInPeptide();
-		for (final Pair<QuantifiedPeptideInterface, PositionInPeptide> pair : peptidesWithPositionsInPeptide) {
+		for (final Pair<QuantifiedPeptideInterface, List<PositionInPeptide>> pair : peptidesWithPositionsInPeptide) {
 			final QuantifiedPeptideInterface peptide = pair.getFirstelement();
 			if (peptide instanceof IsobaricQuantifiedPeptide) {
-				final int positionInPeptide = pair.getSecondElement().getPosition();
-				final Set<IsoRatio> isoRatios = QuantUtils
-						.getIsobaricRatiosForSiteFromPeptide((IsobaricQuantifiedPeptide) peptide, positionInPeptide);
-				toAverage.addAll(isoRatios);
+				for (final PositionInPeptide positionInPeptideObj : pair.getSecondElement()) {
+					final int positionInPeptide = positionInPeptideObj.getPosition();
+					final Set<IsoRatio> isoRatios = QuantUtils.getIsobaricRatiosForSiteFromPeptide(
+							(IsobaricQuantifiedPeptide) peptide, positionInPeptide);
+					toAverage.addAll(isoRatios);
+				}
 			}
 		}
 		final Double finalValue = PCQUtils.averageOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
@@ -2544,13 +2573,13 @@ public class PCQUtils {
 		}
 
 		// when collapseBySites is TRUE we also need:
-		final List<Pair<QuantifiedPeptideInterface, PositionInPeptide>> peptidesAndPositionsInPeptides = peptideNode
+		final List<Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>> peptidesAndPositionsInPeptides = peptideNode
 				.getPeptidesWithPositionsInPeptide();
-		final List<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>> isobaricPeptidesAndPositionsInPeptides = new ArrayList<Pair<IsobaricQuantifiedPeptide, PositionInPeptide>>();
-		for (final Pair<QuantifiedPeptideInterface, PositionInPeptide> pair : peptidesAndPositionsInPeptides) {
+		final List<Pair<IsobaricQuantifiedPeptide, List<PositionInPeptide>>> isobaricPeptidesAndPositionsInPeptides = new ArrayList<Pair<IsobaricQuantifiedPeptide, List<PositionInPeptide>>>();
+		for (final Pair<QuantifiedPeptideInterface, List<PositionInPeptide>> pair : peptidesAndPositionsInPeptides) {
 			if (pair.getFirstelement() instanceof IsobaricQuantifiedPeptide) {
 				isobaricPeptides.add((IsobaricQuantifiedPeptide) pair.getFirstelement());
-				isobaricPeptidesAndPositionsInPeptides.add(new Pair<IsobaricQuantifiedPeptide, PositionInPeptide>(
+				isobaricPeptidesAndPositionsInPeptides.add(new Pair<IsobaricQuantifiedPeptide, List<PositionInPeptide>>(
 						(IsobaricQuantifiedPeptide) pair.getFirstelement(), pair.getSecondElement()));
 			}
 		}
@@ -2582,6 +2611,23 @@ public class PCQUtils {
 		}
 	}
 
+	public static List<PTMInProtein> getPTMsInProtein(String accession, QuantifiedPeptideInterface... peptides) {
+		final List<PTMInProtein> ptmsInProtein = new ArrayList<PTMInProtein>();
+		for (final QuantifiedPeptideInterface peptide : peptides) {
+			ptmsInProtein.addAll(QuantUtils.getPTMPositionsInProtein(accession, peptide,
+					ProteinClusterQuantParameters.getInstance().getUniprotVersion(),
+					ProteinClusterQuantParameters.getInstance().getUniprotReleasesFolder()));
+		}
+		// sort by position
+		Collections.sort(ptmsInProtein, new Comparator<PTMInProtein>() {
+			@Override
+			public int compare(PTMInProtein o1, PTMInProtein o2) {
+				return Integer.compare(o1.getPosition(), o2.getPosition());
+			}
+		});
+		return ptmsInProtein;
+	}
+
 	/**
 	 * Returns the proteinPTMKey of a protein having a peptide with a PTM.<br>
 	 * If a protein P12345 has the peptide ABCDE(+80)FGHI starting at position
@@ -2591,49 +2637,35 @@ public class PCQUtils {
 	 * @param peptide
 	 * @return
 	 */
-	public static String getProteinPTMKey(String accession, QuantifiedPeptideInterface... peptides) {
-		final DecimalFormat df = new DecimalFormat("+#.##");
-		final List<StringPosition> ptmPositionsInProtein = new ArrayList<StringPosition>();
-		for (final QuantifiedPeptideInterface peptide : peptides) {
-			ptmPositionsInProtein.addAll(QuantUtils.getPTMPositionsInProtein(accession, peptide,
-					ProteinClusterQuantParameters.getInstance().getUniprotVersion(),
-					ProteinClusterQuantParameters.getInstance().getUniprotReleasesFolder()));
-		}
+	public static String getProteinPTMStringKey(String accession, List<PTMInProtein> ptmsInProtein) {
 		final StringBuilder sb = new StringBuilder();
 		sb.append(accession);
-		if (!ptmPositionsInProtein.isEmpty()) {
+		if (!ptmsInProtein.isEmpty()) {
 			sb.append("_");
 		}
-		// sort by position
-		Collections.sort(ptmPositionsInProtein, new Comparator<StringPosition>() {
-			@Override
-			public int compare(StringPosition o1, StringPosition o2) {
-				return Integer.compare(o1.position, o2.position);
-			}
-		});
+
 		// to not repeat:
 		final TIntHashSet positions = new TIntHashSet();
 		boolean first = true;
-		for (final StringPosition ptmPositionInProtein : ptmPositionsInProtein) {
-			if (positions.contains(ptmPositionInProtein.position)) {
+		for (final PTMInProtein ptmInProtein : ptmsInProtein) {
+			if (positions.contains(ptmInProtein.getPosition())) {
 				continue;
 			}
 			if (!first) {
 				sb.append(",");
 			}
-			positions.add(ptmPositionInProtein.position);
-			String string = ptmPositionInProtein.string;
-			try {
+			positions.add(ptmInProtein.getPosition());
 
-				string = df.format(Double.valueOf(string));
-
-			} catch (final NumberFormatException e) {
-
+			final Double deltaMass = ptmInProtein.getDeltaMass();
+			String string = "";
+			if (deltaMass != null) {
+				string = PCQUtils.getPTMCodeByDeltaMass(deltaMass);
 			}
-			sb.append(ptmPositionInProtein.position).append("(").append(string).append(")");
+			sb.append(ptmInProtein.getAa()).append(ptmInProtein.getPosition()).append("(").append(string).append(")");
 			first = false;
 		}
 		return sb.toString();
+
 	}
 
 	public static Set<QuantifiedProteinInterface> getProteinsFromPeptides(
@@ -2660,11 +2692,6 @@ public class PCQUtils {
 		}
 		return sb.toString();
 
-	}
-
-	public static String getPeptideNodeKeyByProteinSite(char[] aaQuantified, PCQPeptideNode pcqPeptideNode) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	public static String getTaxonomyString(PCQProteinNode proteinNode) {
@@ -2727,15 +2754,51 @@ public class PCQUtils {
 	 * @param keys1
 	 * @return
 	 */
-	public static String getPositionsInProteinsKey(List<PositionInProtein> keys1) {
-		if (keys1 == null) {
+	public static String getPositionsInProteinsKey(Map<PositionInPeptide, List<PositionInProtein>> keysMap) {
+		if (keysMap == null) {
 			return null;
 		}
-		Collections.sort(keys1, new Comparator<PositionInProtein>() {
+		final List<PositionInProtein> list = new ArrayList<PositionInProtein>();
+		for (final List<PositionInProtein> positionsInProtein : keysMap.values()) {
+			list.addAll(positionsInProtein);
+		}
+		return getPositionsInProteinsKey(list);
+	}
+
+	public static List<PositionInProtein> getAsPositionInProtein(List<PTMInProtein> ptmsInProtein) {
+		final List<PositionInProtein> ret = new ArrayList<PositionInProtein>();
+		if (ptmsInProtein != null) {
+			for (final PTMInProtein ptmInProtein : ptmsInProtein) {
+				ret.add(ptmInProtein);
+			}
+		}
+		return ret;
+	}
+
+	public static String getPositionsInProteinsKey(List<PositionInProtein> positionsInProtein) {
+		return getPositionsInProteinsKey(positionsInProtein, null);
+	}
+
+	/**
+	 * Get a string such as: P12345#12#P23456#456 from, in this example, two
+	 * proteins with position 12 and 456 respectively
+	 * 
+	 * @param positionsInProtein
+	 * @return
+	 */
+	public static String getPositionsInProteinsKey(List<PositionInProtein> positionsInProtein,
+			Set<String> proteinACCs) {
+		if (positionsInProtein == null || positionsInProtein.isEmpty()) {
+			positionsInProtein = new ArrayList<PositionInProtein>();
+			for (final String proteinAcc : proteinACCs) {
+				positionsInProtein.add(new PositionInProtein(0, PositionInProtein.NULL_CHAR, proteinAcc));
+			}
+		}
+		Collections.sort(positionsInProtein, new Comparator<PositionInProtein>() {
 
 			@Override
 			public int compare(PositionInProtein o1, PositionInProtein o2) {
-				final int compareTo = o1.getKey().compareTo(o2.getKey());
+				final int compareTo = o1.getProteinACC().compareTo(o2.getProteinACC());
 				if (compareTo == 0) {
 					return Integer.compare(o1.getPosition(), o2.getPosition());
 				}
@@ -2743,12 +2806,44 @@ public class PCQUtils {
 			}
 		});
 		final StringBuilder sb = new StringBuilder();
-		for (final PositionInProtein positionInProtein : keys1) {
+		for (final PositionInProtein positionInProtein : positionsInProtein) {
 			if (!"".equals(sb.toString())) {
-
 				sb.append(KEY_SEPARATOR);
 			}
-			sb.append(positionInProtein);
+			String key = null;
+			final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+			if (params.getProteinLabel() == ProteinNodeLabel.GENE || params.getProteinLabel() == ProteinNodeLabel.ID) {
+				final Map<String, Entry> entries = getUniprotProteinLocalRetrieverByFolder(
+						params.getUniprotReleasesFolder()).getAnnotatedProtein(params.getUniprotVersion(),
+								positionInProtein.getProteinACC());
+				if (entries.containsKey(positionInProtein.getProteinACC())) {
+					if (params.getProteinLabel() == ProteinNodeLabel.GENE) {
+						final List<Pair<String, String>> geneNames = UniprotEntryUtil
+								.getGeneName(entries.get(positionInProtein.getProteinACC()), true, true);
+						if (!geneNames.isEmpty()) {
+							key = geneNames.get(0).getFirstelement();
+						}
+					} else if (params.getProteinLabel() == ProteinNodeLabel.ID) {
+						final List<String> proteinNames = UniprotEntryUtil
+								.getNames(entries.get(positionInProtein.getProteinACC()));
+						if (!proteinNames.isEmpty()) {
+							key = proteinNames.get(0);
+						}
+					}
+				}
+			}
+
+			if (key == null) {
+				key = positionInProtein.getProteinACC();
+			}
+			sb.append(key + PositionInProtein.SEPARATOR);
+			if (positionInProtein.getAa() != PositionInProtein.NULL_CHAR) {
+				sb.append(positionInProtein.getAa());
+			}
+			if (positionInProtein.getPosition() > 0) {
+				sb.append(positionInProtein.getPosition());
+			}
+
 		}
 		return sb.toString();
 	}
@@ -2830,4 +2925,110 @@ public class PCQUtils {
 		}
 		throw new IllegalArgumentException("No ratio name defined for " + analysisInputType + " analysis");
 	}
+
+	/**
+	 * Having a protein sequence with some PTMs and a peptide sequence that has
+	 * no PTMs, returns true if the peptide covers some of these protein PTMs
+	 * 
+	 * @param proteinACC
+	 * @param nonModifiedPeptide
+	 * @param ptmsInProtein
+	 * @return
+	 */
+	public static boolean isPeptideCoveringPTMsInProtein(String proteinACC, String nonModifiedPeptide,
+			List<PTMInProtein> ptmsInProtein) {
+		final UniprotProteinRetriever upr = new UniprotProteinRetriever(
+				ProteinClusterQuantParameters.getInstance().getUniprotVersion(),
+				ProteinClusterQuantParameters.getInstance().getUniprotReleasesFolder(), true);
+		// get protein sequence from uniprot
+		final Map<String, String> annotatedProteinSequence = upr.getAnnotatedProteinSequence(proteinACC);
+		if (annotatedProteinSequence.containsKey(proteinACC)) {
+			final String proteinSequence = annotatedProteinSequence.get(proteinACC);
+			final List<PositionInProtein> positionsOfPeptideSequenceInProtein = ProteinSequenceUtils
+					.getPositionsOfPeptideSequenceInProteinSequence(nonModifiedPeptide, proteinSequence, proteinACC);
+			for (final PositionInProtein positionOfPeptideInProtein : positionsOfPeptideSequenceInProtein) {
+				final int startPositionInProtein = positionOfPeptideInProtein.getPosition();
+				final int endPositionInProtein = startPositionInProtein + nonModifiedPeptide.length() - 1;
+				for (final PositionInProtein ptmInProtein : ptmsInProtein) {
+					if (ptmInProtein.getPosition() >= startPositionInProtein
+							&& ptmInProtein.getPosition() <= endPositionInProtein) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+
+	}
+
+	/**
+	 * Having a protein with PTMs, it returns true if there is not any
+	 * incompatibility between the ptms of the peptide and the ptms of the
+	 * protein.
+	 * 
+	 * @param accession
+	 * @param ptmsInProtein
+	 * @param ptmPeptide
+	 * @return
+	 */
+	public static boolean arePTMsCompatible(String proteinACC, List<PTMInProtein> ptmsInProtein,
+			QuantifiedPeptideInterface ptmPeptide) {
+		final List<PTMInPeptide> ptmsInPeptide = ptmPeptide.getPtms();
+		final UniprotProteinRetriever upr = new UniprotProteinRetriever(
+				ProteinClusterQuantParameters.getInstance().getUniprotVersion(),
+				ProteinClusterQuantParameters.getInstance().getUniprotReleasesFolder(), true);
+		// get protein sequence from uniprot
+		final Map<String, String> annotatedProteinSequence = upr.getAnnotatedProteinSequence(proteinACC);
+		if (annotatedProteinSequence.containsKey(proteinACC)) {
+			final String proteinSequence = annotatedProteinSequence.get(proteinACC);
+			final String nonModifiedPeptide = ptmPeptide.getSequence();
+			final List<PositionInProtein> positionsOfPeptideSequenceInProtein = ProteinSequenceUtils
+					.getPositionsOfPeptideSequenceInProteinSequence(nonModifiedPeptide, proteinSequence, proteinACC);
+			// check whether all ptms of the protein that map to the peptide are
+			// also in the peptide
+			for (final PositionInProtein positionOfPeptideInProtein : positionsOfPeptideSequenceInProtein) {
+				final int startPositionOfPeptideInProtein = positionOfPeptideInProtein.getPosition();
+				final int endPositionOfPeptideInProtein = startPositionOfPeptideInProtein + nonModifiedPeptide.length()
+						- 1;
+				for (final PositionInProtein ptmInProtein : ptmsInProtein) {
+					// is the ptm position in the peptide?
+					if (ptmInProtein.getPosition() >= startPositionOfPeptideInProtein
+							&& ptmInProtein.getPosition() <= endPositionOfPeptideInProtein) {
+						// try to find the ptm in the peptide
+						boolean ptmFound = false;
+						for (final PositionInProtein ptmInPeptide : ptmsInPeptide) {
+							final int ptmPositionInProtein = ptmInPeptide.getPosition()
+									+ startPositionOfPeptideInProtein - 1;
+							if (ptmPositionInProtein == ptmInProtein.getPosition()) {
+								ptmFound = true;
+								break;
+							}
+						}
+						if (!ptmFound) {
+							return false;
+						}
+					}
+				}
+				// check whether all ptms of the peptide are also ptms in the
+				// protein
+				for (final PositionInProtein ptmInPeptide : ptmsInPeptide) {
+					final int positionOfPtmInProtein = ptmInPeptide.getPosition() + startPositionOfPeptideInProtein - 1;
+					// try to find the ptm in the protein
+					boolean ptmFound = false;
+					for (final PositionInProtein ptmInProtein : ptmsInProtein) {
+						if (ptmInProtein.getPosition() == positionOfPtmInProtein) {
+							ptmFound = true;
+							break;
+						}
+					}
+					if (!ptmFound) {
+						return false;
+					}
+				}
+			}
+
+		}
+		return true;
+	}
+
 }
