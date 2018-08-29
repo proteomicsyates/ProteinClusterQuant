@@ -87,6 +87,7 @@ import edu.scripps.yates.utilities.model.enums.CombinationType;
 import edu.scripps.yates.utilities.progresscounter.ProgressCounter;
 import edu.scripps.yates.utilities.progresscounter.ProgressPrintingType;
 import edu.scripps.yates.utilities.proteomicsmodel.Score;
+import edu.scripps.yates.utilities.sequence.PTMInProtein;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import edu.scripps.yates.utilities.sequence.PositionInProtein;
 import edu.scripps.yates.utilities.strings.StringUtils;
@@ -290,8 +291,9 @@ public class ProteinClusterQuant {
 			int numClusters = 0;
 			int i = 0;
 			while (i < 1) {
-
-				separatePTMProteinsAndPeptides(pepMap);
+				if (!params.isIgnorePTMs()) {
+					separatePTMProteinsAndPeptides(pepMap);
+				}
 				clusterSet = createClusters(pepMap);
 
 				// filtering clusters
@@ -628,9 +630,9 @@ public class ProteinClusterQuant {
 			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName);
 
 			// header
-			out.write("Raw file " + "\t" + "Unique" + "\t" + "Num PSMs" + "\t" + "Num Peptides" + "\t" + "Sequence"
-					+ "\t" + "Protein(s)" + "\t" + "Genes" + "\t" + "Species" + "\t" + "Ratio Name" + "\t" + "Log2Ratio"
-					+ "\t" + "Ratio Score Name" + "\t" + "Ratio Score Value");
+			out.write("Node key" + "\t" + "Raw file " + "\t" + "Unique" + "\t" + "Num PSMs" + "\t" + "Num Peptides"
+					+ "\t" + "Sequence" + "\t" + "Protein(s)" + "\t" + "Genes" + "\t" + "Species" + "\t" + "Ratio Name"
+					+ "\t" + "Log2Ratio" + "\t" + "Ratio Score Name" + "\t" + "Ratio Score Value");
 			if (params.isCollapseBySites()) {
 				out.write("\t" + "QuantSitePositionInProtein(s)" + "\t" + "Quant site");
 			}
@@ -654,6 +656,7 @@ public class ProteinClusterQuant {
 			for (final PCQPeptideNode peptideNode : peptideNodeList) {
 
 				out.write("\n");
+				out.write(peptideNode.getKey() + "\t");
 				if (peptideNode.isDiscarded()) {
 					out.write("FILTERED\t" + "\t" + "\t" + "\t" + peptideNode.getFullSequence());
 					continue;
@@ -667,6 +670,12 @@ public class ProteinClusterQuant {
 						null, true);
 				final QuantRatio quantRatio = PCQUtils.getRepresentativeRatioForPeptideNode(peptideNode, cond1, cond2,
 						null, true);
+				if (peptideNode.getKey().equals("FSTVAGESGSADTVR")) {
+					log.info(quantRatio.getLog2Ratio(QuantificationLabel.TMT_6PLEX_126,
+							QuantificationLabel.TMT_6PLEX_129));
+					log.info(quantRatio.getLog2Ratio(cond1, cond2));
+
+				}
 				final boolean unique = peptideNode.getProteinNodes().size() == 1;
 				out.write(peptideNode.getRawFileNames().iterator().next() + "\t" + unique + "\t"
 						+ peptideNode.getQuantifiedPSMs().size() + "\t" + peptideNode.getQuantifiedPeptides().size()
@@ -679,8 +688,11 @@ public class ProteinClusterQuant {
 				} else {
 					out.write("\t\t");
 				}
-				if (params.isCollapseBySites()) {
-					out.write("\t" + peptideNode.getKey() + "\t" + quantRatio.getQuantifiedAA());
+				if (params.isCollapseBySites() || params.isCollapseByPTMs()) {
+					out.write("\t" + peptideNode.getKey());
+					if (params.isCollapseBySites()) {
+						out.write("\t" + quantRatio.getQuantifiedAA());
+					}
 				}
 
 			}
@@ -1795,6 +1807,13 @@ public class ProteinClusterQuant {
 		final ProgressCounter counter = new ProgressCounter(peptideMap.values().size(),
 				ProgressPrintingType.PERCENTAGE_STEPS, 0);
 		for (final QuantifiedPeptideInterface peptide : peptideMap.values()) {
+			if (peptide.getFullSequence().equals("AAPIIPTPVLTSPGAVPPLPSPSKEEEGLR")) {
+				log.info(peptide);
+				final Set<QuantifiedProteinInterface> proteins = peptide.getQuantifiedProteins();
+				for (final QuantifiedProteinInterface quantifiedProteinInterface : proteins) {
+					log.info(quantifiedProteinInterface);
+				}
+			}
 			counter.increment();
 			final String printIfNecessary = counter.printIfNecessary();
 			if (!"".equals(printIfNecessary)) {
@@ -1829,7 +1848,14 @@ public class ProteinClusterQuant {
 				clustersByPeptideSequence.put(fullSequence1, cluster);
 			}
 			// put peptide in cluster
-			cluster.addIndividualQuantifiedPeptide(peptide);
+			final boolean added = cluster.addIndividualQuantifiedPeptide(peptide);
+			if (peptide.getFullSequence().equals("AAPIIPTPVLTSPGAVPPLPSPSKEEEGLR")) {
+				log.info(added);
+				final Set<QuantifiedPeptideInterface> peps = cluster.getPeptideSet();
+				for (final QuantifiedPeptideInterface quantifiedPeptideInterface : peps) {
+					log.info(quantifiedPeptideInterface.getFullSequence());
+				}
+			}
 			// in case of having peptide alignments done
 			if (peptideAlignments != null && !peptideAlignments.getAlignmentsForPeptide(peptide).isEmpty()) {
 				final Set<AlignedPeptides> alignments = peptideAlignments.getAlignmentsForPeptide(peptide);
@@ -1942,9 +1968,12 @@ public class ProteinClusterQuant {
 		if (params.isIgnorePTMs()) {
 			return;
 		}
-		log.info("Separating protein nodes taking into account proteins with PTMs");
 
+		final UniprotProteinLocalRetriever uplr = PCQUtils
+				.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
 		final Set<QuantifiedProteinInterface> individualProteins = PCQUtils.getProteinsFromPeptides(pepMap.values());
+		log.info("Separating " + individualProteins.size() + " proteins from " + pepMap.size()
+				+ " peptides taking into account proteins with PTMs");
 		final Map<String, QuantifiedProteinInterface> newProteins = new THashMap<String, QuantifiedProteinInterface>();
 		final ProgressCounter counter = new ProgressCounter(individualProteins.size(),
 				ProgressPrintingType.PERCENTAGE_STEPS, 1);
@@ -1954,15 +1983,14 @@ public class ProteinClusterQuant {
 			if (!"".equals(printIfNecessary)) {
 				log.info(printIfNecessary);
 			}
-
-			int numPeptidesWithPTMs = 0;
+			final Set<PTMInProtein> modifiedPositionsInProtein = new THashSet<PTMInProtein>();
 			for (final QuantifiedPeptideInterface peptide : protein.getQuantifiedPeptides()) {
-
 				if (peptide.containsPTMs()) {
-					numPeptidesWithPTMs++;
+					final List<PTMInProtein> proteinKeysByPeptideKeysForPTMs = peptide.getPTMInProtein(uplr, null);
+					modifiedPositionsInProtein.addAll(proteinKeysByPeptideKeysForPTMs);
 				}
 			}
-			if (numPeptidesWithPTMs > getParams().getMaxNumPTMsPerProtein()) {
+			if (modifiedPositionsInProtein.size() > getParams().getMaxNumPTMsPerProtein()) {
 				continue;
 			}
 
@@ -1992,8 +2020,9 @@ public class ProteinClusterQuant {
 					for (final int index : combinationsIndexes) {
 						ptmPeptides2.add(ptmPeptides.get(index));
 					}
-					final String proteinPTMKey = PCQUtils.getProteinPTMKey(protein.getAccession(),
+					final List<PTMInProtein> ptmsInProtein = PCQUtils.getPTMsInProtein(protein.getAccession(),
 							ptmPeptides2.toArray(new QuantifiedPeptideInterface[0]));
+					final String proteinPTMKey = PCQUtils.getProteinPTMStringKey(protein.getAccession(), ptmsInProtein);
 					// create the protein
 					QuantifiedProtein proteinPTM = null;
 					if (newProteins.containsKey(proteinPTMKey)) {
@@ -2020,83 +2049,63 @@ public class ProteinClusterQuant {
 					// add all non modified peptides for now...
 					for (final QuantifiedPeptideInterface peptide : protein.getQuantifiedPeptides()) {
 						if (!peptide.containsPTMs()) {
-							proteinPTM.addPeptide(peptide, true);
+							// check that the non modified peptide is not
+							// covering any ptm in the protein
+							if (!PCQUtils.isPeptideCoveringPTMsInProtein(protein.getAccession(), peptide.getSequence(),
+									ptmsInProtein)) {
+								proteinPTM.addPeptide(peptide, true);
+							} else {
+								log.debug(
+										"Peptide is not added to protein because the protein should be modified in a site that the peptide has no modification on it");
+							}
 						}
 					}
 
 					for (final QuantifiedPeptideInterface ptmPeptide : ptmPeptides2) {
-						proteinPTM.addPeptide(ptmPeptide, true);
-						final String nonModifiedSeq = ptmPeptide.getSequence();
-						// remove the non modified version if exist
-						final Iterator<QuantifiedPSMInterface> psmIterator = proteinPTM.getQuantifiedPSMs().iterator();
-						while (psmIterator.hasNext()) {
-							final QuantifiedPSMInterface nonModifiedPSM = psmIterator.next();
-							if (!nonModifiedPSM.containsPTMs()) {
-								if (nonModifiedPSM.getFullSequence().equals(nonModifiedSeq)) {
-									psmIterator.remove();
-									final QuantifiedPeptideInterface nonModifiedPeptide = nonModifiedPSM
-											.getQuantifiedPeptide();
-									final Set<QuantifiedPSMInterface> quantifiedPSMs = nonModifiedPeptide
-											.getQuantifiedPSMs();
-									for (final QuantifiedPSMInterface nonModifiedPSM2 : quantifiedPSMs) {
-										nonModifiedPSM2.getQuantifiedProteins().remove(proteinPTM);
+						if (PCQUtils.arePTMsCompatible(protein.getAccession(), ptmsInProtein, ptmPeptide)) {
+							proteinPTM.addPeptide(ptmPeptide, true);
+							final String nonModifiedSeq = ptmPeptide.getSequence();
+							// remove the non modified version if exist
+							final Iterator<QuantifiedPSMInterface> psmIterator = proteinPTM.getQuantifiedPSMs()
+									.iterator();
+							while (psmIterator.hasNext()) {
+								final QuantifiedPSMInterface nonModifiedPSM = psmIterator.next();
+								if (!nonModifiedPSM.containsPTMs()) {
+									if (nonModifiedPSM.getFullSequence().equals(nonModifiedSeq)) {
+										psmIterator.remove();
+										final QuantifiedPeptideInterface nonModifiedPeptide = nonModifiedPSM
+												.getQuantifiedPeptide();
+										final Set<QuantifiedPSMInterface> quantifiedPSMs = nonModifiedPeptide
+												.getQuantifiedPSMs();
+										for (final QuantifiedPSMInterface nonModifiedPSM2 : quantifiedPSMs) {
+											nonModifiedPSM2.getQuantifiedProteins().remove(proteinPTM);
+										}
+										nonModifiedPSM.getQuantifiedProteins().remove(proteinPTM);
 									}
-									nonModifiedPSM.getQuantifiedProteins().remove(proteinPTM);
 								}
 							}
+
+							//
+
+							// add psms to ptmProtein and remove them from
+							// original
+							// protein
+							final Set<QuantifiedPSMInterface> quantifiedPSMs = ptmPeptide.getQuantifiedPSMs();
+							for (final QuantifiedPSMInterface psm : quantifiedPSMs) {
+								proteinPTM.addPSM(psm, true);
+								psm.getQuantifiedProteins().remove(protein);
+								// remove psm from original protein
+								protein.getQuantifiedPSMs().remove(psm);
+							}
+							// remove peptide from original protein
+							protein.getQuantifiedPeptides().remove(ptmPeptide);
 						}
-
-						// this is not working because the returned collection
-						// of proteins is built everytime this is called, and it
-						// is from the psms:
-						// ptmPeptide.getQuantifiedProteins().remove(protein);
-						//
-
-						// add psms to ptmProtein and remove them from original
-						// protein
-						final Set<QuantifiedPSMInterface> quantifiedPSMs = ptmPeptide.getQuantifiedPSMs();
-						for (final QuantifiedPSMInterface psm : quantifiedPSMs) {
-							proteinPTM.addPSM(psm, true);
-							psm.getQuantifiedProteins().remove(protein);
-							// remove psm from original protein
-							protein.getQuantifiedPSMs().remove(psm);
-						}
-						// remove peptide from original protein
-						protein.getQuantifiedPeptides().remove(ptmPeptide);
-
 					}
 
 				}
 			}
 		}
-		// Set<QuantifiedProteinInterface> prots =
-		// PCQUtils.getProteinsFromPeptides(pepMap.values());
-		// for (QuantifiedProteinInterface prot : prots) {
-		// System.out.println(prot + "");
-		// }
-		// for (QuantifiedPeptideInterface pep : pepMap.values()) {
-		// System.out.println(pep);
-		// final Set<QuantifiedProteinInterface> quantifiedProteins =
-		// pep.getQuantifiedProteins();
-		// for (QuantifiedProteinInterface quantifiedProteinInterface :
-		// quantifiedProteins) {
-		// System.out.println(quantifiedProteinInterface.getAccession());
-		// }
-		// }
-		// for (QuantifiedPeptideInterface pep : pepMap.values()) {
-		// final Set<QuantifiedPSMInterface> quantifiedPSMs =
-		// pep.getQuantifiedPSMs();
-		// for (QuantifiedPSMInterface psm : quantifiedPSMs) {
-		// System.out.println(psm);
-		// final Set<QuantifiedProteinInterface> quantifiedProteins =
-		// psm.getQuantifiedProteins();
-		// for (QuantifiedProteinInterface quantifiedProteinInterface :
-		// quantifiedProteins) {
-		// System.out.println(quantifiedProteinInterface.getAccession());
-		// }
-		// }
-		//
-		// }
+
 	}
 
 	private void printPSEAQuantFiles(Set<ProteinCluster> clusterSet) throws IOException {
