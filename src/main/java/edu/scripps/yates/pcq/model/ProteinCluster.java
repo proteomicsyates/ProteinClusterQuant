@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 
@@ -31,6 +32,7 @@ import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.fasta.Fasta;
 import edu.scripps.yates.utilities.progresscounter.ProgressCounter;
 import edu.scripps.yates.utilities.progresscounter.ProgressPrintingType;
+import edu.scripps.yates.utilities.sequence.PTMInProtein;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import edu.scripps.yates.utilities.sequence.PositionInProtein;
 import edu.scripps.yates.utilities.strings.StringUtils;
@@ -87,6 +89,8 @@ public class ProteinCluster {
 		// create nodes peptide nodes
 		if (getParams().isCollapseBySites()) {
 			createPeptideNodesByQuantifiedSites(getParams().getAaQuantified());
+		} else if (getParams().isCollapseByPTMs()) {
+			createPeptideNodesByPTMs();
 		} else {
 			createPeptideNodes();
 		}
@@ -573,6 +577,172 @@ public class ProteinCluster {
 			}
 		}
 
+	}
+
+	/**
+	 * Iterates all peptides in the cluster over all others and creates a node
+	 * for all peptides that have the same key, which, in this case is the
+	 * position of the quantifiedAA in the protein.
+	 * 
+	 * @param quantifiedAAs
+	 */
+	private void createPeptideNodesByPTMs() {
+
+		final UniprotProteinLocalRetriever uplr = PCQUtils
+				.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
+		final List<QuantifiedPeptideInterface> peptides = new ArrayList<QuantifiedPeptideInterface>();
+		peptides.addAll(individualQuantifiedPeptideSet);
+		final Set<String> set = new THashSet<String>();
+		for (final QuantifiedPeptideInterface pep : peptides) {
+			if (set.contains(pep.getKey())) {
+				log.warn("Inconsistency error. 2 peptides with the same key cannot exist!");
+			} else {
+				set.add(pep.getKey());
+			}
+		}
+		// to not include the same peptide in different peptide nodes
+		final Map<QuantifiedPeptideInterface, PCQPeptideNode> peptideNodesByPeptides = new THashMap<QuantifiedPeptideInterface, PCQPeptideNode>();
+		final Set<String> peptideSequencesDiscarded = new THashSet<String>();
+		if (peptides.size() > 1) {
+			for (int i = 0; i < peptides.size(); i++) {
+				final QuantifiedPeptideInterface peptide1 = peptides.get(i);
+				final String sequence1 = peptide1.getSequence();
+
+				// get the keys from the peptide.
+				// not that the peptide could have more than one key because 2
+				// reasons:
+				// - it could be shared by more than one protein
+				// - it could have more than one quantified aminoacid in its
+				// sequence
+				final List<PTMInProtein> ptmsInProteinFromPeptide1 = peptide1.getPTMInProtein(uplr,
+						PCQUtils.proteinSequences);
+				for (int j = i + 1; j < peptides.size(); j++) {
+					final QuantifiedPeptideInterface peptide2 = peptides.get(j);
+					final String sequence2 = peptide2.getSequence();
+					// get the keys from the peptide.
+					// not that the peptide could have more than one key because
+					// 2
+					// reasons:
+					// - it could be shared by more than one protein
+					// - it could have more than one quantified aminoacid in its
+					// sequence
+
+					final List<PTMInProtein> ptmsInProteinFromPeptide2 = peptide2.getPTMInProtein(uplr,
+							PCQUtils.proteinSequences);
+
+					// iterate over all the keys
+
+					final String key1 = PCQUtils.getPositionsInProteinsKey(
+							PCQUtils.getAsPositionInProtein(ptmsInProteinFromPeptide1), peptide1.getQuantifiedProteins()
+									.stream().map(p -> p.getAccession()).collect(Collectors.toSet()));
+
+					final String key2 = PCQUtils.getPositionsInProteinsKey(
+							PCQUtils.getAsPositionInProtein(ptmsInProteinFromPeptide2), peptide2.getQuantifiedProteins()
+									.stream().map(p -> p.getAccession()).collect(Collectors.toSet()));
+
+					// now I compare the two list of keys
+					// if they are equal, that means, if they share the
+					// same sites of the same proteins
+					if (PCQUtils.areEquals(PCQUtils.getAsPositionInProtein(ptmsInProteinFromPeptide1),
+							PCQUtils.getAsPositionInProtein(ptmsInProteinFromPeptide2))) {
+
+						// key1 and key2 should be the same
+
+						// collapsed in the same peptide node
+						PCQPeptideNode peptideNode = null;
+						// if the protein was already associated with
+						// some protein node
+						if (peptideNodesByPeptideNodeKey.containsKey(key1)) {
+							peptideNode = peptideNodesByPeptideNodeKey.get(key1);
+						} else {
+							peptideNode = new PCQPeptideNode(this, key1);
+						}
+						peptideNodesByPeptides.put(peptide1, peptideNode);
+						peptideNodesByPeptides.put(peptide2, peptideNode);
+						// add the two peptides to the peptide node
+						peptideNode.addQuantifiedPeptide(peptide1);
+						peptideNode.addQuantifiedPeptide(peptide2);
+
+						// add to the set of nodes
+						peptideNodes.add(peptideNode);
+						// add to the map
+						peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+
+					} else {
+						// they dont share any key create a peptide node
+						// for each peptide separated peptide node for
+						// psm1
+						PCQPeptideNode peptideNode = null;
+						if (peptideNodesByPeptideNodeKey.containsKey(key1)) {
+							peptideNode = peptideNodesByPeptideNodeKey.get(key1);
+						} else {
+							peptideNode = new PCQPeptideNode(this, key1);
+						}
+						peptideNodesByPeptides.put(peptide1, peptideNode);
+						// add the two peptides to the peptide node
+						peptideNode.addQuantifiedPeptide(peptide1);
+
+						peptideNodes.add(peptideNode);
+						peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+
+						// protein node for protein2
+						PCQPeptideNode peptideNode2 = null;
+						if (peptideNodesByPeptideNodeKey.containsKey(key2)) {
+							peptideNode2 = peptideNodesByPeptideNodeKey.get(key2);
+						} else {
+							peptideNode2 = new PCQPeptideNode(this, key2);
+						}
+						peptideNodesByPeptides.put(peptide2, peptideNode2);
+						peptideNode2.addQuantifiedPeptide(peptide2);
+
+						peptideNodes.add(peptideNode2);
+						peptideNodesByPeptideNodeKey.put(key2, peptideNode2);
+					}
+				}
+			}
+
+		} else {
+			// only one peptide
+			// create a peptide node for each position in the peptide
+			final QuantifiedPeptideInterface peptide = peptides.iterator().next();
+			final List<PTMInProtein> positionsInProtein = peptide.getPTMInProtein(uplr, PCQUtils.proteinSequences);
+
+			final String key = PCQUtils.getPositionsInProteinsKey(PCQUtils.getAsPositionInProtein(positionsInProtein));
+			PCQPeptideNode peptideNode = null;
+			if (peptideNodesByPeptideNodeKey.containsKey(key)) {
+				peptideNode = peptideNodesByPeptideNodeKey.get(key);
+			} else {
+				peptideNode = new PCQPeptideNode(this, key);
+			}
+			peptideNode.addQuantifiedPeptide(peptide);
+
+			peptideNodes.add(peptideNode);
+			peptideNodesByPeptideNodeKey.put(key, peptideNode);
+
+		}
+
+	}
+
+	private String getProteinKey(Set<QuantifiedProteinInterface> proteins) {
+		// this is not the same as getProteinKey in PCQUtils, because from a
+		// peptide that is mapped to 2 proteins that have the same accession, I
+		// just want the accession
+		final List<String> accs = new ArrayList<String>();
+		for (final QuantifiedProteinInterface protein : proteins) {
+			if (!accs.contains(protein.getAccession())) {
+				accs.add(protein.getAccession());
+			}
+		}
+		Collections.sort(accs);
+		final StringBuilder sb = new StringBuilder();
+		for (final String acc : accs) {
+			if (!"".equals(sb.toString())) {
+				sb.append(" ");
+			}
+			sb.append(acc);
+		}
+		sb.append(PCQUtils.KEY_SEPARATOR);
+		return sb.toString();
 	}
 
 	private void createProteinNodes() throws IOException {
