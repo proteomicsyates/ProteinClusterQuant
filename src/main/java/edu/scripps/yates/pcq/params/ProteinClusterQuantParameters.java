@@ -108,6 +108,7 @@ public class ProteinClusterQuantParameters {
 	private boolean ignoreTaxonomies;
 	private boolean ignoreACCFormat;
 	private UniprotProteoformRetrieverFromXML uniprotProteoformRetrieverFromXML;
+	private boolean collapseByPTMs;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -1202,6 +1203,14 @@ public class ProteinClusterQuantParameters {
 
 	// TODO
 	public int getMaxNumPTMsPerProtein() {
-		return 2;
+		return 8;
+	}
+
+	public void setCollapseByPTMs(boolean collapseByPTMs) {
+		this.collapseByPTMs = collapseByPTMs;
+	}
+
+	public boolean isCollapseByPTMs() {
+		return collapseByPTMs;
 	}
 }
