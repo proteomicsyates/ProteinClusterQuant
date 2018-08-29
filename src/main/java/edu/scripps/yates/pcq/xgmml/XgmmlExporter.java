@@ -61,6 +61,7 @@ import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import edu.scripps.yates.utilities.util.Pair;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.hash.THashSet;
+import gnu.trove.set.hash.TIntHashSet;
 
 public class XgmmlExporter {
 	private final static Logger log = Logger.getLogger(XgmmlExporter.class);
@@ -475,6 +476,9 @@ public class XgmmlExporter {
 
 			for (final PCQPeptideNode uniquePeptideNode_U1 : peptidesNodesU1) {
 				final String nodeID = uniquePeptideNode_U1.getKey();
+				if (nodeID.equals("Q14203")) {
+					log.info(nodeID);
+				}
 				// System.out.println(uniquePeptideNode_U1);
 				if (!visitedPeptideKeys.containsKey(nodeID)) {
 
@@ -532,6 +536,9 @@ public class XgmmlExporter {
 			for (final PCQPeptideNode sharedPeptideNode_S12 : peptideNodesS12) {
 				final String sharedSequenceString_S12 = sharedPeptideNode_S12.getKey();
 
+				if (sharedSequenceString_S12.equals("Q14203")) {
+					log.info(sharedSequenceString_S12);
+				}
 				if (!visitedPeptideKeys.containsKey(sharedSequenceString_S12)) {
 					final String nodeID = sharedPeptideNode_S12.getKey();
 					final String label = formatNumber(
@@ -603,12 +610,12 @@ public class XgmmlExporter {
 					ProteinClusterQuantParameters.getInstance().isRemoveFilteredNodes());
 			for (final PCQPeptideNode uniquePeptides_U2 : peptidesU2) {
 				final String peptidesSequenceString_U2 = uniquePeptides_U2.getKey();
-
+				if (peptidesSequenceString_U2.equals("Q14203")) {
+					log.info(peptidesSequenceString_U2);
+				}
 				if (!visitedPeptideKeys.containsKey(peptidesSequenceString_U2)) {
 					final String nodeID = uniquePeptides_U2.getKey();
-					if (nodeID.equals("FEELCSDLFR")) {
-						log.info("Check");
-					}
+
 					final String label = formatNumber(PCQUtils.getLog2RatioValue(
 							PCQUtils.getRepresentativeRatioForPeptideNode(uniquePeptides_U2, cond1, cond2, null, true),
 							cond1, cond2));
@@ -931,13 +938,13 @@ public class XgmmlExporter {
 	private String getSequenceAnnotated(PCQPeptideNode peptideNode) {
 		if (ProteinClusterQuantParameters.getInstance().isCollapseBySites()) {
 			final StringBuilder sb = new StringBuilder();
-			final List<Pair<QuantifiedPeptideInterface, PositionInPeptide>> peptidesWithPositionsInPeptide = peptideNode
+			final List<Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>> peptidesWithPositionsInPeptide = peptideNode
 					.getPeptidesWithPositionsInPeptide();
-			for (final Pair<QuantifiedPeptideInterface, PositionInPeptide> pair : peptidesWithPositionsInPeptide) {
+			for (final Pair<QuantifiedPeptideInterface, List<PositionInPeptide>> pair : peptidesWithPositionsInPeptide) {
 				if (!"".equals(sb.toString())) {
 					sb.append("-");
 				}
-				sb.append(getSequenceAnnotated(pair.getFirstelement(), pair.getSecondElement()));
+				sb.append(getSequenceAnnotated(pair.getFirstelement().getFullSequence(), pair.getSecondElement()));
 			}
 			return sb.toString();
 		} else {
@@ -945,15 +952,21 @@ public class XgmmlExporter {
 		}
 	}
 
-	private String getSequenceAnnotated(QuantifiedPeptideInterface peptide, PositionInPeptide positionInPeptide) {
-		return getSequenceAnnotated(peptide.getFullSequence(), positionInPeptide);
+	private String getSequenceAnnotated(QuantifiedPeptideInterface peptide,
+			List<PositionInPeptide> positionsInPeptide) {
+		return getSequenceAnnotated(peptide.getFullSequence(), positionsInPeptide);
 	}
 
-	private String getSequenceAnnotated(String fullSequence, PositionInPeptide positionInPeptide) {
-		if (ProteinClusterQuantParameters.getInstance().isCollapseBySites() && positionInPeptide != null) {
+	private String getSequenceAnnotated(String fullSequence, Collection<PositionInPeptide> positionsInPeptide) {
+		if ((ProteinClusterQuantParameters.getInstance().isCollapseBySites()
+				|| ProteinClusterQuantParameters.getInstance().isCollapseByPTMs()) && positionsInPeptide != null
+				&& !positionsInPeptide.isEmpty()) {
+			final TIntHashSet positions = new TIntHashSet();
+			for (final PositionInPeptide positionInPeptide : positionsInPeptide) {
+				positions.add(positionInPeptide.getPosition());
+			}
 			final StringBuilder sb = new StringBuilder();
 
-			final int position = positionInPeptide.getPosition();
 			int currentposition = 0;
 			boolean isPTM = false;
 			for (int i = 0; i < fullSequence.length(); i++) {
@@ -971,7 +984,7 @@ public class XgmmlExporter {
 				}
 				if (!isPTM) {
 					currentposition++;
-					if (currentposition == position) {
+					if (positions.contains(currentposition)) {
 						sb.append("<b>" + charAt + "</b>");
 						continue;
 					}
@@ -979,7 +992,6 @@ public class XgmmlExporter {
 				sb.append(charAt);
 
 			}
-
 			return sb.toString();
 		} else {
 			final StringBuilder sb = new StringBuilder();
@@ -1138,7 +1150,22 @@ public class XgmmlExporter {
 		} else if (ProteinClusterQuantParameters.getInstance().getProteinLabel() == ProteinNodeLabel.ID) {
 			return getProteinNameString(proteinNode);
 		} else {
-			return getGeneString(proteinNode);
+			final String geneString = getGeneString(proteinNode);
+			if (!ProteinClusterQuantParameters.getInstance().isCollapseByPTMs()) {
+				return geneString;
+			} else {
+				// in case of collapsing by PTMs, we want the ptm information
+				// that is in the key to be shown, but first we replace the
+				// accession in the key by the gene name
+				String label = proteinNode.getKey().replace(proteinNode.getAccessionString(), geneString);
+				// if there is only one PTM code used, we dont need the ptm code
+				// string like '(*)'. we remove it from the label
+				if (PCQUtils.getPTMCodesByDeltaMass().size() == 1) {
+					final String code = PCQUtils.getPTMCodesByDeltaMass().values().iterator().next();
+					label = label.replace("(" + code + ")", "");
+				}
+				return label;
+			}
 		}
 	}
 
@@ -1163,6 +1190,9 @@ public class XgmmlExporter {
 
 	private Node createNodeFromPeptideNode(String nodeID, String label, String tooltip, PCQPeptideNode peptideNode,
 			Color outlineColor) {
+		if (peptideNode.getKey().equals("AAPIIPTPVLTSPGAVPPLPSPSKEEEGLR")) {
+			log.info(peptideNode);
+		}
 		Color fillColor = Color.cyan;
 		final String sequenceString = peptideNode.getFullSequence();
 		final Map<String, AttributeValueType> attributes = new THashMap<String, AttributeValueType>();
@@ -1447,8 +1477,10 @@ public class XgmmlExporter {
 	}
 
 	private String getGeneString(PCQProteinNode proteinNode) {
-		final String geneNameString = PCQUtils.getGeneNameString(getAnnotatedProtein(proteinNode.getKey()), proteinNode,
-				null, false, true);
+
+		final String geneNameString = PCQUtils.getGeneNameString(
+				getAnnotatedProtein(PCQUtils.getAccessionString(proteinNode.getItemsInNode())), proteinNode, null,
+				false, true);
 		return geneNameString;
 	}
 
@@ -1772,8 +1804,8 @@ public class XgmmlExporter {
 
 	private Map<String, Entry> getAnnotatedProtein(String accession) {
 		final Set<String> accs = new THashSet<String>();
-		if (accession.contains(" ")) {
-			final String[] split = accession.split("\\s+");
+		if (accession.contains(PCQUtils.PROTEIN_ACC_SEPARATOR)) {
+			final String[] split = accession.split(PCQUtils.PROTEIN_ACC_SEPARATOR);
 			for (final String string : split) {
 				accs.add(string);
 			}
