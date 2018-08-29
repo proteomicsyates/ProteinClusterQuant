@@ -51,7 +51,7 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 
 	private String key;
 
-	private final Map<QuantifiedPeptideInterface, PositionInPeptide> positionInPeptideByPeptide = new THashMap<QuantifiedPeptideInterface, PositionInPeptide>();
+	private final Map<QuantifiedPeptideInterface, List<PositionInPeptide>> positionInPeptideByPeptide = new THashMap<QuantifiedPeptideInterface, List<PositionInPeptide>>();
 
 	private Set<QuantifiedPSMInterface> quantPSMs;
 
@@ -60,13 +60,15 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 		this.proteinCluster = proteinCluster;
 	}
 
+	public PCQPeptideNode(ProteinCluster proteinCluster, String key) {
+		this.proteinCluster = proteinCluster;
+		this.key = key;
+	}
+
 	public PCQPeptideNode(ProteinCluster proteinCluster, String key,
 			Pair<QuantifiedPeptideInterface, PositionInPeptide>... peptidesAndPositionInPeptides) {
 		for (final Pair<QuantifiedPeptideInterface, PositionInPeptide> pair : peptidesAndPositionInPeptides) {
-			final QuantifiedPeptideInterface peptide = pair.getFirstelement();
-			peptideSet.add(peptide);
-			final PositionInPeptide positionInPeptide = pair.getSecondElement();
-			positionInPeptideByPeptide.put(peptide, positionInPeptide);
+			addQuantifiedPeptide(pair.getFirstelement(), pair.getSecondElement());
 		}
 		this.proteinCluster = proteinCluster;
 		this.key = key;
@@ -210,11 +212,31 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	}
 
 	public boolean addQuantifiedPeptide(QuantifiedPeptideInterface peptide) {
-		return peptideSet.add(peptide);
+		if (peptide.getPtms() == null || peptide.getPtms().isEmpty()) {
+			return peptideSet.add(peptide);
+		} else {
+			for (final PositionInPeptide positionInPeptide : peptide.getPtms()) {
+				if (positionInPeptideByPeptide.containsKey(peptide)) {
+					positionInPeptideByPeptide.get(peptide).add(positionInPeptide);
+				} else {
+					final List<PositionInPeptide> list = new ArrayList<PositionInPeptide>();
+					list.add(positionInPeptide);
+					positionInPeptideByPeptide.put(peptide, list);
+				}
+			}
+			return peptideSet.add(peptide);
+		}
 	}
 
 	public boolean addQuantifiedPeptide(QuantifiedPeptideInterface peptide, PositionInPeptide positionInPeptide) {
-		positionInPeptideByPeptide.put(peptide, positionInPeptide);
+
+		if (positionInPeptideByPeptide.containsKey(peptide)) {
+			positionInPeptideByPeptide.get(peptide).add(positionInPeptide);
+		} else {
+			final List<PositionInPeptide> list = new ArrayList<PositionInPeptide>();
+			list.add(positionInPeptide);
+			positionInPeptideByPeptide.put(peptide, list);
+		}
 
 		return peptideSet.add(peptide);
 
@@ -299,7 +321,7 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	 * @param peptide
 	 * @return
 	 */
-	public PositionInPeptide getPositionInPeptide(QuantifiedPeptideInterface peptide) {
+	public List<PositionInPeptide> getPositionInPeptide(QuantifiedPeptideInterface peptide) {
 		if (!peptideSet.contains(peptide)) {
 			throw new IllegalArgumentException(
 					"The peptide " + peptide.getSequence() + " (" + peptide.getKey() + ") is not in this peptide node");
@@ -311,22 +333,22 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 		}
 	}
 
-	public List<Pair<QuantifiedPeptideInterface, PositionInPeptide>> getPeptidesWithPositionsInPeptide() {
-		final List<Pair<QuantifiedPeptideInterface, PositionInPeptide>> peptidesAndPositionsInPeptides = new ArrayList<Pair<QuantifiedPeptideInterface, PositionInPeptide>>();
+	public List<Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>> getPeptidesWithPositionsInPeptide() {
+		final List<Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>> peptidesAndPositionsInPeptides = new ArrayList<Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>>();
 		final Set<QuantifiedPeptideInterface> peptides = getQuantifiedPeptides();
 		for (final QuantifiedPeptideInterface peptide : peptides) {
 
-			final Pair<QuantifiedPeptideInterface, PositionInPeptide> pair = new Pair<QuantifiedPeptideInterface, PositionInPeptide>(
+			final Pair<QuantifiedPeptideInterface, List<PositionInPeptide>> pair = new Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>(
 					peptide, getPositionInPeptide(peptide));
 			peptidesAndPositionsInPeptides.add(pair);
 
 		}
 		Collections.sort(peptidesAndPositionsInPeptides,
-				new java.util.Comparator<Pair<QuantifiedPeptideInterface, PositionInPeptide>>() {
+				new java.util.Comparator<Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>>() {
 
 					@Override
-					public int compare(Pair<QuantifiedPeptideInterface, PositionInPeptide> arg0,
-							Pair<QuantifiedPeptideInterface, PositionInPeptide> arg1) {
+					public int compare(Pair<QuantifiedPeptideInterface, List<PositionInPeptide>> arg0,
+							Pair<QuantifiedPeptideInterface, List<PositionInPeptide>> arg1) {
 						return arg0.getFirstelement().getFullSequence()
 								.compareTo(arg1.getFirstelement().getFullSequence());
 					}
