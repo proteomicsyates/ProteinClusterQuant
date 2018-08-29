@@ -11,7 +11,6 @@ import gnu.trove.set.hash.THashSet;
 
 public abstract class AbstractNode<T extends QuantifiedItem> implements QuantifiedItem, HasKey {
 	private boolean discarded;
-	private final int hashCode = -1;;
 
 	public abstract Set<QuantifiedPSMInterface> getQuantifiedPSMs();
 
