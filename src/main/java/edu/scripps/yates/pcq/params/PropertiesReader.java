@@ -208,6 +208,29 @@ public class PropertiesReader {
 			throw new IllegalArgumentException(
 					"collapsePeptidesBySites and collapsePeptidesByPTMs cannot be used at the same time");
 		}
+		if (properties.containsKey("maxNumPTMsPerProtein")) {
+			if (params.isCollapseByPTMs()) {
+				final String maxNumPTMsPerProteinString = properties.getProperty("maxNumPTMsPerProtein ");
+				try {
+					final Integer max = Integer.valueOf(maxNumPTMsPerProteinString);
+					if (max < 0) {
+						throw new Exception();
+					}
+					params.setMaxNumPTMsPerProtein(max);
+				} catch (final Exception e) {
+					throw new IllegalArgumentException("maxNumPTMsPerProtein is not recognized as '"
+							+ maxNumPTMsPerProteinString + ". Posible values are positive integers");
+				}
+			} else {
+				log.warn(
+						"maxNumPTMsPerProtein parameter is provided but collapsePeptidesByPTMs is FALSE or not provided. maxNumPTMsPerProtein will be ignored.");
+			}
+		} else {
+			if (params.isCollapseByPTMs()) {
+				log.warn("collapsePeptidesByPTMs is TRUE but maxNumPTMsPerProtein is not provided. Default value of "
+						+ params.getMaxNumPTMsPerProtein() + " will be used");
+			}
+		}
 
 		if (properties.containsKey("isobaricRatioType")) {
 			final String property = properties.getProperty("isobaricRatioType", false);
