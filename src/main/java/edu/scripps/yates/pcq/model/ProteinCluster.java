@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 import org.apache.log4j.Logger;
 
 import edu.scripps.yates.annotations.uniprot.UniprotProteinLocalRetriever;
-import edu.scripps.yates.annotations.uniprot.proteoform.fasta.ProteoFormFastaReader;
 import edu.scripps.yates.annotations.uniprot.xml.Entry;
 import edu.scripps.yates.census.read.model.IsobaricQuantifiedPeptide;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
@@ -29,9 +28,6 @@ import edu.scripps.yates.pcq.xgmml.util.AlignedPeptides;
 import edu.scripps.yates.pcq.xgmml.util.AlignmentSet;
 import edu.scripps.yates.utilities.alignment.nwalign.NWAlign;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
-import edu.scripps.yates.utilities.fasta.Fasta;
-import edu.scripps.yates.utilities.progresscounter.ProgressCounter;
-import edu.scripps.yates.utilities.progresscounter.ProgressPrintingType;
 import edu.scripps.yates.utilities.sequence.PTMInProtein;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import edu.scripps.yates.utilities.sequence.PositionInProtein;
@@ -73,6 +69,7 @@ public class ProteinCluster {
 	 * nodes properly and calculating the ratios accordingly
 	 * 
 	 * @param annotatedProteins
+	 * @param proteoFormFastaReader
 	 * 
 	 * @throws IOException
 	 */
@@ -602,11 +599,9 @@ public class ProteinCluster {
 		}
 		// to not include the same peptide in different peptide nodes
 		final Map<QuantifiedPeptideInterface, PCQPeptideNode> peptideNodesByPeptides = new THashMap<QuantifiedPeptideInterface, PCQPeptideNode>();
-		final Set<String> peptideSequencesDiscarded = new THashSet<String>();
 		if (peptides.size() > 1) {
 			for (int i = 0; i < peptides.size(); i++) {
 				final QuantifiedPeptideInterface peptide1 = peptides.get(i);
-				final String sequence1 = peptide1.getSequence();
 
 				// get the keys from the peptide.
 				// not that the peptide could have more than one key because 2
@@ -618,7 +613,6 @@ public class ProteinCluster {
 						PCQUtils.proteinSequences);
 				for (int j = i + 1; j < peptides.size(); j++) {
 					final QuantifiedPeptideInterface peptide2 = peptides.get(j);
-					final String sequence2 = peptide2.getSequence();
 					// get the keys from the peptide.
 					// not that the peptide could have more than one key because
 					// 2
@@ -723,100 +717,36 @@ public class ProteinCluster {
 
 	}
 
-	private String getProteinKey(Set<QuantifiedProteinInterface> proteins) {
-		// this is not the same as getProteinKey in PCQUtils, because from a
-		// peptide that is mapped to 2 proteins that have the same accession, I
-		// just want the accession
-		final List<String> accs = new ArrayList<String>();
-		for (final QuantifiedProteinInterface protein : proteins) {
-			if (!accs.contains(protein.getAccession())) {
-				accs.add(protein.getAccession());
-			}
-		}
-		Collections.sort(accs);
-		final StringBuilder sb = new StringBuilder();
-		for (final String acc : accs) {
-			if (!"".equals(sb.toString())) {
-				sb.append(" ");
-			}
-			sb.append(acc);
-		}
-		sb.append(PCQUtils.KEY_SEPARATOR);
-		return sb.toString();
-	}
-
 	private void createProteinNodes() throws IOException {
 		// create a map to store proteins by accession
-		final Map<String, Set<QuantifiedProteinInterface>> proteinMap = new THashMap<String, Set<QuantifiedProteinInterface>>();
+		final Map<String, Set<QuantifiedProteinInterface>> proteinMapByKey = new THashMap<String, Set<QuantifiedProteinInterface>>();
+		final Map<String, Set<QuantifiedProteinInterface>> proteinMapByAcc = new THashMap<String, Set<QuantifiedProteinInterface>>();
 		for (final QuantifiedProteinInterface protein : individualQuantifiedProteinSet) {
-			if (proteinMap.containsKey(protein.getKey())) {
-				proteinMap.get(protein.getKey()).add(protein);
+			if (proteinMapByKey.containsKey(protein.getKey())) {
+				proteinMapByKey.get(protein.getKey()).add(protein);
 			} else {
 				final Set<QuantifiedProteinInterface> set = new THashSet<QuantifiedProteinInterface>();
 				set.add(protein);
-				proteinMap.put(protein.getKey(), set);
+				proteinMapByKey.put(protein.getKey(), set);
+			}
+			if (proteinMapByAcc.containsKey(protein.getAccession())) {
+				proteinMapByAcc.get(protein.getAccession()).add(protein);
+			} else {
+				final Set<QuantifiedProteinInterface> set = new THashSet<QuantifiedProteinInterface>();
+				set.add(protein);
+				proteinMapByAcc.put(protein.getAccession(), set);
 			}
 		}
 
-		// initialize proteoform fasta parser
-		if (getParams().isLookForProteoforms()) {
-			final ProteoFormFastaReader proteoformFastaParser = new ProteoFormFastaReader(
-					getParams().getFastaFile().getAbsolutePath(), proteinMap.keySet(),
-					getParams().getUniprotProteoformRetrieverFromXML());
-
-			int numberFastas = 0;
-			try {
-				numberFastas = proteoformFastaParser.getNumberFastas();
-			} catch (final IOException e) {
-				// it is because it is using an iterator for the proteoforms, so
-				// we dont know how many are
-			}
-			int c = 0;
-			final ProgressCounter counter = new ProgressCounter(numberFastas, ProgressPrintingType.PERCENTAGE_STEPS, 0);
-			final Iterator<Fasta> proteoFormFastaIterator = proteoformFastaParser.getFastas();
-			while (proteoFormFastaIterator.hasNext()) {
-				c++;
-				final Fasta fasta = proteoFormFastaIterator.next();
-				final String printIfNecessary = counter.printIfNecessary();
-				if (numberFastas > 0 && !"".equals(printIfNecessary)) {
-					log.info("Reading proteoforms " + printIfNecessary);
-				}
-				if (c % 100 == 0) {
-					log.debug("Reading proteoforms " + c);
-				}
-				// fasta accession
-				// >sp|ACC|
-				String fastaAccession = fasta.getAccession();
-				if (fastaAccession.startsWith("sp|")) {
-					fastaAccession = fastaAccession.substring(3);
-				}
-				if (fastaAccession.contains("|")) {
-					fastaAccession = fastaAccession.substring(0, fastaAccession.indexOf("|"));
-				}
-
-				// grab all the protein sequences to then used them in the
-				// creation of peptides nodes, mapping peptides to this proteins
-				// we dont need to create the protein nodes from variants, since
-				// the protein variants should be already included in the
-				// quantifiedProteins
-				if (proteinMap.containsKey(fastaAccession)) {
-					PCQUtils.proteinSequences.put(fastaAccession, fasta.getSequence());
-					if (PCQUtils.proteinSequences.size() == proteinMap.size()) {
-						break;
-					}
-				}
-			}
-
-		}
 		final List<String> keyList = new ArrayList<String>();
-		keyList.addAll(proteinMap.keySet());
-		if (proteinMap.size() > 1) {
+		keyList.addAll(proteinMapByKey.keySet());
+		if (proteinMapByKey.size() > 1) {
 			for (int i = 0; i < keyList.size(); i++) {
 				final String key1 = keyList.get(i);
-				final Set<QuantifiedProteinInterface> proteins1 = proteinMap.get(key1);
+				final Set<QuantifiedProteinInterface> proteins1 = proteinMapByKey.get(key1);
 				for (int j = i + 1; j < keyList.size(); j++) {
 					final String key2 = keyList.get(j);
-					final Set<QuantifiedProteinInterface> proteins2 = proteinMap.get(key2);
+					final Set<QuantifiedProteinInterface> proteins2 = proteinMapByKey.get(key2);
 
 					if (getParams().isCollapseIndistinguishableProteins()
 							&& PCQUtils.proteinsShareAllPeptides(proteins1, proteins2)) {
@@ -903,13 +833,13 @@ public class ProteinCluster {
 			// only one protein
 			// create a protein node for the protein
 			// protein node for protein1
-			if (proteinMap.isEmpty()) {
+			if (proteinMapByKey.isEmpty()) {
 				log.info(this);
 			}
-			final Collection<QuantifiedProteinInterface> proteins = proteinMap.values().iterator().next();
+			final Collection<QuantifiedProteinInterface> proteins = proteinMapByKey.values().iterator().next();
 			final PCQProteinNode proteinNode = new PCQProteinNode(this, proteins);
 			proteinNodes.add(proteinNode);
-			proteinNodesByProteinKey.put(proteinMap.keySet().iterator().next(), proteinNode);
+			proteinNodesByProteinKey.put(proteinMapByKey.keySet().iterator().next(), proteinNode);
 
 		}
 		// log.debug(proteinNodes.size() + " protein nodes created in cluster");

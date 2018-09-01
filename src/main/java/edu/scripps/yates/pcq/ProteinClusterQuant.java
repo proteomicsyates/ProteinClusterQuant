@@ -33,6 +33,7 @@ import com.compomics.dbtoolkit.io.implementations.FASTADBLoader;
 import com.compomics.util.protein.Protein;
 
 import edu.scripps.yates.annotations.uniprot.UniprotProteinLocalRetriever;
+import edu.scripps.yates.annotations.uniprot.proteoform.fasta.ProteoFormFastaReader;
 import edu.scripps.yates.annotations.uniprot.xml.Entry;
 import edu.scripps.yates.annotations.util.UniprotEntryUtil;
 import edu.scripps.yates.census.analysis.QuantAnalysis;
@@ -80,6 +81,7 @@ import edu.scripps.yates.pcq.xgmml.util.AlignedPeptides;
 import edu.scripps.yates.pcq.xgmml.util.AlignmentSet;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.dates.DatesUtil;
+import edu.scripps.yates.utilities.fasta.Fasta;
 import edu.scripps.yates.utilities.fasta.FastaParser;
 import edu.scripps.yates.utilities.maths.Maths;
 import edu.scripps.yates.utilities.model.enums.AggregationLevel;
@@ -1802,18 +1804,12 @@ public class ProteinClusterQuant {
 	private Set<ProteinCluster> createClusters(Map<String, QuantifiedPeptideInterface> peptideMap) throws IOException {
 		final Map<String, ProteinCluster> clustersByPeptideSequence = new THashMap<String, ProteinCluster>();
 		final Set<ProteinCluster> clusterSet = new THashSet<ProteinCluster>();
+		final Set<String> proteinACCs = new THashSet<String>();
 		log.info("Starting clustering " + peptideMap.size() + " peptides...");
 		long t0 = System.currentTimeMillis();
 		final ProgressCounter counter = new ProgressCounter(peptideMap.values().size(),
 				ProgressPrintingType.PERCENTAGE_STEPS, 0);
 		for (final QuantifiedPeptideInterface peptide : peptideMap.values()) {
-			if (peptide.getFullSequence().equals("AAPIIPTPVLTSPGAVPPLPSPSKEEEGLR")) {
-				log.info(peptide);
-				final Set<QuantifiedProteinInterface> proteins = peptide.getQuantifiedProteins();
-				for (final QuantifiedProteinInterface quantifiedProteinInterface : proteins) {
-					log.info(quantifiedProteinInterface);
-				}
-			}
 			counter.increment();
 			final String printIfNecessary = counter.printIfNecessary();
 			if (!"".equals(printIfNecessary)) {
@@ -1849,13 +1845,6 @@ public class ProteinClusterQuant {
 			}
 			// put peptide in cluster
 			final boolean added = cluster.addIndividualQuantifiedPeptide(peptide);
-			if (peptide.getFullSequence().equals("AAPIIPTPVLTSPGAVPPLPSPSKEEEGLR")) {
-				log.info(added);
-				final Set<QuantifiedPeptideInterface> peps = cluster.getPeptideSet();
-				for (final QuantifiedPeptideInterface quantifiedPeptideInterface : peps) {
-					log.info(quantifiedPeptideInterface.getFullSequence());
-				}
-			}
 			// in case of having peptide alignments done
 			if (peptideAlignments != null && !peptideAlignments.getAlignmentsForPeptide(peptide).isEmpty()) {
 				final Set<AlignedPeptides> alignments = peptideAlignments.getAlignmentsForPeptide(peptide);
@@ -1906,6 +1895,7 @@ public class ProteinClusterQuant {
 			// get proteins of the peptide and add them to the cluster
 			final Set<QuantifiedProteinInterface> proteinSet = peptide.getQuantifiedProteins();
 			for (final QuantifiedProteinInterface protein : proteinSet) {
+				proteinACCs.add(protein.getAccession());
 				// put protein in cluster
 				cluster.addIndividualQuantifiedProtein(protein);
 
@@ -1935,7 +1925,7 @@ public class ProteinClusterQuant {
 			}
 		}
 		double time = System.currentTimeMillis() - t0;
-
+		loadProteinSequencesForProteoforms(proteinACCs);
 		log.info(clusterSet.size() + " clusters created in " + DatesUtil.getDescriptiveTimeFromMillisecs(time));
 		// create now the actual node objects in each cluster
 		log.info("Creating protein and peptide nodes in clusters...");
@@ -1954,6 +1944,46 @@ public class ProteinClusterQuant {
 		log.info("Clusters processed in " + DatesUtil.getDescriptiveTimeFromMillisecs(time));
 		log.info(numProteinNodes + " protein nodes and " + numPeptideNodes + " peptide nodes in total");
 		return clusterSet;
+	}
+
+	private void loadProteinSequencesForProteoforms(Set<String> proteinACCs) throws IOException {
+		try {
+			if (getParams().isLookForProteoforms()) {
+				log.info("Loading protein sequences for proteoforms");
+				String fastaPath = null;
+				if (getParams().getFastaFile() != null) {
+					fastaPath = getParams().getFastaFile().getAbsolutePath();
+					log.info("Loading protein sequences for fasta file " + fastaPath);
+				}
+				final ProteoFormFastaReader proteoFormFastaReader = new ProteoFormFastaReader(fastaPath, proteinACCs,
+						getParams().getUniprotProteoformRetrieverFromXML());
+				final Iterator<Fasta> iterator = proteoFormFastaReader.getFastas();
+				while (iterator.hasNext()) {
+					final Fasta fastaEntry = iterator.next();
+					final String accession = fastaEntry.getAccession();
+					if (accession.equals("contaminant_KERATIN03")) {
+						log.info(fastaEntry);
+					}
+					if (fastaEntry.isProteoform()) {
+						final String originalACC = FastaParser.getUniProtACC(accession);
+						if (proteinACCs.contains(originalACC)) {
+							PCQUtils.proteinSequences.put(accession, fastaEntry.getSequence());
+						}
+					} else {
+						final String originalACC = FastaParser.getUniProtACC(accession);
+						if (proteinACCs.contains(originalACC)) {
+							PCQUtils.proteinSequences.put(originalACC, fastaEntry.getSequence());
+						} else if (proteinACCs.contains(accession)) {
+							PCQUtils.proteinSequences.put(accession, fastaEntry.getSequence());
+						}
+					}
+				}
+			}
+			log.info(PCQUtils.proteinSequences.size() + " protein sequences stored");
+		} catch (final IOException e) {
+			log.error("Error while reading fasta and/or getting proteoforms from " + proteinACCs.size() + " proteins");
+			throw e;
+		}
 	}
 
 	/**
