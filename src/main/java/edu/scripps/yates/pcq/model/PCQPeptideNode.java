@@ -231,7 +231,9 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	public boolean addQuantifiedPeptide(QuantifiedPeptideInterface peptide, PositionInPeptide positionInPeptide) {
 
 		if (positionInPeptideByPeptide.containsKey(peptide)) {
-			positionInPeptideByPeptide.get(peptide).add(positionInPeptide);
+			if (!positionInPeptideByPeptide.get(peptide).contains(positionInPeptide)) {
+				positionInPeptideByPeptide.get(peptide).add(positionInPeptide);
+			}
 		} else {
 			final List<PositionInPeptide> list = new ArrayList<PositionInPeptide>();
 			list.add(positionInPeptide);
