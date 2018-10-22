@@ -310,6 +310,11 @@ public class ProteinCluster {
 				for (int j = i + 1; j < peptides.size(); j++) {
 					final QuantifiedPeptideInterface peptide2 = peptides.get(j);
 					final String sequence2 = peptide2.getSequence();
+					if (sequence1.equals("AKDIGFIKLD")) {
+						if (sequence2.equals("AKDIGFIKLD")) {
+							log.info(sequence2);
+						}
+					}
 					// discard if it doesn't contain any quantified aa
 					if (getParams().isRemoveFilteredNodes() && !PCQUtils.containsAny(sequence2, quantifiedAAs)) {
 						if (!peptideSequencesDiscarded.contains(sequence2)) {
@@ -360,195 +365,187 @@ public class ProteinCluster {
 						individualQuantifiedPeptideSet.remove(peptide2);
 						continue;
 					}
+					// if we have isobaric isotopologues, we could have several
+					// ratios in a single peptide with multiple quantified
+					// sites<br>Otherwise, we have to consider the
+					// positionsInPeptides all together per peptide
+					if (peptide1 instanceof IsobaricQuantifiedPeptide
+							&& peptide2 instanceof IsobaricQuantifiedPeptide) {
+						// iterate over all the keys
+						for (final PositionInPeptide positionInPeptide1 : proteinKeysByPeptide1Keys.keySet()) {
+							final List<PositionInProtein> proteinKeysFromPeptide1 = proteinKeysByPeptide1Keys
+									.get(positionInPeptide1);
+							for (final PositionInPeptide positionInPeptide2 : proteinKeysByPeptide2Keys.keySet()) {
+								final List<PositionInProtein> proteinKeysFromPeptide2 = proteinKeysByPeptide2Keys
+										.get(positionInPeptide2);
 
-					// iterate over all the keys
-					for (final PositionInPeptide positionInPeptide1 : proteinKeysByPeptide1Keys.keySet()) {
-						final List<PositionInProtein> proteinKeysFromPeptide1 = proteinKeysByPeptide1Keys
-								.get(positionInPeptide1);
-						for (final PositionInPeptide positionInPeptide2 : proteinKeysByPeptide2Keys.keySet()) {
-							final List<PositionInProtein> proteinKeysFromPeptide2 = proteinKeysByPeptide2Keys
-									.get(positionInPeptide2);
+								final String key1 = PCQUtils.getPositionsInProteinsKey(proteinKeysFromPeptide1);
+								final String key2 = PCQUtils.getPositionsInProteinsKey(proteinKeysFromPeptide2);
+								// now I compare the two list of keys
+								// if they are equal, that means, if they share
+								// the
+								// same sites of the same proteins
+								if (PCQUtils.areEquals(proteinKeysFromPeptide1, proteinKeysFromPeptide2)) {
 
-							final String key1 = PCQUtils.getPositionsInProteinsKey(proteinKeysFromPeptide1);
-							final String key2 = PCQUtils.getPositionsInProteinsKey(proteinKeysFromPeptide2);
-							// now I compare the two list of keys
-							// if they are equal, that means, if they share the
-							// same sites of the same proteins
-							if (PCQUtils.areEquals(proteinKeysFromPeptide1, proteinKeysFromPeptide2)) {
+									// key1 and key2 should be the same
 
-								// key1 and key2 should be the same
+									// collapsed in the same peptide node
+									PCQPeptideNode peptideNode = null;
+									// if the protein was already associated
+									// with
+									// some protein node
+									if (peptideNodesByPeptideNodeKey.containsKey(key1)) {
+										peptideNode = peptideNodesByPeptideNodeKey.get(key1);
+									} else {
+										peptideNode = new PCQPeptideNode(this, key1,
+												new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide1,
+														positionInPeptide1),
+												new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide2,
+														positionInPeptide2));
+									}
+									peptideNodesByPeptides.put(peptide1, peptideNode);
+									peptideNodesByPeptides.put(peptide2, peptideNode);
+									// add the two peptides to the peptide node
+									peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide1);
+									peptideNode.addQuantifiedPeptide(peptide2, positionInPeptide2);
+									// add to the set of nodes
+									peptideNodes.add(peptideNode);
+									// add to the map
+									peptideNodesByPeptideNodeKey.put(key1, peptideNode);
 
-								// collapsed in the same peptide node
-								PCQPeptideNode peptideNode = null;
-								// if the protein was already associated with
-								// some protein node
-								if (peptideNodesByPeptideNodeKey.containsKey(key1)) {
-									peptideNode = peptideNodesByPeptideNodeKey.get(key1);
 								} else {
-									peptideNode = new PCQPeptideNode(this, key1,
-											new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide1,
-													positionInPeptide1),
-											new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide2,
-													positionInPeptide2));
-								}
-								peptideNodesByPeptides.put(peptide1, peptideNode);
-								peptideNodesByPeptides.put(peptide2, peptideNode);
-								// add the two peptides to the peptide node
-								peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide1);
-								peptideNode.addQuantifiedPeptide(peptide2, positionInPeptide2);
-								// add to the set of nodes
-								peptideNodes.add(peptideNode);
-								// add to the map
-								peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+									// they dont share any key create a peptide
+									// node
+									// for each peptide separated peptide node
+									// for
+									// psm1
+									PCQPeptideNode peptideNode = null;
+									if (peptideNodesByPeptideNodeKey.containsKey(key1)) {
+										peptideNode = peptideNodesByPeptideNodeKey.get(key1);
+									} else {
+										peptideNode = new PCQPeptideNode(this, key1,
+												new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide1,
+														positionInPeptide1));
+									}
+									peptideNodesByPeptides.put(peptide1, peptideNode);
+									// add the two peptides to the peptide node
+									peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide1);
+									peptideNodes.add(peptideNode);
+									peptideNodesByPeptideNodeKey.put(key1, peptideNode);
 
-								// } else if
-								// (PCQUtils.shareAny(proteinKeysFromPeptide1,
-								// proteinKeysFromPeptide2)) {
-								// // they have keys in common, but not all of
-								// them
-								// // now, create a node with all this keys
-								// unique
-								// // to the first peptide
-								// final List<PositionInProtein>
-								// uniqueKeysForPeptide1 = PCQUtils
-								// .getUniqueToFirst(proteinKeysFromPeptide1,
-								// proteinKeysFromPeptide2);
-								// if (!uniqueKeysForPeptide1.isEmpty()) {
-								//
-								// final String key1 =
-								// PCQUtils.getPositionsInProteinsKey(uniqueKeysForPeptide1);
-								// PCQPeptideNode peptideNode = null;
-								// if
-								// (peptideNodesByPeptideNodeKey.containsKey(key1))
-								// {
-								// peptideNode =
-								// peptideNodesByPeptideNodeKey.get(key1);
-								// } else {
-								// peptideNode = new PCQPeptideNode(this, key1,
-								// new Pair<QuantifiedPeptideInterface,
-								// PositionInPeptide>(peptide1,
-								// positionInPeptide1));
-								// }
-								// peptideNodesByPeptides.put(peptide1,
-								// peptideNode);
-								// // add the two peptides to the peptide node
-								// peptideNode.addQuantifiedPeptide(peptide1,
-								// positionInPeptide1);
-								// // add to the set of nodes
-								// peptideNodes.add(peptideNode);
-								// // add to the map
-								// peptideNodesByPeptideNodeKey.put(key1,
-								// peptideNode);
-								// }
-								// // now, create a node with all this keys
-								// unique
-								// // to the second peptide
-								// final List<PositionInProtein>
-								// uniqueKeysForPeptide2 = PCQUtils
-								// .getUniqueToFirst(proteinKeysFromPeptide2,
-								// proteinKeysFromPeptide1);
-								// if (!uniqueKeysForPeptide2.isEmpty()) {
-								// final String key2 =
-								// PCQUtils.getPositionsInProteinsKey(uniqueKeysForPeptide2);
-								// PCQPeptideNode peptideNode = null;
-								// if
-								// (peptideNodesByPeptideNodeKey.containsKey(key2))
-								// {
-								// peptideNode =
-								// peptideNodesByPeptideNodeKey.get(key2);
-								// } else {
-								// peptideNode = new PCQPeptideNode(this, key2,
-								// new Pair<QuantifiedPeptideInterface,
-								// PositionInPeptide>(peptide2,
-								// positionInPeptide2));
-								// }
-								// peptideNodesByPeptides.put(peptide2,
-								// peptideNode);
-								// // add the two peptides to the peptide node
-								// peptideNode.addQuantifiedPeptide(peptide2,
-								// positionInPeptide2);
-								// // add to the set of nodes
-								// peptideNodes.add(peptideNode);
-								// // add to the map
-								// peptideNodesByPeptideNodeKey.put(key2,
-								// peptideNode);
-								// }
-								//
-								// // now, create a node with all this keys in
-								// // common between peptide1 and peptide2
-								// final List<PositionInProtein> sharedKeys =
-								// PCQUtils.getInCommon(proteinKeysFromPeptide2,
-								// proteinKeysFromPeptide1);
-								// if (!sharedKeys.isEmpty()) {
-								// final String sharedKey =
-								// PCQUtils.getPositionsInProteinsKey(sharedKeys);
-								// PCQPeptideNode peptideNode = null;
-								// if
-								// (peptideNodesByPeptideNodeKey.containsKey(sharedKey))
-								// {
-								// peptideNode =
-								// peptideNodesByPeptideNodeKey.get(sharedKey);
-								// } else {
-								// peptideNode = new PCQPeptideNode(this,
-								// sharedKey,
-								// new Pair<QuantifiedPeptideInterface,
-								// PositionInPeptide>(peptide1,
-								// positionInPeptide1),
-								// new Pair<QuantifiedPeptideInterface,
-								// PositionInPeptide>(peptide2,
-								// positionInPeptide2));
-								// }
-								// peptideNodesByPeptides.put(peptide1,
-								// peptideNode);
-								// peptideNodesByPeptides.put(peptide2,
-								// peptideNode);
-								// // add the two peptides to the peptide node
-								// peptideNode.addQuantifiedPeptide(peptide1,
-								// positionInPeptide1);
-								// peptideNode.addQuantifiedPeptide(peptide2,
-								// positionInPeptide2);
-								// // add to the set of nodes
-								// peptideNodes.add(peptideNode);
-								// // add to the map
-								// peptideNodesByPeptideNodeKey.put(sharedKey,
-								// peptideNode);
-								// }
-							} else {
-								// they dont share any key create a peptide node
-								// for each peptide separated peptide node for
-								// psm1
-								PCQPeptideNode peptideNode = null;
-								if (peptideNodesByPeptideNodeKey.containsKey(key1)) {
-									peptideNode = peptideNodesByPeptideNodeKey.get(key1);
-								} else {
-									peptideNode = new PCQPeptideNode(this, key1,
-											new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide1,
-													positionInPeptide1));
-								}
-								peptideNodesByPeptides.put(peptide1, peptideNode);
-								// add the two peptides to the peptide node
-								peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide1);
-								peptideNodes.add(peptideNode);
-								peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+									// protein node for protein2
+									PCQPeptideNode peptideNode2 = null;
+									if (peptideNodesByPeptideNodeKey.containsKey(key2)) {
+										peptideNode2 = peptideNodesByPeptideNodeKey.get(key2);
+									} else {
+										peptideNode2 = new PCQPeptideNode(this, key2,
+												new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide2,
+														positionInPeptide2));
+									}
+									peptideNodesByPeptides.put(peptide2, peptideNode2);
 
-								// protein node for protein2
-								PCQPeptideNode peptideNode2 = null;
-								if (peptideNodesByPeptideNodeKey.containsKey(key2)) {
-									peptideNode2 = peptideNodesByPeptideNodeKey.get(key2);
-								} else {
-									peptideNode2 = new PCQPeptideNode(this, key2,
-											new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide2,
-													positionInPeptide2));
+									peptideNode2.addQuantifiedPeptide(peptide2, positionInPeptide2);
+									peptideNodes.add(peptideNode2);
+									peptideNodesByPeptideNodeKey.put(key2, peptideNode2);
 								}
-								peptideNodesByPeptides.put(peptide2, peptideNode2);
-
-								peptideNode2.addQuantifiedPeptide(peptide2, positionInPeptide2);
-								peptideNodes.add(peptideNode2);
-								peptideNodesByPeptideNodeKey.put(key2, peptideNode2);
 							}
+						}
+					} else {
+						// in this case, it is not isobaric isotopologues, so we
+						// have to take all the positionsInPeptide together
+						// because each peptide will only have one ratio and if
+						// that peptide has more than one position quantified,
+						// it will be an ambiguous one
+						// iterate over all the keys
+						final List<PositionInProtein> proteinKeysFromPeptide1 = new ArrayList<PositionInProtein>();
+						final List<PositionInProtein> proteinKeysFromPeptide2 = new ArrayList<PositionInProtein>();
+						for (final PositionInPeptide positionInPeptide1 : proteinKeysByPeptide1Keys.keySet()) {
+							proteinKeysFromPeptide1.addAll(proteinKeysByPeptide1Keys.get(positionInPeptide1));
+						}
+						for (final PositionInPeptide positionInPeptide2 : proteinKeysByPeptide2Keys.keySet()) {
+							proteinKeysFromPeptide2.addAll(proteinKeysByPeptide2Keys.get(positionInPeptide2));
+						}
+						final String key1 = PCQUtils.getPositionsInProteinsKey(proteinKeysFromPeptide1);
+						final String key2 = PCQUtils.getPositionsInProteinsKey(proteinKeysFromPeptide2);
+						// now I compare the two list of keys
+						// if they are equal, that means, if they share
+						// the
+						// same sites of the same proteins
+						if (PCQUtils.areEquals(proteinKeysFromPeptide1, proteinKeysFromPeptide2)) {
+
+							// key1 and key2 should be the same
+
+							// collapsed in the same peptide node
+							PCQPeptideNode peptideNode = null;
+							// if the protein was already associated
+							// with
+							// some protein node
+							if (peptideNodesByPeptideNodeKey.containsKey(key1)) {
+								peptideNode = peptideNodesByPeptideNodeKey.get(key1);
+							} else {
+								peptideNode = new PCQPeptideNode(this, key1);
+								for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide1Keys.keySet()) {
+									peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide);
+								}
+								for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
+									peptideNode.addQuantifiedPeptide(peptide2, positionInPeptide);
+								}
+							}
+							peptideNodesByPeptides.put(peptide1, peptideNode);
+							peptideNodesByPeptides.put(peptide2, peptideNode);
+							// add the two peptides to the peptide node
+							for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide1Keys.keySet()) {
+								peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide);
+							}
+							for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
+								peptideNode.addQuantifiedPeptide(peptide2, positionInPeptide);
+							}
+							// add to the set of nodes
+							peptideNodes.add(peptideNode);
+							// add to the map
+							peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+
+						} else {
+							// they dont share any key create a peptide node for
+							// each peptide separated peptide node for psm1
+							PCQPeptideNode peptideNode = null;
+							if (peptideNodesByPeptideNodeKey.containsKey(key1)) {
+								peptideNode = peptideNodesByPeptideNodeKey.get(key1);
+							} else {
+								peptideNode = new PCQPeptideNode(this, key1);
+								for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide1Keys.keySet()) {
+									peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide);
+								}
+							}
+							peptideNodesByPeptides.put(peptide1, peptideNode);
+							// add the two peptides to the peptide node
+							for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide1Keys.keySet()) {
+								peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide);
+							}
+							peptideNodes.add(peptideNode);
+							peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+
+							// protein node for protein2
+							PCQPeptideNode peptideNode2 = null;
+							if (peptideNodesByPeptideNodeKey.containsKey(key2)) {
+								peptideNode2 = peptideNodesByPeptideNodeKey.get(key2);
+							} else {
+								peptideNode2 = new PCQPeptideNode(this, key2);
+								for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
+									peptideNode2.addQuantifiedPeptide(peptide2, positionInPeptide);
+								}
+							}
+							peptideNodesByPeptides.put(peptide2, peptideNode2);
+
+							for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
+								peptideNode2.addQuantifiedPeptide(peptide2, positionInPeptide);
+							}
+							peptideNodes.add(peptideNode2);
+							peptideNodesByPeptideNodeKey.put(key2, peptideNode2);
 						}
 					}
 				}
+
 			}
 		} else {
 			// only one peptide
