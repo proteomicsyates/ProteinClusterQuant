@@ -2214,7 +2214,7 @@ public class PCQUtils {
 		if (peptideNodes.isEmpty()) {
 			return CensusRatio.getNaNRatio(cond1, cond2, AggregationLevel.PEPTIDE_NODE, "RATIO");
 		}
-		final List<Integer> quantifiedSitePositionInPeptideList = new ArrayList<Integer>();
+		final List<PositionInPeptide> quantifiedSitePositionInPeptideList = new ArrayList<PositionInPeptide>();
 		final List<QuantRatio> toAverage = new ArrayList<QuantRatio>();
 		String avgRatioDescription = "";
 		// SANXOT
@@ -2233,7 +2233,10 @@ public class PCQUtils {
 				if (consensusRatio != null) {
 					toAverage.add(consensusRatio);
 					if (consensusRatio.getQuantifiedSitePositionInPeptide() != null) {
-						quantifiedSitePositionInPeptideList.add(consensusRatio.getQuantifiedSitePositionInPeptide());
+						for (final PositionInPeptide positionInPeptide : consensusRatio
+								.getQuantifiedSitePositionInPeptide()) {
+							quantifiedSitePositionInPeptideList.add(positionInPeptide);
+						}
 					}
 				}
 			}
@@ -2342,8 +2345,11 @@ public class PCQUtils {
 								if (validRatio != null) {
 									toAverage.add(validRatio);
 									if (validRatio.getQuantifiedSitePositionInPeptide() != null) {
-										quantifiedSitePositionInPeptideList
-												.add(validRatio.getQuantifiedSitePositionInPeptide());
+										for (final PositionInPeptide positionInPeptide : validRatio
+												.getQuantifiedSitePositionInPeptide()) {
+											quantifiedSitePositionInPeptideList.add(positionInPeptide);
+										}
+
 									}
 								}
 							} else {
@@ -2366,7 +2372,10 @@ public class PCQUtils {
 			final CensusRatio censusRatio = new CensusRatio(finalValue, true, cond1, cond2,
 					AggregationLevel.PEPTIDE_NODE, avgRatioDescription);
 			if (quantifiedSitePositionInPeptideList.size() == 1) {
-				censusRatio.setQuantifiedSitePositionInPeptide(quantifiedSitePositionInPeptideList.get(0));
+				censusRatio.addQuantifiedSitePositionInPeptide(quantifiedSitePositionInPeptideList.get(0));
+				censusRatio.setQuantifiedAA(quantifiedSitePositionInPeptideList.get(0).getAa());
+			} else {
+				log.info(quantifiedSitePositionInPeptideList);
 			}
 			final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
 			if (stdev != null) {
@@ -2396,15 +2405,18 @@ public class PCQUtils {
 		final List<QuantRatio> toAverage = new ArrayList<QuantRatio>();
 		final List<Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>> peptidesWithPositionsInPeptide = peptideNode
 				.getPeptidesWithPositionsInPeptide();
+		final Set<PositionInPeptide> positionsInPeptide = new THashSet<PositionInPeptide>();
 		for (final Pair<QuantifiedPeptideInterface, List<PositionInPeptide>> pair : peptidesWithPositionsInPeptide) {
 			final QuantifiedPeptideInterface peptide = pair.getFirstelement();
 			for (final PositionInPeptide positionInPeptideObj : pair.getSecondElement()) {
+				positionsInPeptide.add(positionInPeptideObj);
 				final int positionInPeptide = positionInPeptideObj.getPosition();
 				final List<QuantRatio> ratios = QuantUtils.getRatiosByName(peptide, getRatioNameByAnalysisType());
 				for (final QuantRatio quantRatio : ratios) {
-					final Integer quantifiedSitePositionInPeptide = quantRatio.getQuantifiedSitePositionInPeptide();
+					final Set<PositionInPeptide> quantifiedSitePositionInPeptide = quantRatio
+							.getQuantifiedSitePositionInPeptide();
 					if (quantifiedSitePositionInPeptide != null
-							&& quantifiedSitePositionInPeptide.equals(positionInPeptide)) {
+							&& QuantUtils.containsPosition(quantifiedSitePositionInPeptide, positionInPeptide)) {
 						toAverage.add(quantRatio);
 					}
 				}
@@ -2418,6 +2430,15 @@ public class PCQUtils {
 			if (stdev != null) {
 				censusRatio.setRatioScore(new RatioScore(String.valueOf(stdev), "STDEV", "Standard deviation of ratios",
 						"Standard deviation of the ratios averaged"));
+			}
+			if (!positionsInPeptide.isEmpty()) {
+				for (final PositionInPeptide positionInPeptide : positionsInPeptide) {
+					censusRatio.addQuantifiedSitePositionInPeptide(positionInPeptide);
+					censusRatio.setQuantifiedAA(positionInPeptide.getAa());
+				}
+
+			} else {
+				log.info(positionsInPeptide);
 			}
 			return censusRatio;
 		}
