@@ -2375,7 +2375,7 @@ public class PCQUtils {
 				censusRatio.addQuantifiedSitePositionInPeptide(quantifiedSitePositionInPeptideList.get(0));
 				censusRatio.setQuantifiedAA(quantifiedSitePositionInPeptideList.get(0).getAa());
 			} else {
-				log.info(quantifiedSitePositionInPeptideList);
+				// log.info(quantifiedSitePositionInPeptideList);
 			}
 			final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
 			if (stdev != null) {
