@@ -247,8 +247,6 @@ public class QuantSiteOutputComparator {
 		// create Options object
 		options = new Options();
 		options.addOption("RInf", true, "[MANDATORY] -RInf replaces +/- Infinity with a user defined (+/-)value");
-		options.addOption("Error", true,
-				"[MANDATORY] -Error STDEV includes only numerical values that are standard deviations, no other values in this column (also excluding '-Infinity' and 'Infinity' STDEVs).");
 		options.addOption("f1", true,
 				"[MANDATORY] Full path to output file for peptideNodeTable_perSite, of a PCQ run to compare");
 		options.addOption("f2", true,
@@ -262,7 +260,7 @@ public class QuantSiteOutputComparator {
 		final HelpFormatter formatter = new HelpFormatter();
 
 		formatter.printHelp(
-				"`java -jar QuantSiteoutputComparator.jar -RInf [n] -Error [STDEV] -f1 [nnn_peptideNodeTable_perSite.txt_file1] -f2 [mmm_peptideNodeTable_perSite.txt_file2] -out [output_file_name]",
+				"`java -jar QuantSiteoutputComparator.jar -RInf [n] -f1 [nnn_peptideNodeTable_perSite.txt_file1] -f2 [mmm_peptideNodeTable_perSite.txt_file2] -out [output_file_name]",
 				"\n\n\n", options, "\n\nContact Salvador Martinez-Bartolome at salvador@scripps.edu for more help");
 
 		System.exit(0);
