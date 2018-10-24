@@ -141,6 +141,7 @@ public class ProteinClusterQuant {
 
 	private void printWelcome() {
 		final String implementationVersion = getClass().getPackage().getImplementationVersion();
+		String header = "Running ProteinClusterQuant (PCQ) version " + getVersion().toString();
 		if (implementationVersion != null) {
 			header += " version " + implementationVersion;
 		}
