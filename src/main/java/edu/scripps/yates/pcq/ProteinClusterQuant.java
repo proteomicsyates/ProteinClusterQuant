@@ -61,6 +61,7 @@ import edu.scripps.yates.dtaselectparser.DTASelectParser;
 import edu.scripps.yates.pcq.cases.Classification2Case;
 import edu.scripps.yates.pcq.compare.ComparisonInput;
 import edu.scripps.yates.pcq.compare.PCQCompare;
+import edu.scripps.yates.pcq.compare.model.QuantifiedSite;
 import edu.scripps.yates.pcq.filter.PCQFilter;
 import edu.scripps.yates.pcq.model.PCQPeptideNode;
 import edu.scripps.yates.pcq.model.PCQProteinNode;
@@ -636,9 +637,11 @@ public class ProteinClusterQuant {
 			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName);
 
 			// header
-			out.write("Node key" + "\t" + "Raw file " + "\t" + "Unique" + "\t" + "Num PSMs" + "\t" + "Num Peptides"
-					+ "\t" + "Sequence" + "\t" + "Protein(s)" + "\t" + "Genes" + "\t" + "Species" + "\t" + "Ratio Name"
-					+ "\t" + "Log2Ratio" + "\t" + "Ratio Score Name" + "\t" + "Ratio Score Value");
+			out.write(QuantifiedSite.NODE_KEY + "\t" + "Raw file " + "\t" + "Unique" + "\t"
+					+ QuantifiedSite.NUMMEASUREMENTS + "\t" + QuantifiedSite.NUMPSMS + "\t" + QuantifiedSite.NUMPEPTIDES
+					+ "\t" + QuantifiedSite.SEQUENCE + "\t" + "Protein(s)" + "\t" + "Genes" + "\t" + "Species" + "\t"
+					+ "Ratio Name" + "\t" + QuantifiedSite.LOG2RATIO + "\t" + "Ratio Score Name" + "\t"
+					+ QuantifiedSite.RATIOSCOREVALUE);
 			if (params.isCollapseBySites()) {
 				out.write("\t" + "QuantSitePositionInPeptide" + "\t" + "QuantSitePositionInProtein(s)" + "\t"
 						+ "Quant site");
@@ -661,7 +664,7 @@ public class ProteinClusterQuant {
 				}
 			});
 			for (final PCQPeptideNode peptideNode : peptideNodeList) {
-				if (peptideNode.getItemsInNode().iterator().next().getSequence().equals("LSGMGGLGLEIAKNL")) {
+				if (peptideNode.getItemsInNode().iterator().next().getSequence().equals("KVQGEAVSNIQENTQTPT")) {
 					log.info(peptideNode);
 				}
 				out.write("\n");
@@ -679,13 +682,20 @@ public class ProteinClusterQuant {
 						null, true);
 				final QuantRatio quantRatio = PCQUtils.getRepresentativeRatioForPeptideNode(peptideNode, cond1, cond2,
 						null, true);
+				final int numMeasurements = quantRatio.getNumMeasurements();
+				// if (numMeasurements>0 && numMeasurements !=
+				// peptideNode.getQuantifiedPSMs().size()) {
+				// log.info(numMeasurements + "\t" +
+				// quantRatio.getNonLogRatio(cond1, cond2) + "\tnum PSMs: "
+				// + peptideNode.getQuantifiedPSMs().size());
+				// }
 				final boolean unique = peptideNode.getProteinNodes().size() == 1;
 				final String rawFiles = StringUtils
 						.getSortedSeparatedValueStringFromChars(peptideNode.getRawFileNames(), ",");
-				out.write(rawFiles + "\t" + unique + "\t" + peptideNode.getQuantifiedPSMs().size() + "\t"
-						+ peptideNode.getQuantifiedPeptides().size() + "\t" + peptideNode.getFullSequence() + "\t"
-						+ accessionString + "\t" + geneNameString + "\t" + speciesString + "\t"
-						+ quantRatio.getDescription() + "\t"
+				out.write(rawFiles + "\t" + unique + "\t" + numMeasurements + "\t"
+						+ peptideNode.getQuantifiedPSMs().size() + "\t" + peptideNode.getQuantifiedPeptides().size()
+						+ "\t" + peptideNode.getFullSequence() + "\t" + accessionString + "\t" + geneNameString + "\t"
+						+ speciesString + "\t" + quantRatio.getDescription() + "\t"
 						+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)));
 				if (quantRatio.getAssociatedConfidenceScore() != null) {
 					out.write("\t" + quantRatio.getAssociatedConfidenceScore().getScoreName() + "\t" + PCQUtils
@@ -805,9 +815,6 @@ public class ProteinClusterQuant {
 					}
 				});
 				for (final QuantifiedPeptideInterface peptide : peptideList) {
-					if (peptide.getSequence().equals("AAKVPADTEVVCAPPTAY")) {
-						log.info(peptide);
-					}
 					// check if we should ignore the ptm psms
 					if (params.isIgnorePTMs()) {
 						if (peptide.getPtms() != null && !peptide.getPtms().isEmpty()) {
@@ -2730,6 +2737,9 @@ public class ProteinClusterQuant {
 			if (!peptideNodeConsensusRatios.isEmpty()) {
 				mean = peptideNodeConsensusRatios.sum() / peptideNodeConsensusRatios.size();
 				stdev = Maths.stddev(peptideNodeConsensusRatios.toArray());
+				if (peptideNodeConsensusRatios.size() == 1) {
+					stdev = 0;
+				}
 			}
 			stats.append("Average of peptide node ratios: " + mean + "\n");
 			stats.append("Standard deviation of peptide node ratios: " + stdev + "\n");

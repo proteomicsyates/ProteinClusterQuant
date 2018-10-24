@@ -8,6 +8,7 @@
 		<lib.dir>lib</lib.dir>
 		<project.build.sourceEncoding>ISO-8859-1</project.build.sourceEncoding>
 		<assembly.dir>PCQ_v${project.version}</assembly.dir>
+		<assembly.quantsitecomparator.dir>QuantSiteOutputComparator_v${project.version}</assembly.quantsitecomparator.dir>
 	</properties>
 	<build>
 
@@ -165,4 +166,80 @@
 			<url>dav:http://sealion.scripps.edu/archiva/repository/snapshots/</url>
 		</repository>
 	</repositories>
+	<profiles>
+      <profile>
+         <id>PCQ</id>
+         <activation>
+            <activeByDefault>true</activeByDefault>
+         </activation>
+         <build>
+            <plugins>
+               <plugin>
+                  <artifactId>maven-assembly-plugin</artifactId>
+                  <version>3.1.0</version>
+                  <executions>
+                     <execution>
+                        <id>assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                           <goal>single</goal>
+                        </goals>
+                     </execution>
+                  </executions>
+                  <configuration>
+                     <finalName>${assembly.dir}</finalName>
+                     <descriptors>
+                        <descriptor>${basedir}/src/main/resources/assembly_with_examples.xml</descriptor>
+                     </descriptors>
+                     <archive>
+		               	  <manifest>
+		                     <addClasspath>true</addClasspath>
+		                     <mainClass>edu.scripps.yates.pcq.ProteinClusterQuant</mainClass>
+		                     <classpathPrefix>lib/</classpathPrefix>
+		                     <useUniqueVersions>false</useUniqueVersions>
+		                  </manifest>
+		               </archive>
+                  </configuration>
+               </plugin>
+            </plugins>
+         </build>
+      </profile>
+      <profile>
+         <id>QuantSiteOutputComparator</id>
+<!--          <activation> -->
+<!--             <activeByDefault>true</activeByDefault> -->
+<!--          </activation> -->
+         <build>
+            <plugins>
+               <plugin>
+                  <artifactId>maven-assembly-plugin</artifactId>
+                  <version>3.1.0</version>
+                  <executions>
+                     <execution>
+                        <id>assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                           <goal>single</goal>
+                        </goals>
+                     </execution>
+                  </executions>
+                  <configuration>
+                     <finalName>${assembly.quantsitecomparator.dir}</finalName>
+                     <descriptors>
+                        <descriptor>${basedir}/src/main/resources/assembly.xml</descriptor>
+                     </descriptors>
+                     <archive>
+		               	  <manifest>
+		                     <addClasspath>true</addClasspath>
+		                     <mainClass>edu.scripps.yates.pcq.QuantSiteOutputComparator</mainClass>
+		                     <classpathPrefix>lib/</classpathPrefix>
+		                     <useUniqueVersions>false</useUniqueVersions>
+		                  </manifest>
+		               </archive>
+                  </configuration>
+               </plugin>
+            </plugins>
+         </build>
+      </profile>
+   </profiles>
 </project>

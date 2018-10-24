@@ -2097,7 +2097,21 @@ public class PCQUtils {
 		return ret;
 	}
 
-	public static Double averageOfRatiosTakingIntoAccountInfinitiesAndNans(Collection<QuantRatio> ratios,
+	/**
+	 * If all ratios are infinity with the same value, it will return
+	 * infinity.<br>
+	 * If not all ratios are infinity, but there are some, it will return the
+	 * average of the non infinities.<br>
+	 * If all ratios are Nan, it will return Nan.
+	 *
+	 * @param ratios
+	 * @param cond1
+	 * @param cond2
+	 * @return it returns a pair with the first element with the returning
+	 *         average value and the second with the number of items used to
+	 *         calculate ratios
+	 */
+	public static Pair<Double, Integer> averageOfRatiosTakingIntoAccountInfinitiesAndNans(Collection<QuantRatio> ratios,
 			QuantCondition cond1, QuantCondition cond2) {
 		final List<Double> ratioValues = new ArrayList<Double>();
 		for (final QuantRatio ratio : ratios) {
@@ -2114,11 +2128,11 @@ public class PCQUtils {
 				|| areAll(-Double.MAX_VALUE, ratioValues);
 		if (areInfinities) {
 			// return it (we assume is only one sign of the infinities here
-			return ratioValues.iterator().next();
+			return new Pair<Double, Integer>(ratioValues.iterator().next(), ratioValues.size());
 		} else {
 			// if they are all Nan,return nan
 			if (areAll(Double.NaN, ratioValues)) {
-				return Double.NaN;
+				return new Pair<Double, Integer>(Double.NaN, ratioValues.size());
 			}
 			// return an average of the non infinities
 			final TDoubleArrayList nonInfinityNonNanValues = new TDoubleArrayList();
@@ -2128,7 +2142,7 @@ public class PCQUtils {
 				}
 			}
 			// report the average
-			return Maths.mean(nonInfinityNonNanValues);
+			return new Pair<Double, Integer>(Maths.mean(nonInfinityNonNanValues), nonInfinityNonNanValues.size());
 		}
 	}
 
@@ -2149,7 +2163,7 @@ public class PCQUtils {
 				|| areAll(-Double.MAX_VALUE, ratioValues);
 		if (areInfinities) {
 			// return it (we assume is only one sign of the infinities here
-			return ratioValues.iterator().next();
+			return 0.0;
 		} else {
 			// if they are all Nan,return nan
 			if (areAll(Double.NaN, ratioValues)) {
@@ -2163,7 +2177,12 @@ public class PCQUtils {
 				}
 			}
 			// report the stdev
-			return Maths.stddev(nonInfinityNonNanValues);
+
+			double stddev = Maths.stddev(nonInfinityNonNanValues);
+			if (nonInfinityNonNanValues.size() == 1) {
+				stddev = 0;
+			}
+			return stddev;
 		}
 	}
 
@@ -2214,6 +2233,7 @@ public class PCQUtils {
 		if (peptideNodes.isEmpty()) {
 			return CensusRatio.getNaNRatio(cond1, cond2, AggregationLevel.PEPTIDE_NODE, "RATIO");
 		}
+
 		final List<PositionInPeptide> quantifiedSitePositionInPeptideList = new ArrayList<PositionInPeptide>();
 		final List<QuantRatio> toAverage = new ArrayList<QuantRatio>();
 		String avgRatioDescription = "";
@@ -2365,17 +2385,21 @@ public class PCQUtils {
 		// if there is only one, return it in order to not loose the extended
 		// class and description of the ratio
 		if (toAverage.size() == 1) {
-			return toAverage.get(0);
+			final QuantRatio ret = toAverage.get(0);
+			if (ret.getNumMeasurements() == 0 && !Double.isNaN(ret.getNonLogRatio(cond1, cond2))) {
+				ret.setNumMeasurements(1);
+			}
+			return ret;
 		}
-		final Double finalValue = PCQUtils.averageOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
+		final Pair<Double, Integer> finalValue = PCQUtils.averageOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage,
+				cond1, cond2);
 		if (finalValue != null) {
-			final CensusRatio censusRatio = new CensusRatio(finalValue, true, cond1, cond2,
+			final CensusRatio censusRatio = new CensusRatio(finalValue.getFirstelement(), true, cond1, cond2,
 					AggregationLevel.PEPTIDE_NODE, avgRatioDescription);
+			censusRatio.setNumMeasurements(finalValue.getSecondElement());
 			if (quantifiedSitePositionInPeptideList.size() == 1) {
 				censusRatio.addQuantifiedSitePositionInPeptide(quantifiedSitePositionInPeptideList.get(0));
 				censusRatio.setQuantifiedAA(quantifiedSitePositionInPeptideList.get(0).getAa());
-			} else {
-				// log.info(quantifiedSitePositionInPeptideList);
 			}
 			final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
 			if (stdev != null) {
@@ -2402,7 +2426,7 @@ public class PCQUtils {
 	 */
 	private static QuantRatio getAverageRatioForSiteSpecificPeptideNode(PCQPeptideNode peptideNode,
 			QuantCondition cond1, QuantCondition cond2) {
-		final List<QuantRatio> toAverage = new ArrayList<QuantRatio>();
+		final Set<QuantRatio> toAverage = new THashSet<QuantRatio>();
 		final List<Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>> peptidesWithPositionsInPeptide = peptideNode
 				.getPeptidesWithPositionsInPeptide();
 		final Set<PositionInPeptide> positionsInPeptide = new THashSet<PositionInPeptide>();
@@ -2422,10 +2446,12 @@ public class PCQUtils {
 				}
 			}
 		}
-		final Double finalValue = PCQUtils.averageOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
+		final Pair<Double, Integer> finalValue = PCQUtils.averageOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage,
+				cond1, cond2);
 		if (finalValue != null) {
-			final CensusRatio censusRatio = new CensusRatio(finalValue, true, cond1, cond2,
+			final CensusRatio censusRatio = new CensusRatio(finalValue.getFirstelement(), true, cond1, cond2,
 					AggregationLevel.PEPTIDE_NODE, "Avg ratios for site");
+			censusRatio.setNumMeasurements(finalValue.getSecondElement());
 			final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
 			if (stdev != null) {
 				censusRatio.setRatioScore(new RatioScore(String.valueOf(stdev), "STDEV", "Standard deviation of ratios",
@@ -2458,7 +2484,7 @@ public class PCQUtils {
 	 */
 	private static QuantRatio getAverageIsobaricRatioForSiteSpecificPeptideNode(PCQPeptideNode peptideNode,
 			QuantCondition cond1, QuantCondition cond2) {
-		final List<QuantRatio> toAverage = new ArrayList<QuantRatio>();
+		final Set<QuantRatio> toAverage = new THashSet<QuantRatio>();
 
 		final List<Pair<QuantifiedPeptideInterface, List<PositionInPeptide>>> peptidesWithPositionsInPeptide = peptideNode
 				.getPeptidesWithPositionsInPeptide();
@@ -2473,10 +2499,12 @@ public class PCQUtils {
 				}
 			}
 		}
-		final Double finalValue = PCQUtils.averageOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
+		final Pair<Double, Integer> finalValue = PCQUtils.averageOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage,
+				cond1, cond2);
 		if (finalValue != null) {
-			final CensusRatio censusRatio = new CensusRatio(finalValue, true, cond1, cond2,
+			final CensusRatio censusRatio = new CensusRatio(finalValue.getFirstelement(), true, cond1, cond2,
 					AggregationLevel.PEPTIDE_NODE, "Avg Ri ratios for site");
+			censusRatio.setNumMeasurements(finalValue.getSecondElement());
 			final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
 			if (stdev != null) {
 				censusRatio.setRatioScore(new RatioScore(String.valueOf(stdev), "STDEV", "Standard deviation of ratios",
