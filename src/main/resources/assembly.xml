@@ -1,7 +1,7 @@
 <assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
-    
+    <id>pcq_assembly</id>
     <formats>
         <format>zip</format>
         <format>tar.gz</format>
@@ -10,7 +10,7 @@
     
 
     <includeBaseDirectory>false</includeBaseDirectory>
-
+	   
 
     <fileSets>
 
@@ -21,7 +21,13 @@
             </includes>
             <outputDirectory>${assembly.output.folder}</outputDirectory>
         </fileSet>
-        
+        <fileSet>
+            <directory>target/${lib.dir}</directory>
+            <includes>
+                <include>*.jar</include>
+            </includes>
+            <outputDirectory>${assembly.output.folder}/${lib.dir}</outputDirectory>
+        </fileSet>
         
 <!-- 		<fileSet> -->
 <!--             <directory>SanXot</directory> -->
@@ -43,7 +49,7 @@
         	<directory></directory>
             <includes>
                 <include>setup.properties</include>
-                <include>network_comparison_input_file.txt</include>
+                <include>comparison_input_file.txt</include>
             </includes>
             <outputDirectory>${assembly.output.folder}</outputDirectory>
         </fileSet>
@@ -52,11 +58,12 @@
     </fileSets>
 
 
-    <dependencySets>
-        <dependencySet>
-            <outputDirectory>${assembly.output.folder}/lib</outputDirectory>
-            <unpack>false</unpack>
-            <scope>runtime</scope>
-        </dependencySet>
-    </dependencySets>
+<!--     <dependencySets> -->
+<!--         <dependencySet> -->
+<!--             <outputDirectory>${assembly.output.folder}/lib</outputDirectory> -->
+<!--             <unpack>false</unpack> -->
+<!--             <scope>runtime</scope> -->
+<!--               <outputFileNameMapping>${artifact.artifactId}-${artifact.baseVersion}.${artifact.extension}</outputFileNameMapping> -->  
+<!--         </dependencySet> -->
+<!--     </dependencySets> -->
 </assembly>

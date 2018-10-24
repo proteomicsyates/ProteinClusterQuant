@@ -1,8 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>edu.scripps.yates</groupId>
 	<artifactId>ProtClusterQuant</artifactId>
-	<version>1.92</version>
+	<version>1.93</version>
 	<properties>
 		<assembly.output.folder>PCQ</assembly.output.folder>
 		<lib.dir>lib</lib.dir>
@@ -11,7 +12,6 @@
 		<assembly.quantsitecomparator.dir>QuantSiteOutputComparator_v${project.version}</assembly.quantsitecomparator.dir>
 	</properties>
 	<build>
-
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -21,38 +21,58 @@
 					<target>1.8</target>
 				</configuration>
 			</plugin>
+			
 			<plugin>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>2.3.2</version>
-				<configuration>
-					<archive>
-						<manifest>
-							<addClasspath>true</addClasspath>
-							<mainClass>edu.scripps.yates.pcq.ProteinClusterQuant</mainClass>
-							<classpathPrefix>lib</classpathPrefix>
-						</manifest>
-					</archive>
-					<outputDirectory>${project.build.directory}</outputDirectory>
-				</configuration>
-			</plugin>
+	            <artifactId>maven-dependency-plugin</artifactId>
+	            <version>3.0.2</version>
+	            <executions>
+	               <execution>
+	                  <id>copy-dependencies</id>
+	                  <phase>package</phase>
+	                  <goals>
+	                     <goal>copy-dependencies</goal>
+	                  </goals>
+	                  <configuration>
+	                     <outputDirectory>${project.build.directory}/${lib.dir}</outputDirectory>
+	                     <overWriteReleases>true</overWriteReleases>
+	                     <overWriteSnapshots>true</overWriteSnapshots>
+	<!--                      <overWriteIfNewer>true</overWriteIfNewer> -->
+	<!--                      useBaseVersion=false makes the jar names match those -->
+	<!--                      that maven-jar-plugin puts in the manifest classpath  -->
+	<!--  Either append the artifact's baseVersion or uniqueVersion to the filename. Will only be used if isStripVersion() is false. -->
+	                	 <useBaseVersion>true</useBaseVersion>
+	                  </configuration>
+	               </execution>
+	            </executions>
+	         </plugin>
 			<plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>assembly</id>
-						<phase>package</phase>
-						<goals>
-							<goal>assembly</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<finalName>${assembly.dir}</finalName>
-					<descriptors>
-						<descriptor>${basedir}/src/main/resources/assembly.xml</descriptor>
-					</descriptors>
-				</configuration>
-			</plugin>
+		        <groupId>org.codehaus.mojo</groupId>
+		        <artifactId>properties-maven-plugin</artifactId>
+		        <version>1.0.0</version>
+		        <executions>
+		          <execution>
+		            <phase>generate-resources</phase>
+		            <goals>
+		              <goal>write-project-properties</goal>
+		            </goals>
+		            <configuration>
+		              <outputFile>
+		                ${project.build.outputDirectory}/app.properties
+		              </outputFile>
+		              <properties>
+	                    <property>
+	                        <name>revision</name>
+	                        <value>${revision}</value>
+	                    </property>
+	                    <property>
+	                        <name>buildnumber</name>
+	                        <value>${buildnumber}</value>
+	                    </property>
+	                </properties>
+		            </configuration>
+		          </execution>
+		        </executions>
+		      </plugin>
 		</plugins>
 	</build>
 	<organization>
@@ -143,37 +163,63 @@
 		</dependency>
 	</dependencies>
 	<repositories>
-		<repository>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-			<id>internal</id>
-			<name>Yates lab internal maven repository</name>
-			<url>dav:http://sealion.scripps.edu/archiva/repository/internal/</url>
-		</repository>
-		<repository>
-			<releases>
-				<enabled>false</enabled>
-			</releases>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-			<id>snapshots</id>
-			<name>Yates lab snapshots maven repository</name>
-			<url>dav:http://sealion.scripps.edu/archiva/repository/snapshots/</url>
-		</repository>
-	</repositories>
+      <repository>
+         <releases>
+            <enabled>true</enabled>
+         </releases>
+         <snapshots>
+            <enabled>false</enabled>
+         </snapshots>
+         <id>ebi-repo</id>
+         <name>The EBI Maven 2 repository</name>
+         <url>http://www.ebi.ac.uk/~maven/m2repo</url>
+      </repository>
+      <repository>
+         <releases>
+            <enabled>false</enabled>
+         </releases>
+         <snapshots>
+            <enabled>true</enabled>
+         </snapshots>
+         <id>ebi-repo-snapshots</id>
+         <name>The EBI internal repository</name>
+         <url>http://www.ebi.ac.uk/~maven/m2repo_snapshots</url>
+      </repository>
+      <repository>
+         <id>genesis-maven2-repository</id>
+         <name>Genesis maven2 repository</name>
+         <url>http://genesis.UGent.be/maven2</url>
+      </repository>
+      <repository>
+         <id>JBoss</id>
+         <name>JBoss repository</name>
+         <url>https://repository.jboss.org/nexus/content/repositories/releases/</url>
+      </repository>
+   </repositories>
 	<profiles>
       <profile>
          <id>PCQ</id>
-         <activation>
-            <activeByDefault>true</activeByDefault>
-         </activation>
+<!--          <activation> -->
+<!--             <activeByDefault>true</activeByDefault> -->
+<!--          </activation> -->
          <build>
             <plugins>
+            	<plugin>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.3.2</version>
+				<configuration>
+					<archive>
+						<manifest>
+							<addClasspath>true</addClasspath>
+							<mainClass>edu.scripps.yates.pcq.ProteinClusterQuant</mainClass>
+							<classpathPrefix>lib</classpathPrefix>
+							<useUniqueVersions>false</useUniqueVersions>
+						</manifest>
+					</archive>
+					<outputDirectory>${project.build.directory}</outputDirectory>
+					<finalName>PCQ_${project.version}</finalName>
+				</configuration>
+				</plugin>
                <plugin>
                   <artifactId>maven-assembly-plugin</artifactId>
                   <version>3.1.0</version>
@@ -189,8 +235,9 @@
                   <configuration>
                      <finalName>${assembly.dir}</finalName>
                      <descriptors>
-                        <descriptor>${basedir}/src/main/resources/assembly_with_examples.xml</descriptor>
+                        <descriptor>${basedir}/src/main/resources/assembly.xml</descriptor>
                      </descriptors>
+                     <appendAssemblyId>false</appendAssemblyId>
                      <archive>
 		               	  <manifest>
 		                     <addClasspath>true</addClasspath>
@@ -211,6 +258,22 @@
 <!--          </activation> -->
          <build>
             <plugins>
+            	<plugin>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.3.2</version>
+				<configuration>
+					<archive>
+						<manifest>
+							<addClasspath>true</addClasspath>
+							<mainClass>edu.scripps.yates.pcq.QuantSiteOutputComparator</mainClass>
+							<classpathPrefix>lib</classpathPrefix>
+							<useUniqueVersions>false</useUniqueVersions>
+						</manifest>
+					</archive>
+					<outputDirectory>${project.build.directory}</outputDirectory>
+					<finalName>QuantSiteOutputComparator_${project.version}</finalName>
+				</configuration>
+			</plugin>
                <plugin>
                   <artifactId>maven-assembly-plugin</artifactId>
                   <version>3.1.0</version>
@@ -228,6 +291,7 @@
                      <descriptors>
                         <descriptor>${basedir}/src/main/resources/assembly.xml</descriptor>
                      </descriptors>
+                     <appendAssemblyId>false</appendAssemblyId>
                      <archive>
 		               	  <manifest>
 		                     <addClasspath>true</addClasspath>
