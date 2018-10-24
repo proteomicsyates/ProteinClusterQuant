@@ -141,7 +141,6 @@ public class ProteinClusterQuant {
 
 	private void printWelcome() {
 		final String implementationVersion = getClass().getPackage().getImplementationVersion();
-		String header = "Running PCQ (ProteinClusterQuant) version " + getVersion().toString();
 		if (implementationVersion != null) {
 			header += " version " + implementationVersion;
 		}
@@ -159,6 +158,8 @@ public class ProteinClusterQuant {
 	}
 
 	public static void main(String args[]) throws IOException, ParseException {
+		final AppVersion version = ProteinClusterQuant.getVersion();
+		System.out.println("Running ProteinClusterQuant (PCQ) version " + version.toString());
 		setupCommandLineOptions();
 		final CommandLineParser parser = new BasicParser();
 		try {
