@@ -28,6 +28,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.util.CombinatoricsUtils;
 import org.apache.log4j.Logger;
+import org.springframework.core.io.ClassPathResource;
 
 import com.compomics.dbtoolkit.io.implementations.FASTADBLoader;
 import com.compomics.util.protein.Protein;
@@ -81,6 +82,7 @@ import edu.scripps.yates.pcq.xgmml.XgmmlExporter;
 import edu.scripps.yates.pcq.xgmml.util.AlignedPeptides;
 import edu.scripps.yates.pcq.xgmml.util.AlignmentSet;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
+import edu.scripps.yates.utilities.appversion.AppVersion;
 import edu.scripps.yates.utilities.dates.DatesUtil;
 import edu.scripps.yates.utilities.fasta.Fasta;
 import edu.scripps.yates.utilities.fasta.FastaParser;
@@ -89,6 +91,7 @@ import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.model.enums.CombinationType;
 import edu.scripps.yates.utilities.progresscounter.ProgressCounter;
 import edu.scripps.yates.utilities.progresscounter.ProgressPrintingType;
+import edu.scripps.yates.utilities.properties.PropertiesUtil;
 import edu.scripps.yates.utilities.proteomicsmodel.Score;
 import edu.scripps.yates.utilities.sequence.PTMInProtein;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
@@ -103,6 +106,7 @@ public class ProteinClusterQuant {
 	private static final String SETUP_PROPERTIES = "setup.properties";
 	private static final String sep = "\t";
 	private static Options options;
+	private static AppVersion version;
 	private final QuantCondition cond1 = new QuantCondition("cond1");
 	private final QuantCondition cond2 = new QuantCondition("cond2");
 	// private static final String SETUP_PROPERTIES = "setup.properties";
@@ -122,6 +126,7 @@ public class ProteinClusterQuant {
 	public ProteinClusterQuant(ProteinClusterQuantParameters params, File setupPropertiesFile) {
 		this.setupPropertiesFile = setupPropertiesFile;
 		this.params = params;
+
 		printWelcome();
 	}
 
@@ -136,7 +141,7 @@ public class ProteinClusterQuant {
 
 	private void printWelcome() {
 		final String implementationVersion = getClass().getPackage().getImplementationVersion();
-		String header = "Running PCQ (ProteinClusterQuant)";
+		String header = "Running PCQ (ProteinClusterQuant) version " + getVersion().toString();
 		if (implementationVersion != null) {
 			header += " version " + implementationVersion;
 		}
@@ -2820,4 +2825,22 @@ public class ProteinClusterQuant {
 		return ret;
 	}
 
+	public static AppVersion getVersion() {
+		if (version == null) {
+			try {
+				final String tmp = PropertiesUtil
+						.getProperties(new ClassPathResource(AppVersion.APP_PROPERTIES).getInputStream())
+						.getProperty("assembly.dir");
+				if (tmp.contains("v")) {
+					version = new AppVersion(tmp.split("v")[1]);
+				} else {
+					version = new AppVersion(tmp);
+				}
+			} catch (final Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return version;
+
+	}
 }
