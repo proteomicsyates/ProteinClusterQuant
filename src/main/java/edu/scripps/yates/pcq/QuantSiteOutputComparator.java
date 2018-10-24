@@ -18,6 +18,7 @@ import org.apache.log4j.Logger;
 
 import edu.scripps.yates.pcq.compare.model.QuantifiedSite;
 import edu.scripps.yates.pcq.compare.model.QuantifiedSiteSet;
+import edu.scripps.yates.utilities.appversion.AppVersion;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import gnu.trove.map.hash.TObjectIntHashMap;
 
@@ -38,6 +39,8 @@ public class QuantSiteOutputComparator {
 	}
 
 	public static void main(String[] args) {
+		final AppVersion version = ProteinClusterQuant.getVersion();
+		System.out.println("Running Quant Site comparator version " + version.toString());
 		setupCommandLineOptions();
 		final CommandLineParser parser = new BasicParser();
 		QuantSiteOutputComparator quantSiteComparator = null;
