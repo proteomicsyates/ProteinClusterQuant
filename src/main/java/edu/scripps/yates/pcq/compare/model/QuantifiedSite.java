@@ -70,6 +70,8 @@ public class QuantifiedSite {
 		numPeptides.add(Integer.valueOf(split[indexesByHeaders.get(NUMPEPTIDES)]));
 		if (indexesByHeaders.containsKey(NUMMEASUREMENTS)) {
 			numMeasurements.add(Integer.valueOf(split[indexesByHeaders.get(NUMMEASUREMENTS)]));
+		} else {
+			numMeasurements.add(0);
 		}
 		final String positionsInPeptideString = split[indexesByHeaders.get(POSITIONSINPEPTIDE)];
 		positionsInPeptide.addAll(PositionInPeptide.parseStringToPositionInPeptide(positionsInPeptideString, "-"));
