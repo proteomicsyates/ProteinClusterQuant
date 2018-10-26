@@ -6,9 +6,21 @@ import java.util.List;
 import java.util.Set;
 
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
+import gnu.trove.list.array.TDoubleArrayList;
+import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import gnu.trove.set.hash.THashSet;
 
+/**
+ * It represents a quantified site in a protein (or proteins) in a series of
+ * experiments (that is why log ratios and other features are lists).<br>
+ * The quantification of the site could come from the aggregation of multiple
+ * individual measurements and that is why it has features such as
+ * numMeasurements, numPeptides and numPSMs
+ * 
+ * @author salvador
+ *
+ */
 public class QuantifiedSite {
 
 	public static final String NODE_KEY = "Node key";
@@ -24,16 +36,11 @@ public class QuantifiedSite {
 
 	private final String nodeKey;
 	private final String sequence;
-	private final Double log2Ratio;
-	private Double log2Ratio2;
-	private final Double ratioScoreValue;
-	private Double ratioScoreValue2;
-	private final int numPSMs;
-	private int numPSMs2;
-	private final int numPeptides;
-	private int numPeptides2;
-	private final int numMeasurements;
-	private int numMeasurements2;
+	private final TDoubleArrayList log2Ratio = new TDoubleArrayList();
+	private final TDoubleArrayList ratioScoreValue = new TDoubleArrayList();
+	private final TIntArrayList numPSMs = new TIntArrayList();
+	private final TIntArrayList numPeptides = new TIntArrayList();;
+	private final TIntArrayList numMeasurements = new TIntArrayList();;
 	private final Set<PositionInPeptide> positionsInPeptide = new THashSet<PositionInPeptide>();
 	private final String proteins;
 	private final String genes;
@@ -46,22 +53,22 @@ public class QuantifiedSite {
 			numberString = numberString.substring(1);
 		}
 		if (!"".equals(numberString)) {
-			log2Ratio = Double.valueOf(numberString);
+			log2Ratio.add(Double.valueOf(numberString));
 		} else {
-			log2Ratio = null;
+			log2Ratio.add(Double.NaN);
 		}
 		String ratioScoreValueString = split[indexesByHeaders.get(RATIOSCOREVALUE)];
 		if (ratioScoreValueString.startsWith("'")) {
 			ratioScoreValueString = ratioScoreValueString.substring(1);
 		}
 		if (!"".equals(ratioScoreValueString)) {
-			ratioScoreValue = Double.valueOf(ratioScoreValueString);
+			ratioScoreValue.add(Double.valueOf(ratioScoreValueString));
 		} else {
-			ratioScoreValue = null;
+			ratioScoreValue.add(Double.NaN);
 		}
-		numPSMs = Integer.valueOf(split[indexesByHeaders.get(NUMPSMS)]);
-		numPeptides = Integer.valueOf(split[indexesByHeaders.get(NUMPEPTIDES)]);
-		numMeasurements = Integer.valueOf(split[indexesByHeaders.get(NUMMEASUREMENTS)]);
+		numPSMs.add(Integer.valueOf(split[indexesByHeaders.get(NUMPSMS)]));
+		numPeptides.add(Integer.valueOf(split[indexesByHeaders.get(NUMPEPTIDES)]));
+		numMeasurements.add(Integer.valueOf(split[indexesByHeaders.get(NUMMEASUREMENTS)]));
 
 		final String positionsInPeptideString = split[indexesByHeaders.get(POSITIONSINPEPTIDE)];
 		positionsInPeptide.addAll(PositionInPeptide.parseStringToPositionInPeptide(positionsInPeptideString, "-"));
@@ -90,64 +97,44 @@ public class QuantifiedSite {
 		return sequence;
 	}
 
-	public Double getLog2Ratio() {
-		return log2Ratio;
+	public Double getLog2Ratio(int index) {
+		return log2Ratio.get(index);
 	}
 
-	public Double getRatioScoreValue() {
-		return ratioScoreValue;
+	public Double getRatioScoreValue(int index) {
+		return ratioScoreValue.get(index);
 	}
 
-	public int getNumPSMs() {
-		return numPSMs;
+	public int getNumPSMs(int index) {
+		return numPSMs.get(index);
 	}
 
-	public int getNumPeptides() {
-		return numPeptides;
+	public int getNumMeasurements(int index) {
+		return numMeasurements.get(index);
 	}
 
-	public Double getLog2Ratio2() {
-		return log2Ratio2;
+	public int getNumPeptides(int index) {
+		return numPeptides.get(index);
 	}
 
-	public void setLog2Ratio2(Double log2Ratio2) {
-		this.log2Ratio2 = log2Ratio2;
+	public void addLog2Ratio(Double log2Ratio2) {
+		log2Ratio.add(log2Ratio2);
 	}
 
-	public Double getRatioScoreValue2() {
-		return ratioScoreValue2;
+	public void addRatioScoreValue(Double ratioScoreValue2) {
+		ratioScoreValue.add(ratioScoreValue2);
 	}
 
-	public void setRatioScoreValue2(Double ratioScoreValue2) {
-		this.ratioScoreValue2 = ratioScoreValue2;
+	public void addNumPSMs(int numPSMs2) {
+		numPSMs.add(numPSMs2);
 	}
 
-	public int getNumPSMs2() {
-		return numPSMs2;
+	public void addNumPeptides(int numPeptides2) {
+		numPeptides.add(numPeptides2);
 	}
 
-	public void setNumPSMs2(int numPSMs2) {
-		this.numPSMs2 = numPSMs2;
-	}
-
-	public int getNumPeptides2() {
-		return numPeptides2;
-	}
-
-	public void setNumPeptides2(int numPeptides2) {
-		this.numPeptides2 = numPeptides2;
-	}
-
-	public int getNumMeasurements() {
-		return numMeasurements;
-	}
-
-	public int getNumMeasurements2() {
-		return numMeasurements2;
-	}
-
-	public void setNumMeasurements2(int numMeasurements2) {
-		this.numMeasurements2 = numMeasurements2;
+	public void addNumMeasurements(int numMeasurements2) {
+		numMeasurements.add(numMeasurements2);
 	}
 
 	public String getProteins() {
@@ -156,5 +143,9 @@ public class QuantifiedSite {
 
 	public String getGenes() {
 		return genes;
+	}
+
+	public int getNumExperiments() {
+		return log2Ratio.size();
 	}
 }

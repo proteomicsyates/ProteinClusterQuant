@@ -21,6 +21,10 @@ public class QuantifiedSiteSet extends THashSet<QuantifiedSite> {
 		return quantifiedSitesByKey;
 	}
 
+	public int getNumExperiments() {
+		return iterator().next().getNumExperiments();
+	}
+
 	public List<QuantifiedSite> getSortedByRatios() {
 		final List<QuantifiedSite> ret = new ArrayList<QuantifiedSite>();
 		ret.addAll(this);
@@ -29,23 +33,22 @@ public class QuantifiedSiteSet extends THashSet<QuantifiedSite> {
 			@Override
 			public int compare(QuantifiedSite o1, QuantifiedSite o2) {
 
-				Double num1 = o1.getLog2Ratio();
-				Double num2 = o2.getLog2Ratio();
-				if (Double.isInfinite(num1) && !Double.isInfinite(num2)) {
-					return 1;
-				}
+				for (int i = 0; i < o1.getNumExperiments(); i++) {
+					final Double num1 = o1.getLog2Ratio(i);
+					final Double num2 = o2.getLog2Ratio(i);
+					if (Double.isInfinite(num1) && !Double.isInfinite(num2)) {
+						return 1;
+					}
 
-				if (Double.isInfinite(num2) && !Double.isInfinite(num1)) {
-					return -1;
+					if (Double.isInfinite(num2) && !Double.isInfinite(num1)) {
+						return -1;
+					}
+					final int ret = Double.compare(num1, num2);
+					if (ret != 0) {
+						return ret;
+					}
 				}
-				int ret = Double.compare(num1, num2);
-				if (ret != 0) {
-					return ret;
-				}
-				num1 = o1.getLog2Ratio2();
-				num2 = o2.getLog2Ratio2();
-				ret = Double.compare(num1, num2);
-				return ret;
+				return 0;
 			}
 		};
 

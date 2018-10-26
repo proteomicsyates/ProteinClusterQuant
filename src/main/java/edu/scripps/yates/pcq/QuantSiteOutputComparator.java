@@ -5,8 +5,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.cli.BasicParser;
@@ -14,26 +16,30 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 
 import edu.scripps.yates.pcq.compare.model.QuantifiedSite;
 import edu.scripps.yates.pcq.compare.model.QuantifiedSiteSet;
 import edu.scripps.yates.utilities.appversion.AppVersion;
+import edu.scripps.yates.utilities.maths.PValueCorrectionType;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
+import gnu.trove.map.hash.THashMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
+import smile.netlib.NLMatrix;
 
 public class QuantSiteOutputComparator {
 	private static Logger log = Logger.getLogger(QuantSiteOutputComparator.class);
 	private static Options options;
 	private final static String currentFolder = System.getProperty("user.dir");
-	private final File inputFile1;
-	private final File inputFile2;
+	private final List<File> inputFiles = new ArrayList<File>();
 	private final double rInf;
 	private final String outputFileName;
+	private final PValueCorrectionType pValueCorrectionMethod = PValueCorrectionType.BY;
 
 	public QuantSiteOutputComparator(File inputFile1, File inputFile2, double rInf, String outputFileName) {
-		this.inputFile1 = inputFile1;
-		this.inputFile2 = inputFile2;
+		inputFiles.add(inputFile1);
+		inputFiles.add(inputFile2);
 		this.rInf = rInf;
 		this.outputFileName = outputFileName;
 	}
@@ -103,15 +109,76 @@ public class QuantSiteOutputComparator {
 	}
 
 	private void run() throws IOException {
-		final QuantifiedSiteSet quantSites1 = readFile(inputFile1);
-		final QuantifiedSiteSet quantSites2 = readFile(inputFile2);
-		writeOutput(quantSites1, quantSites2);
+		QuantifiedSiteSet quantSites = null;
+		for (final File file : inputFiles) {
+			if (quantSites == null) {
+				quantSites = readFile(file);
+			} else {
+				final QuantifiedSiteSet quantSites2 = readFile(file);
+				quantSites = mergeQuantifiedSiteSets(quantSites, quantSites2);
+			}
+
+		}
+		writeTripletsOutput(quantSites);
+		// writePairWisePValueMatrixes(quantSites);
 	}
 
-	private void writeOutput(QuantifiedSiteSet quantSites1, QuantifiedSiteSet quantSites2) throws IOException {
+	private void writePairWisePValueMatrixes(QuantifiedSiteSet quantSites) throws IOException {
 
-		// construct a list of the merged quant sites
-		final QuantifiedSiteSet mergedQuantSites = mergeQuantifiedSiteSets(quantSites1, quantSites2);
+		final Map<String, NLMatrix> matrixMap = new THashMap<String, NLMatrix>();
+		for (final QuantifiedSite quantSite : quantSites.getSortedByRatios()) {
+			final NLMatrix matrix = new NLMatrix(quantSite.getNumExperiments(), quantSite.getNumExperiments());
+			matrixMap.put(quantSite.getNodeKey(), matrix);
+			for (int sampleIndex1 = 0; sampleIndex1 < quantSite.getNumExperiments(); sampleIndex1++) {
+				for (int sampleIndex2 = sampleIndex1 + 1; sampleIndex2 < quantSite
+						.getNumExperiments(); sampleIndex2++) {
+					final double pValue = performTTest(quantSite, sampleIndex1, sampleIndex2);
+					matrix.set(sampleIndex1, sampleIndex2, pValue);
+				}
+			}
+
+		}
+
+		log.info("Writting output file with " + matrixMap.size() + "matrixes ...");
+		final File outputFile = new File(
+				currentFolder + File.separator + FilenameUtils.getBaseName(outputFileName) + "_PVALUES_matrixes.txt");
+		final FileWriter fw = new FileWriter(outputFile);
+		// header
+		fw.write(QuantifiedSite.NODE_KEY + "\t");
+		for (int index = 0; index < quantSites.getNumExperiments(); index++) {
+			fw.write(QuantifiedSite.LOG2RATIO + "_" + (index + 1) + "\t");
+			fw.write(QuantifiedSite.RATIOSCOREVALUE + "_" + (index + 1) + "\t");
+			// fw.write(QuantifiedSite.NUMPSMS + "_" + (index + 1) + "\t");
+			fw.write(QuantifiedSite.NUMMEASUREMENTS + "_" + (index + 1) + "\t");
+		}
+		fw.write(QuantifiedSite.SEQUENCE + "\t");
+		fw.write(QuantifiedSite.POSITIONSINPEPTIDE + "\t");
+		fw.write(QuantifiedSite.PROTEINS + "\t");
+		fw.write(QuantifiedSite.GENES + "\t");
+		fw.write("p-value" + "\t");
+		fw.write("corrected p-value (" + pValueCorrectionMethod + ")" + "\t");
+		fw.write("\n");
+		for (final QuantifiedSite quantSite : quantSites) {
+			final QuantifiedSite quantifiedSite = quantSites.getQuantifiedSitesByKey().get(quantSite.getNodeKey());
+			fw.write(quantifiedSite.getNodeKey() + "\t");
+			for (int index = 0; index < quantSites.getNumExperiments(); index++) {
+				fw.write(replaceInfinite(quantifiedSite.getLog2Ratio(index)) + "\t");
+				fw.write(quantifiedSite.getRatioScoreValue(index) + "\t");
+				fw.write(quantifiedSite.getNumMeasurements(index) + "\t");
+			}
+
+			fw.write(quantifiedSite.getSequence() + "\t");
+			fw.write(getSeparatedValueStringFromChars(quantifiedSite.getPositionsInPeptide(), "-") + "\t");
+			fw.write(quantifiedSite.getProteins() + "\t");
+			fw.write(quantifiedSite.getGenes() + "\t");
+
+			fw.write("\n");
+		}
+		fw.close();
+		log.info("Output file written at: '" + outputFile.getAbsolutePath() + "'");
+	}
+
+	private void writeTripletsOutput(QuantifiedSiteSet mergedQuantSites) throws IOException {
 
 		// get it sorted
 		final List<QuantifiedSite> sortedQuantifiedSites = mergedQuantSites.getSortedByRatios();
@@ -121,40 +188,54 @@ public class QuantSiteOutputComparator {
 		final FileWriter fw = new FileWriter(outputFile);
 		// header
 		fw.write(QuantifiedSite.NODE_KEY + "\t");
-		fw.write(QuantifiedSite.LOG2RATIO + "\t");
-		fw.write(QuantifiedSite.RATIOSCOREVALUE + "\t");
-		fw.write(QuantifiedSite.NUMPSMS + "\t");
-		fw.write(QuantifiedSite.NUMMEASUREMENTS + "\t");
-
-		fw.write(QuantifiedSite.LOG2RATIO + "_2" + "\t");
-		fw.write(QuantifiedSite.RATIOSCOREVALUE + "_2" + "\t");
-		fw.write(QuantifiedSite.NUMPSMS + "_2" + "\t");
-		fw.write(QuantifiedSite.NUMMEASUREMENTS + "_2" + "\t");
+		for (int index = 0; index < mergedQuantSites.getNumExperiments(); index++) {
+			fw.write(QuantifiedSite.LOG2RATIO + "_" + (index + 1) + "\t");
+			fw.write(QuantifiedSite.RATIOSCOREVALUE + "_" + (index + 1) + "\t");
+			// fw.write(QuantifiedSite.NUMPSMS + "_" + (index + 1) + "\t");
+			fw.write(QuantifiedSite.NUMMEASUREMENTS + "_" + (index + 1) + "\t");
+		}
 		fw.write(QuantifiedSite.SEQUENCE + "\t");
 		fw.write(QuantifiedSite.POSITIONSINPEPTIDE + "\t");
 		fw.write(QuantifiedSite.PROTEINS + "\t");
 		fw.write(QuantifiedSite.GENES + "\t");
+		fw.write("p-value" + "\t");
+		fw.write("corrected p-value (" + pValueCorrectionMethod + ")" + "\t");
 		fw.write("\n");
-		for (final QuantifiedSite quantifiedSite : sortedQuantifiedSites) {
+		for (final QuantifiedSite quantSite : sortedQuantifiedSites) {
+			final QuantifiedSite quantifiedSite = mergedQuantSites.getQuantifiedSitesByKey()
+					.get(quantSite.getNodeKey());
 			fw.write(quantifiedSite.getNodeKey() + "\t");
-			fw.write(replaceInfinite(quantifiedSite.getLog2Ratio()) + "\t");
-			fw.write(quantifiedSite.getRatioScoreValue() + "\t");
-			fw.write(quantifiedSite.getNumPSMs() + "\t");
-			fw.write(quantifiedSite.getNumMeasurements() + "\t");
+			for (int index = 0; index < mergedQuantSites.getNumExperiments(); index++) {
+				fw.write(replaceInfinite(quantifiedSite.getLog2Ratio(index)) + "\t");
+				fw.write(quantifiedSite.getRatioScoreValue(index) + "\t");
+				fw.write(quantifiedSite.getNumMeasurements(index) + "\t");
+			}
 
-			fw.write(replaceInfinite(quantifiedSite.getLog2Ratio2()) + "\t");
-			fw.write(quantifiedSite.getRatioScoreValue2() + "\t");
-			fw.write(quantifiedSite.getNumPSMs2() + "\t");
-			fw.write(quantifiedSite.getNumMeasurements2() + "\t");
 			fw.write(quantifiedSite.getSequence() + "\t");
-
 			fw.write(getSeparatedValueStringFromChars(quantifiedSite.getPositionsInPeptide(), "-") + "\t");
 			fw.write(quantifiedSite.getProteins() + "\t");
 			fw.write(quantifiedSite.getGenes() + "\t");
+
 			fw.write("\n");
 		}
 		fw.close();
 		log.info("Output file written at: '" + outputFile.getAbsolutePath() + "'");
+
+	}
+
+	private double performTTest(QuantifiedSite quantSite, int sampleIndex1, int sampleIndex2) {
+		final double mean1 = quantSite.getLog2Ratio(sampleIndex1);
+		final double mean2 = quantSite.getLog2Ratio(sampleIndex2);
+		final double stdev1 = quantSite.getRatioScoreValue(sampleIndex1);
+		final double var1 = Math.pow(stdev1, 2);
+		final double stdev2 = quantSite.getRatioScoreValue(sampleIndex2);
+		final double var2 = Math.pow(stdev2, 2);
+		final int n1 = quantSite.getNumMeasurements(sampleIndex1);
+		final int n2 = quantSite.getNumMeasurements(sampleIndex2);
+
+		final edu.scripps.yates.utilities.maths.TTest pValue = edu.scripps.yates.utilities.maths.TTest.test(mean1, var1,
+				n1, mean2, var2, n2, true);
+		return pValue.pvalue;
 
 	}
 
@@ -191,23 +272,24 @@ public class QuantSiteOutputComparator {
 			if (quantSites2.getQuantifiedSitesByKey().contains(keySet)) {
 				final QuantifiedSite quantSite1 = quantSites1.getQuantifiedSitesByKey().get(keySet);
 				final QuantifiedSite quantSite2 = quantSites2.getQuantifiedSitesByKey().get(keySet);
-				if (Double.isNaN(quantSite1.getLog2Ratio())) {
-					if (Double.isNaN(quantSite2.getLog2Ratio())) {
+				if (Double.isNaN(quantSite1.getLog2Ratio(0))) {
+					if (Double.isNaN(quantSite2.getLog2Ratio(0))) {
 						continue;
 					}
 				}
 				// use the first for the result, adding the values of the second
-				quantSite1.setLog2Ratio2(quantSite2.getLog2Ratio());
-				quantSite1.setNumMeasurements2(quantSite2.getNumMeasurements());
-				quantSite1.setNumPeptides2(quantSite2.getNumPeptides());
-				quantSite1.setNumPSMs2(quantSite2.getNumPSMs());
-				quantSite1.setRatioScoreValue2(quantSite2.getRatioScoreValue());
+				quantSite1.addLog2Ratio(quantSite2.getLog2Ratio(0));
+				quantSite1.addNumMeasurements(quantSite2.getNumMeasurements(0));
+				quantSite1.addNumPeptides(quantSite2.getNumPeptides(0));
+				quantSite1.addNumPSMs(quantSite2.getNumPSMs(0));
+				quantSite1.addRatioScoreValue(quantSite2.getRatioScoreValue(0));
 				quantSite1.getPositionsInPeptide().addAll(quantSite2.getPositionsInPeptide());
 				ret.add(quantSite1);
 			}
 		}
 		log.info("Result of merging is " + ret.getQuantifiedSitesByKey().size() + " quantified sites from "
 				+ quantSites1.getQuantifiedSitesByKey().size() + " + " + quantSites2.getQuantifiedSitesByKey().size());
+		log.info("Now having " + ret.getNumExperiments() + " experiments");
 		return ret;
 	}
 
