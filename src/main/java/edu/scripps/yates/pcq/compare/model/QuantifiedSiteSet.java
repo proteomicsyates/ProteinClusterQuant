@@ -9,6 +9,7 @@ import gnu.trove.set.hash.THashSet;
 
 public class QuantifiedSiteSet extends THashSet<QuantifiedSite> {
 	private final THashMap<String, QuantifiedSite> quantifiedSitesByKey = new THashMap<String, QuantifiedSite>();
+	private final List<String> sampleNames = new ArrayList<String>();
 
 	@Override
 	public boolean add(QuantifiedSite quantSite) {
@@ -19,6 +20,10 @@ public class QuantifiedSiteSet extends THashSet<QuantifiedSite> {
 
 	public THashMap<String, QuantifiedSite> getQuantifiedSitesByKey() {
 		return quantifiedSitesByKey;
+	}
+
+	public void addSampleName(String sampleName) {
+		sampleNames.add(sampleName);
 	}
 
 	public int getNumExperiments() {
@@ -54,5 +59,9 @@ public class QuantifiedSiteSet extends THashSet<QuantifiedSite> {
 
 		ret.sort(comparator);
 		return ret;
+	}
+
+	public List<String> getSampleNames() {
+		return sampleNames;
 	}
 }
