@@ -671,9 +671,6 @@ public class ProteinClusterQuant {
 				}
 			});
 			for (final PCQPeptideNode peptideNode : peptideNodeList) {
-				if (peptideNode.getItemsInNode().iterator().next().getSequence().equals("KVQGEAVSNIQENTQTPT")) {
-					log.info(peptideNode);
-				}
 				out.write("\n");
 				out.write(peptideNode.getKey() + "\t");
 				if (peptideNode.isDiscarded()) {
@@ -718,9 +715,6 @@ public class ProteinClusterQuant {
 					// out.write("\t" + quantRatio.getQuantifiedAA());
 					// }
 					/////////////////////////////
-					if (peptideNode.getItemsInNode().iterator().next().getSequence().equals("LSGMGGLGLEIAKNL")) {
-						log.info(peptideNode);
-					}
 					final UniprotProteinLocalRetriever uplr = PCQUtils
 							.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
 					final Set<PositionInPeptide> quantifiedSitePositionInPeptide = quantRatio
