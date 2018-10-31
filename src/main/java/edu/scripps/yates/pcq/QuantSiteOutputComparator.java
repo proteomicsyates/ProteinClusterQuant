@@ -350,7 +350,7 @@ public class QuantSiteOutputComparator {
 	}
 
 	private File getIndividualMatrixFolder() {
-		return new File(getOutputFolder() + File.separator + "matrixes");
+		return new File(getOutputFolder() + File.separator + "matrixes_" + FilenameUtils.getBaseName(outputFileName));
 	}
 
 	private File getMatrixSummaryFile() {
@@ -565,7 +565,7 @@ public class QuantSiteOutputComparator {
 		options = new Options();
 		options.addOption("RInf", true, "[MANDATORY] -RInf replaces +/- Infinity with a user defined (+/-)value");
 		options.addOption("f", true,
-				"[OPTIONAL] Full path to a file containing pairs (separated by TAB) of sample names and full path to the peptideNodeTable of a PCQ run to compare");
+				"[MANDATORY] Full path to a file containing pairs (separated by TAB) of sample names and full path to the peptideNodeTable of a PCQ run to compare");
 		options.addOption("out", true, "[MANDATORY] Output file name that will be created in the current folder");
 	}
 
