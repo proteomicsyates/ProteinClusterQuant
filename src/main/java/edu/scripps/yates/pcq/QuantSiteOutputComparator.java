@@ -63,7 +63,7 @@ public class QuantSiteOutputComparator {
 		this.rInf = rInf;
 		this.outputFileName = outputFileName;
 		if (FilenameUtils.getExtension(this.outputFileName).equals("")) {
-			this.outputFileName = this.outputFileName + ".txt";
+			this.outputFileName = this.outputFileName + ".tsv";
 		}
 		this.pValueThreshold = pValueThreshold;
 		this.numberSigmas = numberSigmas;
@@ -372,7 +372,7 @@ public class QuantSiteOutputComparator {
 		final List<QuantifiedSite> sortedQuantifiedSites = mergedQuantSites.getSortedByRatios();
 
 		log.info("Writting output file...");
-		final File outputFile = new File(currentFolder + File.separator + outputFileName);
+		final File outputFile = new File(getOutputFolder() + File.separator + outputFileName);
 		final FileWriter fw = new FileWriter(outputFile);
 		// header
 		fw.write(QuantifiedSite.NODE_KEY + "\t");
