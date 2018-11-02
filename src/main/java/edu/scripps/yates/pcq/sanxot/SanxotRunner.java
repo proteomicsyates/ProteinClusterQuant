@@ -29,6 +29,7 @@ import edu.scripps.yates.pcq.ProteinClusterQuant;
 import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
 import edu.scripps.yates.pcq.util.PCQUtils;
+import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
 import edu.scripps.yates.utilities.exec.ProcessExecutor;
 import edu.scripps.yates.utilities.exec.ProcessExecutorHandler;
 
@@ -43,7 +44,8 @@ public class SanxotRunner {
 		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 
 		quantAnalysis = new QuantAnalysis(quantType, workingFolder, condition1, condition2,
-				ANALYSIS_LEVEL_OUTCOME.PEPTIDE);
+				ANALYSIS_LEVEL_OUTCOME.PEPTIDE, params.isIgnorePTMs(), params.isCollapseByPTMs(),
+				params.isCollapseBySites());
 		// set the ratio name
 		quantParameters.setRatioName(PCQUtils.getRatioNameByAnalysisType());
 		quantAnalysis.setQuantParameters(quantParameters);
@@ -60,7 +62,11 @@ public class SanxotRunner {
 			quantAnalysis.addQuantExperiment(quantExperiment);
 		}
 		quantAnalysis.setKeepExperimentsSeparated(true);
-
+		quantAnalysis.setUniprotVersion(params.getUniprotVersion());
+		quantAnalysis.setUseProteinGeneName(ProteinNodeLabel.GENE == params.getProteinLabel());
+		quantAnalysis.setUseProteinID(ProteinNodeLabel.ID == params.getProteinLabel());
+		quantAnalysis.setProteinSequences(PCQUtils.proteinSequences);
+		quantAnalysis.setUplr(PCQUtils.getUniprotProteinLocalRetrieverByFolder(params.getUniprotReleasesFolder()));
 		// QuantAnalysis analysis = new QuantAnalysis(quantType, workingFolder,
 		// condition1, condition2,
 		// ANALYSIS_LEVEL_OUTCOME.PEPTIDE);

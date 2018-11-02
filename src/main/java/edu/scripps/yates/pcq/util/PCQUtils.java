@@ -25,7 +25,6 @@ import edu.scripps.yates.annotations.uniprot.xml.GeneNameType;
 import edu.scripps.yates.annotations.uniprot.xml.GeneType;
 import edu.scripps.yates.annotations.uniprot.xml.OrganismNameType;
 import edu.scripps.yates.annotations.uniprot.xml.OrganismType;
-import edu.scripps.yates.annotations.util.UniprotEntryUtil;
 import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.read.CensusChroParser;
 import edu.scripps.yates.census.read.CensusOutParser;
@@ -45,6 +44,7 @@ import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
+import edu.scripps.yates.census.read.util.ProteinSequences;
 import edu.scripps.yates.census.read.util.QuantUtils;
 import edu.scripps.yates.census.read.util.QuantificationLabel;
 import edu.scripps.yates.dbindex.DBIndexInterface;
@@ -60,7 +60,6 @@ import edu.scripps.yates.pcq.model.ProteinCluster;
 import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.xgmml.util.AlignedPeptides;
 import edu.scripps.yates.pcq.xgmml.util.AlignmentSet;
-import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
 import edu.scripps.yates.proteoform_dbindex.ProteoformDBIndexInterface;
 import edu.scripps.yates.utilities.alignment.nwalign.NWAlign;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
@@ -95,7 +94,6 @@ public class PCQUtils {
 	private static Map<String, QuantParser> quantParsersByFileNamesKey = new THashMap<String, QuantParser>();
 	private static Map<String, DTASelectParser> dtaSelectParsersByFileNamesKey = new THashMap<String, DTASelectParser>();
 	private static TIntObjectHashMap<Set<String>> cachedProteinNodeKeysStringsByQuantifiedPeptide = new TIntObjectHashMap<Set<String>>();
-	public static final String KEY_SEPARATOR = "-";
 	public static final ProteinSequences proteinSequences = new ProteinSequences();
 	public static String[] PTM_CODES = { "*", "@", "^", "&", "#", "%", "!" };
 	private static Map<Double, String> ptmCodesByDeltaMass = new THashMap<Double, String>();
@@ -2794,107 +2792,6 @@ public class PCQUtils {
 		}
 
 		return ret;
-	}
-
-	/**
-	 * Get a string such as: P12345#12#P23456#456 from, in this example, two
-	 * proteins with position 12 and 456 respectively
-	 * 
-	 * @param keys1
-	 * @return
-	 */
-	public static String getPositionsInProteinsKey(Map<PositionInPeptide, List<PositionInProtein>> keysMap) {
-		if (keysMap == null) {
-			return null;
-		}
-		final List<PositionInProtein> list = new ArrayList<PositionInProtein>();
-		for (final List<PositionInProtein> positionsInProtein : keysMap.values()) {
-			list.addAll(positionsInProtein);
-		}
-		return getPositionsInProteinsKey(list);
-	}
-
-	public static List<PositionInProtein> getAsPositionInProtein(List<PTMInProtein> ptmsInProtein) {
-		final List<PositionInProtein> ret = new ArrayList<PositionInProtein>();
-		if (ptmsInProtein != null) {
-			for (final PTMInProtein ptmInProtein : ptmsInProtein) {
-				ret.add(ptmInProtein);
-			}
-		}
-		return ret;
-	}
-
-	public static String getPositionsInProteinsKey(List<PositionInProtein> positionsInProtein) {
-		return getPositionsInProteinsKey(positionsInProtein, null);
-	}
-
-	/**
-	 * Get a string such as: P12345#12#P23456#456 from, in this example, two
-	 * proteins with position 12 and 456 respectively
-	 * 
-	 * @param positionsInProtein
-	 * @return
-	 */
-	public static String getPositionsInProteinsKey(List<PositionInProtein> positionsInProtein,
-			Set<String> proteinACCs) {
-		if (positionsInProtein == null || positionsInProtein.isEmpty()) {
-			positionsInProtein = new ArrayList<PositionInProtein>();
-			for (final String proteinAcc : proteinACCs) {
-				positionsInProtein.add(new PositionInProtein(0, PositionInProtein.NULL_CHAR, proteinAcc));
-			}
-		}
-		Collections.sort(positionsInProtein, new Comparator<PositionInProtein>() {
-
-			@Override
-			public int compare(PositionInProtein o1, PositionInProtein o2) {
-				final int compareTo = o1.getProteinACC().compareTo(o2.getProteinACC());
-				if (compareTo == 0) {
-					return Integer.compare(o1.getPosition(), o2.getPosition());
-				}
-				return compareTo;
-			}
-		});
-		final StringBuilder sb = new StringBuilder();
-		for (final PositionInProtein positionInProtein : positionsInProtein) {
-			if (!"".equals(sb.toString())) {
-				sb.append(KEY_SEPARATOR);
-			}
-			String key = null;
-			final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
-			if (params.getProteinLabel() == ProteinNodeLabel.GENE || params.getProteinLabel() == ProteinNodeLabel.ID) {
-				final Map<String, Entry> entries = getUniprotProteinLocalRetrieverByFolder(
-						params.getUniprotReleasesFolder()).getAnnotatedProtein(params.getUniprotVersion(),
-								positionInProtein.getProteinACC());
-				if (entries.containsKey(positionInProtein.getProteinACC())) {
-					if (params.getProteinLabel() == ProteinNodeLabel.GENE) {
-						final List<Pair<String, String>> geneNames = UniprotEntryUtil
-								.getGeneName(entries.get(positionInProtein.getProteinACC()), true, true);
-						if (!geneNames.isEmpty()) {
-							key = geneNames.get(0).getFirstelement();
-						}
-					} else if (params.getProteinLabel() == ProteinNodeLabel.ID) {
-						final List<String> proteinNames = UniprotEntryUtil
-								.getNames(entries.get(positionInProtein.getProteinACC()));
-						if (!proteinNames.isEmpty()) {
-							key = proteinNames.get(0);
-						}
-					}
-				}
-			}
-
-			if (key == null) {
-				key = positionInProtein.getProteinACC();
-			}
-			sb.append(key + PositionInProtein.SEPARATOR);
-			if (positionInProtein.getAa() != PositionInProtein.NULL_CHAR) {
-				sb.append(positionInProtein.getAa());
-			}
-			if (positionInProtein.getPosition() > 0) {
-				sb.append(positionInProtein.getPosition());
-			}
-
-		}
-		return sb.toString();
 	}
 
 	public static boolean shareAny(List<PositionInProtein> col1, List<PositionInProtein> col2) {

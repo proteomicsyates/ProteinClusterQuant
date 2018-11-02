@@ -19,6 +19,7 @@ import edu.scripps.yates.census.read.model.IsobaricQuantifiedPeptide;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
+import edu.scripps.yates.census.read.util.QuantUtils;
 import edu.scripps.yates.pcq.filter.PCQFilter;
 import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.util.DiscardedPeptidesSet;
@@ -26,6 +27,7 @@ import edu.scripps.yates.pcq.util.DiscardedPeptidesSet.DISCARD_REASON;
 import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.pcq.xgmml.util.AlignedPeptides;
 import edu.scripps.yates.pcq.xgmml.util.AlignmentSet;
+import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
 import edu.scripps.yates.utilities.alignment.nwalign.NWAlign;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
 import edu.scripps.yates.utilities.sequence.PTMInProtein;
@@ -245,6 +247,9 @@ public class ProteinCluster {
 		}
 		final UniprotProteinLocalRetriever uplr = PCQUtils
 				.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
+		final boolean useProteinGeneName = getParams().getProteinLabel() == ProteinNodeLabel.GENE;
+		final boolean useProteinID = getParams().getProteinLabel() == ProteinNodeLabel.ID;
+
 		final List<QuantifiedPeptideInterface> peptides = new ArrayList<QuantifiedPeptideInterface>();
 		peptides.addAll(individualQuantifiedPeptideSet);
 		final Set<String> set = new THashSet<String>();
@@ -379,8 +384,10 @@ public class ProteinCluster {
 								final List<PositionInProtein> proteinKeysFromPeptide2 = proteinKeysByPeptide2Keys
 										.get(positionInPeptide2);
 
-								final String key1 = PCQUtils.getPositionsInProteinsKey(proteinKeysFromPeptide1);
-								final String key2 = PCQUtils.getPositionsInProteinsKey(proteinKeysFromPeptide2);
+								final String key1 = QuantUtils.getPositionsInProteinsKey(proteinKeysFromPeptide1,
+										useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
+								final String key2 = QuantUtils.getPositionsInProteinsKey(proteinKeysFromPeptide2,
+										useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
 								// now I compare the two list of keys
 								// if they are equal, that means, if they share
 								// the
@@ -465,8 +472,10 @@ public class ProteinCluster {
 						for (final PositionInPeptide positionInPeptide2 : proteinKeysByPeptide2Keys.keySet()) {
 							proteinKeysFromPeptide2.addAll(proteinKeysByPeptide2Keys.get(positionInPeptide2));
 						}
-						final String key1 = PCQUtils.getPositionsInProteinsKey(proteinKeysFromPeptide1);
-						final String key2 = PCQUtils.getPositionsInProteinsKey(proteinKeysFromPeptide2);
+						final String key1 = QuantUtils.getPositionsInProteinsKey(proteinKeysFromPeptide1,
+								useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
+						final String key2 = QuantUtils.getPositionsInProteinsKey(proteinKeysFromPeptide2,
+								useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
 						// now I compare the two list of keys
 						// if they are equal, that means, if they share
 						// the
@@ -557,7 +566,8 @@ public class ProteinCluster {
 			for (final PositionInPeptide positionInPeptide : proteinKeysByPeptideKeys.keySet()) {
 				final List<PositionInProtein> positionsInProtein = proteinKeysByPeptideKeys.get(positionInPeptide);
 
-				final String key = PCQUtils.getPositionsInProteinsKey(positionsInProtein);
+				final String key = QuantUtils.getPositionsInProteinsKey(positionsInProtein, useProteinGeneName,
+						useProteinID, uplr, getParams().getUniprotVersion());
 				PCQPeptideNode peptideNode = null;
 				if (peptideNodesByPeptideNodeKey.containsKey(key)) {
 					peptideNode = peptideNodesByPeptideNodeKey.get(key);
@@ -584,6 +594,9 @@ public class ProteinCluster {
 
 		final UniprotProteinLocalRetriever uplr = PCQUtils
 				.getUniprotProteinLocalRetrieverByFolder(getParams().getUniprotReleasesFolder());
+
+		final boolean useProteinGeneName = getParams().getProteinLabel() == ProteinNodeLabel.GENE;
+		final boolean useProteinID = getParams().getProteinLabel() == ProteinNodeLabel.ID;
 		final List<QuantifiedPeptideInterface> peptides = new ArrayList<QuantifiedPeptideInterface>();
 		peptides.addAll(individualQuantifiedPeptideSet);
 		final Set<String> set = new THashSet<String>();
@@ -623,19 +636,23 @@ public class ProteinCluster {
 
 					// iterate over all the keys
 
-					final String key1 = PCQUtils.getPositionsInProteinsKey(
-							PCQUtils.getAsPositionInProtein(ptmsInProteinFromPeptide1), peptide1.getQuantifiedProteins()
-									.stream().map(p -> p.getAccession()).collect(Collectors.toSet()));
+					final String key1 = QuantUtils.getPositionsInProteinsKey(
+							QuantUtils.getAsPositionInProtein(ptmsInProteinFromPeptide1),
+							peptide1.getQuantifiedProteins().stream().map(p -> p.getAccession())
+									.collect(Collectors.toSet()),
+							useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
 
-					final String key2 = PCQUtils.getPositionsInProteinsKey(
-							PCQUtils.getAsPositionInProtein(ptmsInProteinFromPeptide2), peptide2.getQuantifiedProteins()
-									.stream().map(p -> p.getAccession()).collect(Collectors.toSet()));
+					final String key2 = QuantUtils.getPositionsInProteinsKey(
+							QuantUtils.getAsPositionInProtein(ptmsInProteinFromPeptide2),
+							peptide2.getQuantifiedProteins().stream().map(p -> p.getAccession())
+									.collect(Collectors.toSet()),
+							useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
 
 					// now I compare the two list of keys
 					// if they are equal, that means, if they share the
 					// same sites of the same proteins
-					if (PCQUtils.areEquals(PCQUtils.getAsPositionInProtein(ptmsInProteinFromPeptide1),
-							PCQUtils.getAsPositionInProtein(ptmsInProteinFromPeptide2))) {
+					if (PCQUtils.areEquals(QuantUtils.getAsPositionInProtein(ptmsInProteinFromPeptide1),
+							QuantUtils.getAsPositionInProtein(ptmsInProteinFromPeptide2))) {
 
 						// key1 and key2 should be the same
 
@@ -698,7 +715,9 @@ public class ProteinCluster {
 			final QuantifiedPeptideInterface peptide = peptides.iterator().next();
 			final List<PTMInProtein> positionsInProtein = peptide.getPTMInProtein(uplr, PCQUtils.proteinSequences);
 
-			final String key = PCQUtils.getPositionsInProteinsKey(PCQUtils.getAsPositionInProtein(positionsInProtein));
+			final String key = QuantUtils.getPositionsInProteinsKey(
+					QuantUtils.getAsPositionInProtein(positionsInProtein), useProteinGeneName, useProteinID, uplr,
+					getParams().getUniprotVersion());
 			PCQPeptideNode peptideNode = null;
 			if (peptideNodesByPeptideNodeKey.containsKey(key)) {
 				peptideNode = peptideNodesByPeptideNodeKey.get(key);

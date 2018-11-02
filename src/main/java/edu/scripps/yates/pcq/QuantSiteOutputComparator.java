@@ -90,7 +90,7 @@ public class QuantSiteOutputComparator {
 			if (cmd.getOptionValue("f") != null) {
 				fileOfFiles = new File(cmd.getOptionValue("f"));
 				if (!fileOfFiles.exists()) {
-					fileOfFiles = new File(currentFolder + File.separator + cmd.getOptionValue("f1"));
+					fileOfFiles = new File(currentFolder + File.separator + cmd.getOptionValue("f"));
 					if (!fileOfFiles.exists()) {
 						throw new Exception("Input file not found");
 					}
