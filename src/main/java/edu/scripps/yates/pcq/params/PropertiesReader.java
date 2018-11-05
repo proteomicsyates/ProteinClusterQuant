@@ -291,7 +291,7 @@ public class PropertiesReader {
 			}
 		}
 		final boolean useMayorityRule = Boolean
-				.valueOf(properties.getProperty("useMayorityRulesForInfinities", "true"));
+				.valueOf(properties.getProperty("useMajorityRulesForInfinities", "true"));
 		params.setUseMayorityRule(useMayorityRule);
 
 		// do we only count truly unique peptides as unique
