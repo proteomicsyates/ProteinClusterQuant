@@ -43,9 +43,14 @@ public class SanxotRunner {
 			Set<String> peptideInclusionList) throws FileNotFoundException {
 		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 
-		quantAnalysis = new QuantAnalysis(quantType, workingFolder, condition1, condition2,
-				ANALYSIS_LEVEL_OUTCOME.PEPTIDE, params.isIgnorePTMs(), params.isCollapseByPTMs(),
-				params.isCollapseBySites());
+		ANALYSIS_LEVEL_OUTCOME analysisOutcome = ANALYSIS_LEVEL_OUTCOME.PEPTIDE;
+		if (ProteinClusterQuantParameters.getInstance().isCollapseByPTMs()) {
+			analysisOutcome = ANALYSIS_LEVEL_OUTCOME.QUANTIFIED_PTM;
+		} else if (ProteinClusterQuantParameters.getInstance().isCollapseBySites()) {
+			analysisOutcome = ANALYSIS_LEVEL_OUTCOME.QUANTIFIED_SITE;
+		}
+		quantAnalysis = new QuantAnalysis(quantType, workingFolder, condition1, condition2, analysisOutcome,
+				params.isIgnorePTMs(), params.isCollapseByPTMs(), params.isCollapseBySites());
 		// set the ratio name
 		quantParameters.setRatioName(PCQUtils.getRatioNameByAnalysisType());
 		quantAnalysis.setQuantParameters(quantParameters);
