@@ -259,10 +259,13 @@ public class ProteinClusterQuant {
 			if (params.isMakeAlignments()) {
 				makePeptideAlignments(peptideList);
 			}
-			// this has to be done when not lookng for proteoforms
+			// this has to be done when not looking for proteoforms
 			// when looking to proteoforms, the sequences are grabbed at
 			// ProteinCluster.createProteinNodes()
-			if (!params.isLookForProteoforms()) {
+			// also is done for performing ratio integrations by collapsing by
+			// sites or ptms
+			if (!params.isLookForProteoforms() || (params.isPerformRatioIntegration()
+					&& (params.isCollapseByPTMs() || params.isCollapseBySites()))) {
 				// grab all the protein sequences to then used them in the
 				// creation of peptides nodes, mapping peptides to this proteins
 				// we dont need to create the protein nodes from variants, since
@@ -2084,7 +2087,8 @@ public class ProteinClusterQuant {
 			final Set<PTMInProtein> modifiedPositionsInProtein = new THashSet<PTMInProtein>();
 			for (final QuantifiedPeptideInterface peptide : protein.getQuantifiedPeptides()) {
 				if (peptide.containsPTMs()) {
-					final List<PTMInProtein> proteinKeysByPeptideKeysForPTMs = peptide.getPTMInProtein(uplr, null);
+					final List<PTMInProtein> proteinKeysByPeptideKeysForPTMs = peptide.getPTMInProtein(uplr,
+							PCQUtils.proteinSequences);
 					modifiedPositionsInProtein.addAll(proteinKeysByPeptideKeysForPTMs);
 				}
 			}
