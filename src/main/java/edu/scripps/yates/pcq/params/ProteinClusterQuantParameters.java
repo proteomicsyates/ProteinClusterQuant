@@ -110,6 +110,7 @@ public class ProteinClusterQuantParameters {
 	private UniprotProteoformRetrieverFromXML uniprotProteoformRetrieverFromXML;
 	private boolean collapseByPTMs;
 	private int maxNumPTMsPerProtein = 4;
+	private boolean useMayorityRule = true;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -1216,5 +1217,13 @@ public class ProteinClusterQuantParameters {
 
 	public boolean isCollapseByPTMs() {
 		return collapseByPTMs;
+	}
+
+	public boolean isUseMayorityRule() {
+		return useMayorityRule;
+	}
+
+	public void setUseMayorityRule(boolean b) {
+		useMayorityRule = b;
 	}
 }
