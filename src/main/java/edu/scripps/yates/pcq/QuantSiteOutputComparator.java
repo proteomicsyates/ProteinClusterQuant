@@ -99,11 +99,18 @@ public class QuantSiteOutputComparator {
 				for (final String line : lines) {
 					final String sampleName = line.split("\t")[0].trim();
 					final String fileFolder = line.split("\t")[1].trim();
-					final File folder = new File(fileFolder);
+					File folder = new File(fileFolder);
 					if (folder.isFile() && folder.exists()) {
 						inputFiles.add(folder);
 						sampleNamesByFiles.put(folder, sampleName);
 						continue;
+					} else {
+						folder = new File(currentFolder + File.separator + fileFolder);
+						if (folder.isFile() && folder.exists()) {
+							inputFiles.add(folder);
+							sampleNamesByFiles.put(folder, sampleName);
+							continue;
+						}
 					}
 					if (!folder.exists()) {
 						throw new Exception("Folder '" + folder.getAbsolutePath() + "' not found");
@@ -327,17 +334,17 @@ public class QuantSiteOutputComparator {
 		fw.close();
 
 		log.info("Output file written at: '" + outputFile.getAbsolutePath() + "'");
-
-		final double[][] histogram = Histogram.histogram(nums.toArray(), nums.max());
-		int numSitesWithAtLeastOneDiscovery = 0;
-		for (int j = 0; j < histogram[2].length; j++) {
-			System.out.println("Number of sites with " + j + " discoveries " + histogram[2][j]);
-			if (j > 0) {
-				numSitesWithAtLeastOneDiscovery += histogram[2][j];
+		if (nums.max() > 1) {
+			final double[][] histogram = Histogram.histogram(nums.toArray(), nums.max());
+			int numSitesWithAtLeastOneDiscovery = 0;
+			for (int j = 0; j < histogram[2].length; j++) {
+				System.out.println("Number of sites with " + j + " discoveries " + histogram[2][j]);
+				if (j > 0) {
+					numSitesWithAtLeastOneDiscovery += histogram[2][j];
+				}
 			}
+			System.out.println("Number of sites with at least one discovery: " + numSitesWithAtLeastOneDiscovery);
 		}
-		System.out.println("Number of sites with at least one discovery: " + numSitesWithAtLeastOneDiscovery);
-
 	}
 
 	private File getIndividualMatrixFile(int numDiscoveries, String site) {
