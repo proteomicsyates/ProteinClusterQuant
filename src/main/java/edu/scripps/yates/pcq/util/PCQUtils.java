@@ -405,13 +405,17 @@ public class PCQUtils {
 						decoyRegexp, peptideInclusionList);
 				parser.setDbIndex(fastaDBIndex);
 			}
-			parser.enableProteinMergingBySecondaryAccessions(
-					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
+			final UniprotProteinLocalRetriever uplr = getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder);
+			parser.enableProteinMergingBySecondaryAccessions(uplr, uniprotVersion);
 			if (quantifiedAAs != null) {
 				for (final char quantifiedAA : quantifiedAAs) {
 					parser.addQuantifiedAA(quantifiedAA);
 				}
 			}
+			parser.setUplr(uplr);
+			parser.setUniprotVersion(uniprotVersion);
+
+			parser.setProteinSequences(proteinSequences);
 			return parser;
 		} finally {
 			addQuantParserToStaticMap(fileNamesKey, parser);
@@ -454,13 +458,19 @@ public class PCQUtils {
 						decoyRegexp, peptideInclusionList);
 				parser.setDbIndex(fastaDBIndex);
 			}
-			parser.enableProteinMergingBySecondaryAccessions(
-					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
+			final UniprotProteinLocalRetriever uplr = getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder);
+			parser.enableProteinMergingBySecondaryAccessions(uplr, uniprotVersion);
+			parser.setUplr(uplr);
+			parser.setUniprotVersion(uniprotVersion);
+
+			parser.setProteinSequences(proteinSequences);
+			parser.setGetPTMInProteinMap(ProteinClusterQuantParameters.getInstance().isCollapseByPTMs());
 			if (quantifiedAAs != null) {
 				for (final char quantifiedAA : quantifiedAAs) {
 					parser.addQuantifiedAA(quantifiedAA);
 				}
 			}
+
 			return parser;
 		} finally {
 			addQuantParserToStaticMap(fileNamesKey, parser);
@@ -565,9 +575,12 @@ public class PCQUtils {
 			final DBIndexInterface mongoDBIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
 					mongoProtDBName, peptideFilterRegexp, uniprotVersion, decoyRegexp);
 			parser.setDbIndex(mongoDBIndex);
-			parser.enableProteinMergingBySecondaryAccessions(
-					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
+			final UniprotProteinLocalRetriever uplr = getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder);
+			parser.enableProteinMergingBySecondaryAccessions(uplr, uniprotVersion);
+			parser.setUplr(uplr);
+			parser.setUniprotVersion(uniprotVersion);
 
+			parser.setProteinSequences(proteinSequences);
 			return parser;
 		} finally {
 			addQuantParserToStaticMap(fileNamesKey, parser);
@@ -622,13 +635,17 @@ public class PCQUtils {
 			final DBIndexInterface dbIndex = getMongoDBIndex(mongoDBURI, mongoMassDBName, mongoSeqDBName,
 					mongoProtDBName, peptideFilterRegexp, uniprotVersion, decoyRegexp);
 			parser.setDbIndex(dbIndex);
-			parser.enableProteinMergingBySecondaryAccessions(
-					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
+			final UniprotProteinLocalRetriever uplr = getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder);
+			parser.enableProteinMergingBySecondaryAccessions(uplr, uniprotVersion);
 			if (quantifiedAAs != null) {
 				for (final char quantifiedAA : quantifiedAAs) {
 					parser.addQuantifiedAA(quantifiedAA);
 				}
 			}
+			parser.setUplr(uplr);
+			parser.setUniprotVersion(uniprotVersion);
+
+			parser.setProteinSequences(proteinSequences);
 			return parser;
 		} finally {
 			addQuantParserToStaticMap(fileNamesKey, parser);
@@ -708,13 +725,17 @@ public class PCQUtils {
 						mongoProtDBName, peptideFilterRegexp, uniprotVersion, decoyRegexp);
 				parser.setDbIndex(dbIndex);
 			}
-			parser.enableProteinMergingBySecondaryAccessions(
-					getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder), uniprotVersion);
+			final UniprotProteinLocalRetriever uplr = getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder);
+			parser.enableProteinMergingBySecondaryAccessions(uplr, uniprotVersion);
 			if (quantifiedAAs != null) {
 				for (final char quantifiedAA : quantifiedAAs) {
 					parser.addQuantifiedAA(quantifiedAA);
 				}
 			}
+			parser.setUplr(uplr);
+			parser.setUniprotVersion(uniprotVersion);
+
+			parser.setProteinSequences(proteinSequences);
 			return parser;
 		} finally {
 			addQuantParserToStaticMap(fileNamesKey, parser);
@@ -1217,6 +1238,37 @@ public class PCQUtils {
 		int posCount = 0;
 		int negCount = 0;
 		for (final Double ratio : ratios) {
+			if (Double.compare(Double.POSITIVE_INFINITY, ratio) == 0) {
+				posCount++;
+			}
+			if (Double.compare(Double.NEGATIVE_INFINITY, ratio) == 0) {
+				negCount++;
+			}
+		}
+		if (posCount > 0 && negCount > 0) {
+			return null;
+		}
+		if (posCount > 0 && negCount == 0) {
+			return Double.POSITIVE_INFINITY;
+		}
+
+		if (posCount == 0 && negCount > 0) {
+			return Double.NEGATIVE_INFINITY;
+		}
+		return null;
+	}
+
+	/**
+	 * Checks to see if all the INF passed through are the same
+	 *
+	 * @param ratios
+	 * @return Double, returns INF if all are INF, -INF if all are -INF, and
+	 *         null if not the same.
+	 */
+	public static Double areAllINFValuesSame(TDoubleArrayList ratios) {
+		int posCount = 0;
+		int negCount = 0;
+		for (final double ratio : ratios.toArray()) {
 			if (Double.compare(Double.POSITIVE_INFINITY, ratio) == 0) {
 				posCount++;
 			}
@@ -2099,18 +2151,33 @@ public class PCQUtils {
 	 * If all ratios are infinity with the same value, it will return
 	 * infinity.<br>
 	 * If not all ratios are infinity, but there are some, it will return the
-	 * average of the non infinities.<br>
+	 * average of the non infinities only if useMayorityRule is false.<br>
 	 * If all ratios are Nan, it will return Nan.
 	 *
 	 * @param ratios
 	 * @param cond1
 	 * @param cond2
+	 * @param useMayorityRule
+	 *            if this parameter is true, in an scenario with a combination
+	 *            of non infinity and infinity values, it will return the
+	 *            average of the most frequent ones, for example:<br>
+	 *            <ul>
+	 *            <li>If useMayorityRule=TRUE and we have +INF, +INF, +INF,
+	 *            +2.5, +1.5, then the return value will be +INF.</li>
+	 *            <li>If useMayorityRule=FALSE and we have +INF, +INF, +INF,
+	 *            +2.5, +1.5, then the return value will be +2.0.</li>
+	 *            <li>If useMayorityRule=TRUE and we have +INF, +INF, +INF,
+	 *            +2.5, +1.5, +4.0 then the return value will be +4.0.</li>
+	 *            <li>If useMayorityRule=FALSE and we have +INF, +INF, +INF,
+	 *            +2.5, then the return value will be +2.5.</li>
+	 *            </ul>
+	 * 
 	 * @return it returns a pair with the first element with the returning
 	 *         average value and the second with the number of items used to
 	 *         calculate ratios
 	 */
 	public static Pair<Double, Integer> averageOfRatiosTakingIntoAccountInfinitiesAndNans(Collection<QuantRatio> ratios,
-			QuantCondition cond1, QuantCondition cond2) {
+			QuantCondition cond1, QuantCondition cond2, boolean useMayorityRule) {
 		final List<Double> ratioValues = new ArrayList<Double>();
 		for (final QuantRatio ratio : ratios) {
 			if (ratio != null) {
@@ -2132,15 +2199,97 @@ public class PCQUtils {
 			if (areAll(Double.NaN, ratioValues)) {
 				return new Pair<Double, Integer>(Double.NaN, ratioValues.size());
 			}
-			// return an average of the non infinities
-			final TDoubleArrayList nonInfinityNonNanValues = new TDoubleArrayList();
-			for (final Double ratioValue : ratioValues) {
-				if (!ratioValue.isInfinite() && !ratioValue.isNaN()) {
-					nonInfinityNonNanValues.add(ratioValue);
+			if (!useMayorityRule) {
+				// return an average of the non infinities
+				final TDoubleArrayList nonInfinityNonNanValues = new TDoubleArrayList();
+				for (final Double ratioValue : ratioValues) {
+					if (!ratioValue.isInfinite() && !ratioValue.isNaN()) {
+						nonInfinityNonNanValues.add(ratioValue);
+					}
+				}
+				// report the average
+				return new Pair<Double, Integer>(Maths.mean(nonInfinityNonNanValues), nonInfinityNonNanValues.size());
+			} else {
+				// return the average of the most frequent ratio, either non
+				// infinity or infinity
+				final TDoubleArrayList nonInfs = new TDoubleArrayList();
+				final TDoubleArrayList infs = new TDoubleArrayList();
+				for (final Double ratioValue : ratioValues) {
+					if (Double.isFinite(ratioValue)) {
+						nonInfs.add(ratioValue);
+					} else if (Double.isInfinite(ratioValue)) {
+						infs.add(ratioValue);
+					}
+				}
+				// infinities
+				if (infs.size() > nonInfs.size()) {
+					final Double infinityValue = areAllINFValuesSame(infs);
+					if (infinityValue != null) {
+						return new Pair<Double, Integer>(infinityValue, infs.size());
+					} else {
+						// mix of +INF and -INF (and maybe nonINF)
+						final TDoubleArrayList posInfs = new TDoubleArrayList();
+						final TDoubleArrayList negInfs = new TDoubleArrayList();
+						for (final double inf : infs.toArray()) {
+							if (Double.POSITIVE_INFINITY == inf) {
+								posInfs.add(inf);
+							} else {
+								negInfs.add(inf);
+							}
+						}
+						if (posInfs.size() > negInfs.size()) {
+							if (posInfs.size() > nonInfs.size()) {
+								return new Pair<Double, Integer>(Double.POSITIVE_INFINITY, posInfs.size());
+							} else {
+								// +INF<=nonINF, take average of nonINF if > 0
+								if (posInfs.size() < nonInfs.size() || Maths.mean(nonInfs) > 0) {
+									return new Pair<Double, Integer>(Maths.mean(nonInfs), nonInfs.size());
+								} else {
+									return new Pair<Double, Integer>(Double.NaN, posInfs.size() + nonInfs.size());
+								}
+							}
+						} else if (negInfs.size() > posInfs.size()) {
+							if (negInfs.size() > nonInfs.size()) {
+								return new Pair<Double, Integer>(Double.NEGATIVE_INFINITY, negInfs.size());
+							} else {
+								// -INF<=nonINF, take average of nonINF if < 0
+								if (negInfs.size() < nonInfs.size() || Maths.mean(nonInfs) < 0) {
+									return new Pair<Double, Integer>(Maths.mean(nonInfs), nonInfs.size());
+								} else {
+									return new Pair<Double, Integer>(Double.NaN, nonInfs.size() + negInfs.size());
+								}
+							}
+						} else if (nonInfs.size() > negInfs.size()) {
+							if (nonInfs.size() > posInfs.size()) {
+								return new Pair<Double, Integer>(Maths.mean(nonInfs), nonInfs.size());
+							} else {
+								// +INF>=nonINF, take average of nonINF if > 0
+								if (nonInfs.size() > posInfs.size() || Maths.mean(nonInfs) > 0) {
+									return new Pair<Double, Integer>(Maths.mean(nonInfs), nonInfs.size());
+								} else if (nonInfs.size() < posInfs.size()) {
+									return new Pair<Double, Integer>(Double.POSITIVE_INFINITY, posInfs.size());
+								} else {
+									return new Pair<Double, Integer>(Double.NaN, nonInfs.size() + posInfs.size());
+								}
+							}
+						} else {
+							if (posInfs.size() == nonInfs.size() && negInfs.size() == nonInfs.size()) {
+								if (Maths.mean(nonInfs) > 4.0) {
+									return new Pair<Double, Integer>(Double.POSITIVE_INFINITY,
+											posInfs.size() + nonInfs.size());
+								} else if (Maths.mean(nonInfs) < -4.0) {
+									return new Pair<Double, Integer>(Double.NEGATIVE_INFINITY,
+											negInfs.size() + nonInfs.size());
+								}
+							}
+							return new Pair<Double, Integer>(Double.NaN, infs.size());
+
+						}
+					}
+				} else {
+					return new Pair<Double, Integer>(Maths.mean(nonInfs), nonInfs.size());
 				}
 			}
-			// report the average
-			return new Pair<Double, Integer>(Maths.mean(nonInfinityNonNanValues), nonInfinityNonNanValues.size());
 		}
 	}
 
@@ -2390,7 +2539,7 @@ public class PCQUtils {
 			return ret;
 		}
 		final Pair<Double, Integer> finalValue = PCQUtils.averageOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage,
-				cond1, cond2);
+				cond1, cond2, params.isUseMayorityRule());
 		if (finalValue != null) {
 			final CensusRatio censusRatio = new CensusRatio(finalValue.getFirstelement(), true, cond1, cond2,
 					AggregationLevel.PEPTIDE_NODE, avgRatioDescription);
@@ -2445,7 +2594,7 @@ public class PCQUtils {
 			}
 		}
 		final Pair<Double, Integer> finalValue = PCQUtils.averageOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage,
-				cond1, cond2);
+				cond1, cond2, ProteinClusterQuantParameters.getInstance().isUseMayorityRule());
 		if (finalValue != null) {
 			final CensusRatio censusRatio = new CensusRatio(finalValue.getFirstelement(), true, cond1, cond2,
 					AggregationLevel.PEPTIDE_NODE, "Avg ratios for site");
@@ -2498,7 +2647,7 @@ public class PCQUtils {
 			}
 		}
 		final Pair<Double, Integer> finalValue = PCQUtils.averageOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage,
-				cond1, cond2);
+				cond1, cond2, ProteinClusterQuantParameters.getInstance().isUseMayorityRule());
 		if (finalValue != null) {
 			final CensusRatio censusRatio = new CensusRatio(finalValue.getFirstelement(), true, cond1, cond2,
 					AggregationLevel.PEPTIDE_NODE, "Avg Ri ratios for site");
