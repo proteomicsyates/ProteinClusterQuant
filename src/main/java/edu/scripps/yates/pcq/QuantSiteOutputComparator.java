@@ -48,29 +48,32 @@ public class QuantSiteOutputComparator {
 	private static Options options;
 	private static File fileOfFiles;
 	private static Map<File, String> sampleNamesByFiles = new THashMap<File, String>();
-	private final static String currentFolder = System.getProperty("user.dir");
+	// default values
+	private static final PValueCorrectionType defaultPValueCorrectionMethod = PValueCorrectionType.BY;
+	private static final double defaultQValueThreshold = 0.05;
+	private static final String currentFolder = System.getProperty("user.dir");
 	private final List<File> inputFiles = new ArrayList<File>();
 	private final double rInf;
 	private String outputFileName;
-	private final PValueCorrectionType pValueCorrectionMethod = PValueCorrectionType.BY;
-	private final double pValueThreshold;
+	private final PValueCorrectionType pValueCorrectionMethod;
+	private final double qValueThreshold;
 	private final int numberSigmas;
 	private Double distributionSigma;
 
-	public QuantSiteOutputComparator(List<File> inputFiles, double rInf, String outputFileName, double pValueThreshold,
-			int numberSigmas) {
+	public QuantSiteOutputComparator(List<File> inputFiles, double rInf, String outputFileName,
+			PValueCorrectionType pValueCorrectionType, double qValueThreshold, int numberSigmas) {
 		this.inputFiles.addAll(inputFiles);
 		this.rInf = rInf;
 		this.outputFileName = outputFileName;
 		if (FilenameUtils.getExtension(this.outputFileName).equals("")) {
 			this.outputFileName = this.outputFileName + ".tsv";
 		}
-		this.pValueThreshold = pValueThreshold;
+		this.qValueThreshold = qValueThreshold;
 		this.numberSigmas = numberSigmas;
+		pValueCorrectionMethod = pValueCorrectionType;
 	}
 
 	public static void main(String[] args) {
-		final double pValueThreshold = 0.05;
 		final int numberSigmas = 2;
 		final AppVersion version = ProteinClusterQuant.getVersion();
 		System.out.println("Running Quant Site comparator version " + version.toString());
@@ -86,6 +89,7 @@ public class QuantSiteOutputComparator {
 			if (cmd.getOptionValue("out") == null) {
 				throw new Exception("Provide input parameter file with 'out' option");
 			}
+
 			final List<File> inputFiles = new ArrayList<File>();
 			if (cmd.getOptionValue("f") != null) {
 				fileOfFiles = new File(cmd.getOptionValue("f"));
@@ -154,8 +158,44 @@ public class QuantSiteOutputComparator {
 				throw new Exception("Option 'RInf' must be numerical");
 			}
 			final String outputFileName = cmd.getOptionValue("out");
-			quantSiteComparator = new QuantSiteOutputComparator(inputFiles, rInf, outputFileName, pValueThreshold,
-					numberSigmas);
+
+			PValueCorrectionType pValueCorrectionType = defaultPValueCorrectionMethod;
+			if (cmd.getOptionValue("pvc") != null) {
+				try {
+					pValueCorrectionType = PValueCorrectionType.valueOf(cmd.getOptionValue("pvc"));
+					log.info("Using p-value correction method: " + pValueCorrectionType + " ("
+							+ pValueCorrectionType.getReference() + ")");
+				} catch (final Exception e) {
+					final String errorMessage = "Invalid p-value correction method '" + cmd.getOptionValue("pvc")
+							+ "'. Valid values are " + PValueCorrectionType.getValuesString();
+					throw new Exception(errorMessage);
+				}
+			} else {
+
+				log.info("pvc (p-value correction) parameter wasn't set. Using " + defaultPValueCorrectionMethod + " ("
+						+ defaultPValueCorrectionMethod.getReference() + ") by default");
+
+			}
+			double qValueThreshold = defaultQValueThreshold;
+			if (cmd.getOptionValue("qvt") != null) {
+				try {
+					qValueThreshold = Double.valueOf(cmd.getOptionValue("qvt"));
+					if (qValueThreshold < 0 || qValueThreshold > 1) {
+						throw new Exception();
+					}
+					log.info("Using q-value threshold = " + qValueThreshold);
+				} catch (final Exception e) {
+					final String errorMessage = "Invalid q-value threshold '" + cmd.getOptionValue("qvt")
+							+ "'. A number between 0 and 1 are valid";
+					throw new Exception(errorMessage);
+				}
+			} else {
+				log.info("qvt (q-value threshold) parameter wasn't set. Using " + defaultQValueThreshold
+						+ " by default");
+			}
+
+			quantSiteComparator = new QuantSiteOutputComparator(inputFiles, rInf, outputFileName, pValueCorrectionType,
+					qValueThreshold, numberSigmas);
 
 		} catch (final Exception e) {
 			e.printStackTrace();
@@ -259,7 +299,7 @@ public class QuantSiteOutputComparator {
 					if (matrix != null) {
 						final Double adjustedPValue = pAdjust.getCorrectedPValues().getPValue(quantSite);
 						if (adjustedPValue != null) {
-							if (adjustedPValue < pValueThreshold) {
+							if (adjustedPValue < qValueThreshold) {
 								if (numberOfDiscoveriesPerSite.contains(quantSite)) {
 									numberOfDiscoveriesPerSite.put(quantSite,
 											numberOfDiscoveriesPerSite.get(quantSite) + 1);
@@ -318,15 +358,15 @@ public class QuantSiteOutputComparator {
 				for (int i = 0; i < numSamples; i++) {
 					for (int j = i + 1; j < numSamples; j++) {
 						final double pvalue = matrix.get(i, j);
-						if (pvalue < pValueThreshold) {
+						if (pvalue < qValueThreshold) {
 							sampleComparisonMatrix.set(i, j, sampleComparisonMatrix.get(i, j) + 1);
 						}
 					}
 				}
 			}
 		}
-		final String message = "Comparison matrix: number sites in which each pair of sample has been found significant with pvalue<"
-				+ pValueThreshold;
+		final String message = "Comparison matrix: number sites in which each pair of sample has been found significant with q-value < "
+				+ qValueThreshold;
 		System.out.println(message);
 		fw.write("\n\n" + message + "\n");
 		System.out.println(printMatrix(sampleComparisonMatrix, null));
@@ -362,7 +402,7 @@ public class QuantSiteOutputComparator {
 
 	private File getMatrixSummaryFile() {
 		return new File(getOutputFolder() + File.separator + FilenameUtils.getBaseName(outputFileName)
-				+ "_PVALUES_matrixes.txt");
+				+ "_QVALUES_matrixes.txt");
 	}
 
 	private String getOutputFolder() {
@@ -394,7 +434,7 @@ public class QuantSiteOutputComparator {
 		fw.write(QuantifiedSite.PROTEINS + "\t");
 		fw.write(QuantifiedSite.GENES + "\t");
 		fw.write("p-value" + "\t");
-		fw.write("corrected p-value (" + pValueCorrectionMethod + ")" + "\t");
+		fw.write("q-value (corrected by " + pValueCorrectionMethod + ")" + "\t");
 		fw.write("\n");
 		for (final QuantifiedSite quantSite : sortedQuantifiedSites) {
 			final QuantifiedSite quantifiedSite = mergedQuantSites.getQuantifiedSitesByKey()
@@ -574,6 +614,14 @@ public class QuantSiteOutputComparator {
 		options.addOption("f", true,
 				"[MANDATORY] Full path to a file containing pairs (separated by TAB) of sample names and full path to the peptideNodeTable of a PCQ run to compare");
 		options.addOption("out", true, "[MANDATORY] Output file name that will be created in the current folder");
+		options.addOption("pvc", true,
+				"[OPTIONAL] p-value correction method to apply. Valid values are: "
+						+ PValueCorrectionType.getValuesString() + ". If not provided, the method will be "
+						+ defaultPValueCorrectionMethod);
+		options.addOption("qvt", true,
+				"[OPTIONAL] q-value threshold to apply to the corrected p-values. A value between 0 and 1 is permitted. If not provided, a threshold of "
+						+ defaultQValueThreshold + " will be applied.");
+
 	}
 
 	private static void errorInParameters() {
