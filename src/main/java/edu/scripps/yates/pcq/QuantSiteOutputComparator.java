@@ -48,6 +48,7 @@ public class QuantSiteOutputComparator {
 	private static Options options;
 	private static File fileOfFiles;
 	private static Map<File, String> sampleNamesByFiles = new THashMap<File, String>();
+	private static AppVersion version;
 	// default values
 	private static final PValueCorrectionType defaultPValueCorrectionMethod = PValueCorrectionType.BY;
 	private static final double defaultQValueThreshold = 0.05;
@@ -75,7 +76,7 @@ public class QuantSiteOutputComparator {
 
 	public static void main(String[] args) {
 		final int numberSigmas = 2;
-		final AppVersion version = ProteinClusterQuant.getVersion();
+		version = ProteinClusterQuant.getVersion();
 		System.out.println("Running Quant Site comparator version " + version.toString());
 		setupCommandLineOptions();
 		final CommandLineParser parser = new BasicParser();
@@ -235,9 +236,6 @@ public class QuantSiteOutputComparator {
 				quantSites.addSampleName(sampleName);
 			}
 
-		}
-		for (final String sampleName : quantSites.getSampleNames()) {
-			System.out.println(sampleName);
 		}
 		writeTripletsOutput(quantSites);
 		writePairWisePValueMatrixes(quantSites);
@@ -628,10 +626,8 @@ public class QuantSiteOutputComparator {
 		// automatically generate the help statement
 		final HelpFormatter formatter = new HelpFormatter();
 
-		formatter.printHelp(
-				"`java -jar QuantSiteoutputComparator.jar -RInf [n] -f1 [nnn_peptideNodeTable_perSite.txt_file1] -f2 [mmm_peptideNodeTable_perSite.txt_file2] -out [output_file_name]\n"
-						+ "`java -jar QuantSiteoutputComparator.jar -RInf [n] -f [files_with_inputFiles.txt] -out [output_file_name]",
-				"\n\n\n", options, "\n\nContact Salvador Martinez-Bartolome at salvador@scripps.edu for more help");
+		formatter.printHelp(150, "java -jar QuantSiteoutputComparator.jar", "with the following parameters:", options,
+				"\n\nContact Salvador Martinez-Bartolome at salvador@scripps.edu for more help");
 
 		System.exit(0);
 	}
