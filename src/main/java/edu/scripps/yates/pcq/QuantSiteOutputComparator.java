@@ -18,6 +18,7 @@ import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
@@ -83,71 +84,63 @@ public class QuantSiteOutputComparator {
 		QuantSiteOutputComparator quantSiteComparator = null;
 		try {
 			final CommandLine cmd = parser.parse(options, args);
-			if (cmd.getOptionValue("RInf") == null) {
-				throw new Exception("Provide input parameter file with 'RInf' option");
-			}
-
-			if (cmd.getOptionValue("out") == null) {
-				throw new Exception("Provide input parameter file with 'out' option");
-			}
 
 			final List<File> inputFiles = new ArrayList<File>();
-			if (cmd.getOptionValue("f") != null) {
-				fileOfFiles = new File(cmd.getOptionValue("f"));
+
+			fileOfFiles = new File(cmd.getOptionValue("f"));
+			if (!fileOfFiles.exists()) {
+				fileOfFiles = new File(currentFolder + File.separator + cmd.getOptionValue("f"));
 				if (!fileOfFiles.exists()) {
-					fileOfFiles = new File(currentFolder + File.separator + cmd.getOptionValue("f"));
-					if (!fileOfFiles.exists()) {
-						throw new Exception("Input file not found");
-					}
+					throw new Exception("Input file not found");
 				}
-				final List<String> lines = Files.readAllLines(Paths.get(fileOfFiles.toURI()));
-				for (final String line : lines) {
-					final String sampleName = line.split("\t")[0].trim();
-					final String fileFolder = line.split("\t")[1].trim();
-					File folder = new File(fileFolder);
+			}
+			final List<String> lines = Files.readAllLines(Paths.get(fileOfFiles.toURI()));
+			for (final String line : lines) {
+				final String sampleName = line.split("\t")[0].trim();
+				final String fileFolder = line.split("\t")[1].trim();
+				File folder = new File(fileFolder);
+				if (folder.isFile() && folder.exists()) {
+					inputFiles.add(folder);
+					sampleNamesByFiles.put(folder, sampleName);
+					continue;
+				} else {
+					folder = new File(currentFolder + File.separator + fileFolder);
 					if (folder.isFile() && folder.exists()) {
 						inputFiles.add(folder);
 						sampleNamesByFiles.put(folder, sampleName);
 						continue;
-					} else {
-						folder = new File(currentFolder + File.separator + fileFolder);
-						if (folder.isFile() && folder.exists()) {
-							inputFiles.add(folder);
-							sampleNamesByFiles.put(folder, sampleName);
-							continue;
-						}
 					}
-					if (!folder.exists()) {
-						throw new Exception("Folder '" + folder.getAbsolutePath() + "' not found");
-					}
-					final File[] files = folder.listFiles(new FilenameFilter() {
-
-						@Override
-						public boolean accept(File dir, String name) {
-							if (name.contains("peptideNodeTable")) {
-								return true;
-							}
-							return false;
-						}
-					});
-					if (files.length == 0) {
-						throw new Exception(
-								"peptideNodeTable file not found at folder '" + folder.getAbsolutePath() + "'");
-					}
-					if (files.length > 1) {
-						throw new Exception(
-								"More than one file contains 'peptideNodeTable' tag in the name. It is not clear which one to take.");
-					}
-					final File file = files[0];
-					if (!file.exists()) {
-						throw new Exception("File for sample '" + sampleName + "' is not found at: '"
-								+ file.getAbsolutePath() + "'");
-					}
-					inputFiles.add(file);
-					sampleNamesByFiles.put(file, sampleName);
-					log.info("File added for sample '" + sampleName + "' : " + file.getAbsolutePath() + "'");
 				}
+				if (!folder.exists()) {
+					throw new Exception("Folder '" + folder.getAbsolutePath() + "' not found");
+				}
+				final File[] files = folder.listFiles(new FilenameFilter() {
+
+					@Override
+					public boolean accept(File dir, String name) {
+						if (name.contains("peptideNodeTable")) {
+							return true;
+						}
+						return false;
+					}
+				});
+				if (files.length == 0) {
+					throw new Exception("peptideNodeTable file not found at folder '" + folder.getAbsolutePath() + "'");
+				}
+				if (files.length > 1) {
+					throw new Exception(
+							"More than one file contains 'peptideNodeTable' tag in the name. It is not clear which one to take.");
+				}
+				final File file = files[0];
+				if (!file.exists()) {
+					throw new Exception(
+							"File for sample '" + sampleName + "' is not found at: '" + file.getAbsolutePath() + "'");
+				}
+				inputFiles.add(file);
+				sampleNamesByFiles.put(file, sampleName);
+				log.info("File added for sample '" + sampleName + "' : " + file.getAbsolutePath() + "'");
 			}
+
 			Double rInf = null;
 			try {
 				rInf = Double.valueOf(cmd.getOptionValue("RInf"));
@@ -161,7 +154,7 @@ public class QuantSiteOutputComparator {
 			final String outputFileName = cmd.getOptionValue("out");
 
 			PValueCorrectionType pValueCorrectionType = defaultPValueCorrectionMethod;
-			if (cmd.getOptionValue("pvc") != null) {
+			if (cmd.hasOption("pvc")) {
 				try {
 					pValueCorrectionType = PValueCorrectionType.valueOf(cmd.getOptionValue("pvc"));
 					log.info("Using p-value correction method: " + pValueCorrectionType + " ("
@@ -178,7 +171,7 @@ public class QuantSiteOutputComparator {
 
 			}
 			double qValueThreshold = defaultQValueThreshold;
-			if (cmd.getOptionValue("qvt") != null) {
+			if (cmd.hasOption("qvt")) {
 				try {
 					qValueThreshold = Double.valueOf(cmd.getOptionValue("qvt"));
 					if (qValueThreshold < 0 || qValueThreshold > 1) {
@@ -608,18 +601,30 @@ public class QuantSiteOutputComparator {
 	private static void setupCommandLineOptions() {
 		// create Options object
 		options = new Options();
-		options.addOption("RInf", true, "[MANDATORY] -RInf replaces +/- Infinity with a user defined (+/-)value");
-		options.addOption("f", true,
+		final Option opt1 = new Option("RInf", "replace_infinity", true,
+				"[MANDATORY] -RInf replaces +/- Infinity with a user defined (+/-)value");
+		opt1.setRequired(true);
+		options.addOption(opt1);
+		final Option opt2 = new Option("f", "input_file", true,
 				"[MANDATORY] Full path to a file containing pairs (separated by TAB) of sample names and full path to the peptideNodeTable of a PCQ run to compare");
-		options.addOption("out", true, "[MANDATORY] Output file name that will be created in the current folder");
-		options.addOption("pvc", true,
+		opt2.setRequired(true);
+		options.addOption(opt2);
+		final Option opt3 = new Option("out", "output_file_name", true,
+				"[MANDATORY] Output file name that will be created in the current folder");
+		opt3.setRequired(true);
+		options.addOption(opt3);
+		final Option opt4 = new Option("pvc", "pvalue_correction", true,
 				"[OPTIONAL] p-value correction method to apply. Valid values are: "
 						+ PValueCorrectionType.getValuesString() + ". If not provided, the method will be "
-						+ defaultPValueCorrectionMethod);
-		options.addOption("qvt", true,
+						+ defaultPValueCorrectionMethod + " (Reference: " + defaultPValueCorrectionMethod.getReference()
+						+ ")");
+		opt4.setRequired(false);
+		options.addOption(opt4);
+		final Option opt5 = new Option("qvt", "qvalue_threshold", true,
 				"[OPTIONAL] q-value threshold to apply to the corrected p-values. A value between 0 and 1 is permitted. If not provided, a threshold of "
 						+ defaultQValueThreshold + " will be applied.");
-
+		opt5.setRequired(false);
+		options.addOption(opt5);
 	}
 
 	private static void errorInParameters() {
