@@ -192,7 +192,23 @@ public class QuantSiteOutputComparator {
 				log.info("qvt (q-value threshold) parameter wasn't set. Using " + defaultQValueThreshold
 						+ " by default");
 			}
-			final int minNumberOfDiscoveries = 1; // by default
+			int minNumberOfDiscoveries = 0; // by default
+			if (cmd.hasOption("md")) {
+				try {
+					minNumberOfDiscoveries = Integer.valueOf(cmd.getOptionValue("md"));
+					if (minNumberOfDiscoveries < 0) {
+						throw new Exception();
+					}
+					log.info("Using minimum_discoveries = " + minNumberOfDiscoveries);
+				} catch (final Exception e) {
+					final String errorMessage = "Invalid md value '" + cmd.getOptionValue("md")
+							+ "'. A positive number greater or equal to 0 is valid";
+					throw new Exception(errorMessage);
+				}
+			} else {
+				log.info("md (minimum_discoveries) parameter wasn't set. Using " + minNumberOfDiscoveries
+						+ " by default. However, only sites with at least one discovery will be reported in the Excel output file.");
+			}
 			quantSiteComparator = new QuantSiteOutputComparator(inputFiles, rInf, outputFileName, pValueCorrectionType,
 					qValueThreshold, numberSigmas, minNumberOfDiscoveries);
 
@@ -273,9 +289,6 @@ public class QuantSiteOutputComparator {
 				final TObjectDoubleHashMap<String> pValues = new TObjectDoubleHashMap<String>();
 				final Set<String> quantSiteKeys = quantSites.getQuantifiedSitesByKey().keySet();
 				for (final String quantSite : quantSiteKeys) {
-					if (quantSite.equals("O75369#K1838") && sampleIndex1 == 7 && sampleIndex2 == 9) {
-						log.info(quantSite);
-					}
 					final NLMatrix matrix = matrixMap.get(quantSite);
 					if (matrix != null) {
 						final double pValue = matrix.get(sampleIndex1, sampleIndex2);
@@ -289,9 +302,6 @@ public class QuantSiteOutputComparator {
 						pValueCorrectionMethod);
 				for (final String quantSite : quantSiteKeys) {
 					final NLMatrix matrix = matrixMap.get(quantSite);
-					if (quantSite.equals("O75369#K1838") && sampleIndex1 == 7 && sampleIndex2 == 9) {
-						log.info(quantSite);
-					}
 					if (matrix != null) {
 						final Double adjustedPValue = pAdjust.getCorrectedPValues().getPValue(quantSite);
 						if (adjustedPValue != null) {
@@ -365,7 +375,7 @@ public class QuantSiteOutputComparator {
 			nums.add(numDiscoveries);
 
 			final File individualMatrixFile = getIndividualMatrixFile(numDiscoveries, quantifiedSite.getNodeKey());
-			if (numDiscoveries >= minNumberOfDiscoveries) {
+			if (numDiscoveries > 0 && numDiscoveries >= minNumberOfDiscoveries) {
 				final FileWriter individualMatrixFileWriter = new FileWriter(individualMatrixFile);
 				individualMatrixFileWriter.write(printMatrix(matrix, quantifiedSite));
 				individualMatrixFileWriter.close();
@@ -686,7 +696,11 @@ public class QuantSiteOutputComparator {
 				"[OPTIONAL] q-value threshold to apply to the corrected p-values. A value between 0 and 1 is permitted. If not provided, a threshold of "
 						+ defaultQValueThreshold + " will be applied.");
 		opt5.setRequired(false);
-		options.addOption(opt5);
+
+		final Option opt6 = new Option("md", "minimum_discoveries", true,
+				"[OPTIONAL] minimum number of discoveries (significantly different between two samples) required for a quantified site to be in the output files. If not provided, there will be no minimum number, although no quant sites without any significantly different site between 2 samples will be reported in the Excel output file.");
+		opt6.setRequired(false);
+		options.addOption(opt6);
 	}
 
 	private static void errorInParameters() {
