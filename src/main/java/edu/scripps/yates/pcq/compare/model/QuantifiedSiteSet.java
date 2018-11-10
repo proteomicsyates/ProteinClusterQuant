@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import gnu.trove.map.hash.THashMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import gnu.trove.set.hash.THashSet;
 
 public class QuantifiedSiteSet extends THashSet<QuantifiedSite> {
@@ -63,5 +64,32 @@ public class QuantifiedSiteSet extends THashSet<QuantifiedSite> {
 
 	public List<String> getSampleNames() {
 		return sampleNames;
+	}
+
+	public List<QuantifiedSite> getSortedByNumDiscoveriesAndProteinsAndSites(
+			TObjectIntHashMap<String> numberOfDiscoveriesPerSite) {
+		final List<QuantifiedSite> ret = new ArrayList<QuantifiedSite>();
+		ret.addAll(this);
+		final Comparator<QuantifiedSite> comparator = new Comparator<QuantifiedSite>() {
+
+			@Override
+			public int compare(QuantifiedSite o1, QuantifiedSite o2) {
+				final int numDiscoveries1 = numberOfDiscoveriesPerSite.get(o1.getNodeKey());
+				final int numDiscoveries2 = numberOfDiscoveriesPerSite.get(o2.getNodeKey());
+				if (numDiscoveries1 != numDiscoveries2) {
+					// reverse order
+					return Integer.compare(numDiscoveries2, numDiscoveries1);
+				}
+				final int comp = o1.getProteins().compareTo(o2.getProteins());
+				if (comp != 0) {
+					return comp;
+				}
+				return Integer.compare(o1.getPositionInProteinList().get(0).getPosition(),
+						o2.getPositionInProteinList().get(0).getPosition());
+			}
+		};
+
+		ret.sort(comparator);
+		return ret;
 	}
 }

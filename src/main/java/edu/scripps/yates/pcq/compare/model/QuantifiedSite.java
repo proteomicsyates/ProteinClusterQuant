@@ -46,13 +46,14 @@ public class QuantifiedSite {
 	private final String proteins;
 	private final String genes;
 	private final String positions;
+	private final List<PositionInProtein> positionInProteinList;
 
 	public QuantifiedSite(String[] split, TObjectIntHashMap<String> indexesByHeaders,
 			double valueToSubstituteIfInfinite) {
 		nodeKey = split[indexesByHeaders.get(NODE_KEY)];
-		final List<PositionInProtein> positionList = PositionInProtein.parseStringToPositionInProtein(nodeKey, "-");
+		positionInProteinList = PositionInProtein.parseStringToPositionInProtein(nodeKey, "-");
 		final StringBuilder sb = new StringBuilder();
-		for (final PositionInProtein positionInProtein : positionList) {
+		for (final PositionInProtein positionInProtein : positionInProteinList) {
 			if (!"".equals(sb.toString())) {
 				sb.append("-");
 			}
@@ -181,5 +182,9 @@ public class QuantifiedSite {
 
 	public String getPositions() {
 		return positions;
+	}
+
+	public List<PositionInProtein> getPositionInProteinList() {
+		return positionInProteinList;
 	}
 }

@@ -26,6 +26,7 @@ import org.apache.log4j.Logger;
 import edu.scripps.yates.pcq.compare.model.QuantifiedSite;
 import edu.scripps.yates.pcq.compare.model.QuantifiedSiteSet;
 import edu.scripps.yates.utilities.appversion.AppVersion;
+import edu.scripps.yates.utilities.files.FileUtils;
 import edu.scripps.yates.utilities.maths.Maths;
 import edu.scripps.yates.utilities.maths.PValueCorrection;
 import edu.scripps.yates.utilities.maths.PValueCorrectionResult;
@@ -61,9 +62,12 @@ public class QuantSiteOutputComparator {
 	private final double qValueThreshold;
 	private final int numberSigmas;
 	private Double distributionSigma;
+	private Double distributionAverage;
+	private final int minNumberOfDiscoveries;
 
 	public QuantSiteOutputComparator(List<File> inputFiles, double rInf, String outputFileName,
-			PValueCorrectionType pValueCorrectionType, double qValueThreshold, int numberSigmas) {
+			PValueCorrectionType pValueCorrectionType, double qValueThreshold, int numberSigmas,
+			int minNumberOfDiscoveries) {
 		this.inputFiles.addAll(inputFiles);
 		this.rInf = rInf;
 		this.outputFileName = outputFileName;
@@ -73,6 +77,7 @@ public class QuantSiteOutputComparator {
 		this.qValueThreshold = qValueThreshold;
 		this.numberSigmas = numberSigmas;
 		pValueCorrectionMethod = pValueCorrectionType;
+		this.minNumberOfDiscoveries = minNumberOfDiscoveries;
 	}
 
 	public static void main(String[] args) {
@@ -187,9 +192,9 @@ public class QuantSiteOutputComparator {
 				log.info("qvt (q-value threshold) parameter wasn't set. Using " + defaultQValueThreshold
 						+ " by default");
 			}
-
+			final int minNumberOfDiscoveries = 1; // by default
 			quantSiteComparator = new QuantSiteOutputComparator(inputFiles, rInf, outputFileName, pValueCorrectionType,
-					qValueThreshold, numberSigmas);
+					qValueThreshold, numberSigmas, minNumberOfDiscoveries);
 
 		} catch (final Exception e) {
 			e.printStackTrace();
@@ -251,7 +256,7 @@ public class QuantSiteOutputComparator {
 						log.info(quantSite);
 					}
 					final double pValue = performTTest(quantSite, sampleIndex1, sampleIndex2,
-							getDistributionSigma(quantSites));
+							getDistributionAverage(quantSites), getDistributionSigma(quantSites));
 					matrix.set(sampleIndex1, sampleIndex2, pValue);
 				}
 			}
@@ -301,6 +306,9 @@ public class QuantSiteOutputComparator {
 							matrix.set(sampleIndex1, sampleIndex2, adjustedPValue);
 						}
 					}
+					if (numberOfDiscoveriesPerSite.get(quantSite) < minNumberOfDiscoveries) {
+						matrixMap.remove(quantSite);
+					}
 				}
 				counter.increment();
 				final String printIfNecessary = counter.printIfNecessary();
@@ -309,9 +317,18 @@ public class QuantSiteOutputComparator {
 				}
 			}
 		}
-
-		log.info("Writting output file with " + matrixMap.size() + " matrixes ...");
-		final File outputFile = getMatrixSummaryFile();
+		if (matrixMap.size() < 1) {
+			log.warn("There is not any matrix with a minimum number of discoveries of " + minNumberOfDiscoveries
+					+ " !!!");
+		} else {
+			log.info("Writting output files with " + matrixMap.size() + " matrixes ...");
+		}
+		final File matrixSummaryFile = getMatrixSummaryFile();
+		final File excelSummaryFile = getExcelMatrixSummaryFile();
+		// delete excel file if exists
+		if (excelSummaryFile.exists()) {
+			excelSummaryFile.delete();
+		}
 		final TIntArrayList nums = new TIntArrayList();
 
 		// delete previous matrixes
@@ -328,24 +345,30 @@ public class QuantSiteOutputComparator {
 		// significant
 		final NLMatrix sampleComparisonMatrix = new NLMatrix(numSamples, numSamples, 0);
 
-		final FileWriter fw = new FileWriter(outputFile);
-		for (final QuantifiedSite quantifiedSite : quantSites.getSortedByRatios()) {
+		final FileWriter fw = new FileWriter(matrixSummaryFile);
+		boolean atLeastOneMatrix = false;
+		// sort by number of discoveries and by ratios
+		for (final QuantifiedSite quantifiedSite : quantSites
+				.getSortedByNumDiscoveriesAndProteinsAndSites(numberOfDiscoveriesPerSite)) {
 			fw.write(quantifiedSite.getNodeKey() + "\n");
-			// write row with ND (non detected) or D (detected) stating whether
-			// that site has been detected or not in that sample
-			// TODO
+			fw.write("Number of discoveries:\t" + numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey()) + "\n");
+
 			final NLMatrix matrix = matrixMap.get(quantifiedSite.getNodeKey());
+			if (matrix == null) {
+				continue;
+			}
+			atLeastOneMatrix = true;
 			fw.write(printMatrix(matrix, quantifiedSite) + "\n");
 
 			// independent file with the matrix
 			final int numDiscoveries = numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey());
 			nums.add(numDiscoveries);
 
-			final File outputFile2 = getIndividualMatrixFile(numDiscoveries, quantifiedSite.getNodeKey());
-			if (numDiscoveries > 0) {
-				final FileWriter fw2 = new FileWriter(outputFile2);
-				fw2.write(printMatrix(matrix, quantifiedSite));
-				fw2.close();
+			final File individualMatrixFile = getIndividualMatrixFile(numDiscoveries, quantifiedSite.getNodeKey());
+			if (numDiscoveries >= minNumberOfDiscoveries) {
+				final FileWriter individualMatrixFileWriter = new FileWriter(individualMatrixFile);
+				individualMatrixFileWriter.write(printMatrix(matrix, quantifiedSite));
+				individualMatrixFileWriter.close();
 				for (int i = 0; i < numSamples; i++) {
 					for (int j = i + 1; j < numSamples; j++) {
 						final double pvalue = matrix.get(i, j);
@@ -354,6 +377,12 @@ public class QuantSiteOutputComparator {
 						}
 					}
 				}
+
+				// add the individual file to the Excel file
+
+				FileUtils.separatedValuesToXLSX(individualMatrixFile.getAbsolutePath(),
+						excelSummaryFile.getAbsolutePath(), "\t", numDiscoveries + "_" + quantifiedSite.getNodeKey());
+
 			}
 		}
 		final String message = "Comparison matrix: number sites in which each pair of sample has been found significant with q-value < "
@@ -363,9 +392,15 @@ public class QuantSiteOutputComparator {
 		System.out.println(printMatrix(sampleComparisonMatrix, null));
 		fw.write(printMatrix(sampleComparisonMatrix, null) + "\n");
 		fw.close();
-
-		log.info("Output file written at: '" + outputFile.getAbsolutePath() + "'");
-		if (nums.max() > 1) {
+		if (atLeastOneMatrix) {
+			log.info("Output file written at: '" + matrixSummaryFile.getAbsolutePath() + "'");
+			log.info("Output file written at: '" + excelSummaryFile.getAbsolutePath() + "'");
+		} else {
+			log.info(
+					"No output was generated because there is not any quantified site with a minimum number of discoveries (significant pairwise comparisons with q-value<"
+							+ qValueThreshold + ") of " + minNumberOfDiscoveries);
+		}
+		if (!nums.isEmpty() && nums.max() > 1) {
 			final double[][] histogram = Histogram.histogram(nums.toArray(), nums.max());
 			int numSitesWithAtLeastOneDiscovery = 0;
 			for (int j = 0; j < histogram[2].length; j++) {
@@ -394,6 +429,13 @@ public class QuantSiteOutputComparator {
 	private File getMatrixSummaryFile() {
 		return new File(getOutputFolder() + File.separator + FilenameUtils.getBaseName(outputFileName)
 				+ "_QVALUES_matrixes.txt");
+	}
+
+	private File getExcelMatrixSummaryFile() {
+		final File file = new File(getOutputFolder() + File.separator + FilenameUtils.getBaseName(outputFileName)
+				+ "_QVALUES_matrixes.xlsx");
+
+		return file;
 	}
 
 	private String getOutputFolder() {
@@ -455,7 +497,7 @@ public class QuantSiteOutputComparator {
 
 	}
 
-	private double performTTest(QuantifiedSite quantSite, int sampleIndex1, int sampleIndex2,
+	private double performTTest(QuantifiedSite quantSite, int sampleIndex1, int sampleIndex2, double distributionAvg,
 			double distributionSigma) {
 		final double mean1 = quantSite.getLog2Ratio(sampleIndex1);
 		final double mean2 = quantSite.getLog2Ratio(sampleIndex2);
@@ -483,16 +525,18 @@ public class QuantSiteOutputComparator {
 				final double finite = Double.isFinite(mean1) ? mean1 : mean2;
 				final double infinite = Double.isInfinite(mean1) ? mean1 : mean2;
 				if (Double.POSITIVE_INFINITY == infinite) {
-					if (finite > numberSigmas * distributionSigma) {
+					if (finite < distributionAvg + numberSigmas * distributionSigma) {
 						return 0.0;
 					} else {
 						return 1.0;
 					}
 				} else {
 					// negative infinity
-					if (finite < -numberSigmas * distributionSigma) {
+					if (finite > distributionAvg + numberSigmas * distributionSigma) {
+						// significant
 						return 0.0;
 					} else {
+						// no significant
 						return 1.0;
 					}
 				}
@@ -521,6 +565,24 @@ public class QuantSiteOutputComparator {
 					+ distributionSigma);
 		}
 		return distributionSigma;
+	}
+
+	private double getDistributionAverage(QuantifiedSiteSet quantSites) {
+		if (distributionAverage == null) {
+			log.info("Calculating the mean of the whole distribution of ratios...");
+			final TDoubleArrayList ratios = new TDoubleArrayList();
+			for (final QuantifiedSite quantifiedSite : quantSites) {
+				for (int experimentIndex = 0; experimentIndex < quantifiedSite.getNumExperiments(); experimentIndex++) {
+					final Double log2Ratio = quantifiedSite.getLog2Ratio(experimentIndex);
+					if (log2Ratio != null && !Double.isNaN(log2Ratio) && !Double.isInfinite(log2Ratio)) {
+						ratios.add(log2Ratio);
+					}
+				}
+			}
+			distributionAverage = Maths.mean(ratios.toArray());
+			log.info("The mean of the whole distribution of ratios in all experiments is: " + distributionAverage);
+		}
+		return distributionAverage;
 	}
 
 	public static String getSeparatedValueStringFromChars(Collection<PositionInPeptide> collection, String separator) {
@@ -653,6 +715,11 @@ public class QuantSiteOutputComparator {
 
 		final String newline = numCols < matrix.ncols() ? "...\n" : "\n";
 		// header
+		if (quantifiedSite != null) {
+			sb.append("Site(s)\tPosition(s)\tProtein(s)\tGene(s)\n");
+			sb.append(quantifiedSite.getNodeKey() + "\t" + quantifiedSite.getPositions() + "\t"
+					+ quantifiedSite.getProteins() + "\t" + quantifiedSite.getGenes() + "\n");
+		}
 		sb.append("\t");
 		if (quantifiedSite != null) {
 			sb.append("\t");
@@ -666,11 +733,7 @@ public class QuantSiteOutputComparator {
 			sb.append("\t");
 			for (int i = 0; i < numCols; i++) {
 				final Double log2Ratio = quantifiedSite.getLog2Ratio(i);
-				if (log2Ratio == null || Double.isNaN(log2Ratio)) {
-					sb.append("ND\t");
-				} else {
-					sb.append("D\t");
-				}
+				sb.append(log2Ratio + "\t");
 			}
 		}
 		sb.append("\n");
@@ -678,11 +741,7 @@ public class QuantSiteOutputComparator {
 			sb.append(getSampleNameByFile(inputFiles.get(i)) + "\t");
 			if (quantifiedSite != null) {
 				final Double log2Ratio = quantifiedSite.getLog2Ratio(i);
-				if (log2Ratio == null || Double.isNaN(log2Ratio)) {
-					sb.append("ND\t");
-				} else {
-					sb.append("D\t");
-				}
+				sb.append(log2Ratio + "\t");
 			}
 
 			for (int j = 0; j < numCols; j++) {
