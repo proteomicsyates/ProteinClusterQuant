@@ -81,7 +81,6 @@ public class QuantSiteOutputComparator {
 	}
 
 	public static void main(String[] args) {
-		final int numberSigmas = 2;
 		version = ProteinClusterQuant.getVersion();
 		System.out.println("Running Quant Site comparator version " + version.toString());
 		setupCommandLineOptions();
@@ -208,6 +207,23 @@ public class QuantSiteOutputComparator {
 			} else {
 				log.info("md (minimum_discoveries) parameter wasn't set. Using " + minNumberOfDiscoveries
 						+ " by default. However, only sites with at least one discovery will be reported in the Excel output file.");
+			}
+
+			int numberSigmas = 2; // by default
+			if (cmd.hasOption("ns")) {
+				try {
+					numberSigmas = Integer.valueOf(cmd.getOptionValue("ns"));
+					if (numberSigmas < 0) {
+						throw new Exception();
+					}
+					log.info("Using number_sigmas = " + numberSigmas);
+				} catch (final Exception e) {
+					final String errorMessage = "Invalid ns value '" + cmd.getOptionValue("ns")
+							+ "'. A positive number greater or equal to 0 is valid";
+					throw new Exception(errorMessage);
+				}
+			} else {
+				log.info("ns (number_sigmas) parameter wasn't set. Using " + numberSigmas + " by default.");
 			}
 			quantSiteComparator = new QuantSiteOutputComparator(inputFiles, rInf, outputFileName, pValueCorrectionType,
 					qValueThreshold, numberSigmas, minNumberOfDiscoveries);
@@ -701,6 +717,13 @@ public class QuantSiteOutputComparator {
 				"[OPTIONAL] minimum number of discoveries (significantly different between two samples) required for a quantified site to be in the output files. If not provided, there will be no minimum number, although no quant sites without any significantly different site between 2 samples will be reported in the Excel output file.");
 		opt6.setRequired(false);
 		options.addOption(opt6);
+
+		final Option opt7 = new Option("ns", "number_sigmas", true,
+				"[OPTIONAL] number of sigmas that will be used to decide whether an INFINITY ratio is significantly different than a FINITE ratio.\n"
+						+ "If R1=POSITIVE_INFINITY and R2 < avg_distribution + ns*sigma_distribution_of_ratios, then R2 is significantly different.\n"
+						+ "If R1=NEGATIVE_INFINITY and R2 > avg_distribution + ns*sigma_distribution_of_ratios, then R2 is significantly different.");
+		opt7.setRequired(false);
+		options.addOption(opt7);
 	}
 
 	private static void errorInParameters() {
