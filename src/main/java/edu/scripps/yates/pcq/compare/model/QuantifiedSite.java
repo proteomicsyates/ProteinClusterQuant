@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
+import edu.scripps.yates.utilities.sequence.PositionInProtein;
 import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.hash.TObjectIntHashMap;
@@ -44,10 +45,20 @@ public class QuantifiedSite {
 	private final Set<PositionInPeptide> positionsInPeptide = new THashSet<PositionInPeptide>();
 	private final String proteins;
 	private final String genes;
+	private final String positions;
 
 	public QuantifiedSite(String[] split, TObjectIntHashMap<String> indexesByHeaders,
 			double valueToSubstituteIfInfinite) {
 		nodeKey = split[indexesByHeaders.get(NODE_KEY)];
+		final List<PositionInProtein> positionList = PositionInProtein.parseStringToPositionInProtein(nodeKey, "-");
+		final StringBuilder sb = new StringBuilder();
+		for (final PositionInProtein positionInProtein : positionList) {
+			if (!"".equals(sb.toString())) {
+				sb.append("-");
+			}
+			sb.append(String.valueOf(positionInProtein.getAa()) + positionInProtein.getPosition());
+		}
+		positions = sb.toString();
 		sequence = split[indexesByHeaders.get(SEQUENCE)];
 		String numberString = split[indexesByHeaders.get(LOG2RATIO)];
 		if (numberString.startsWith("'")) {
@@ -166,5 +177,9 @@ public class QuantifiedSite {
 
 	public int getNumExperiments() {
 		return log2Ratio.size();
+	}
+
+	public String getPositions() {
+		return positions;
 	}
 }
