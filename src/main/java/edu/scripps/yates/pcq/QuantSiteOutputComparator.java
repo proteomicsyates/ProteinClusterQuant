@@ -505,7 +505,7 @@ public class QuantSiteOutputComparator {
 					.get(quantSite.getNodeKey());
 			fw.write(quantifiedSite.getNodeKey() + "\t");
 			for (int index = 0; index < mergedQuantSites.getNumExperiments(); index++) {
-				final Double log2Ratio = replaceInfinite(quantifiedSite.getLog2Ratio(index), rInf);
+				final Double log2Ratio = replaceInfiniteWithRInfParameter(quantifiedSite.getLog2Ratio(index), rInf);
 				fw.write(log2Ratio + "\t");
 				final int numMeasurements = quantifiedSite.getNumMeasurements(index);
 				Double stdev = quantifiedSite.getRatioScoreValue(index);
@@ -529,7 +529,7 @@ public class QuantSiteOutputComparator {
 
 	}
 
-	private double replaceInfinite(Double log2Ratio, Double rInf) {
+	private double replaceInfiniteWithRInfParameter(Double log2Ratio, Double rInf) {
 
 		if (log2Ratio == null || Double.isNaN(log2Ratio)) {
 			return Double.NaN;
@@ -714,7 +714,7 @@ public class QuantSiteOutputComparator {
 		options = new Options();
 		final Option opt1 = new Option("RInf", "replace_infinity", true,
 				"[OPTIONAL] -RInf replaces +/- Infinity with a user defined (+/-) value in the output summary table file");
-		opt1.setRequired(true);
+		opt1.setRequired(false);
 		options.addOption(opt1);
 		final Option opt2 = new Option("f", "input_file", true,
 				"[MANDATORY] Full path to a file containing pairs (separated by TAB) of sample names and full path to the peptideNodeTable of a PCQ run to compare");
