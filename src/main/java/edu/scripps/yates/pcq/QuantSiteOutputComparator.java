@@ -23,8 +23,10 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 
+import edu.scripps.yates.pcq.compare.model.MyTTest;
 import edu.scripps.yates.pcq.compare.model.QuantifiedSite;
 import edu.scripps.yates.pcq.compare.model.QuantifiedSiteSet;
+import edu.scripps.yates.pcq.compare.model.TTestMatrix;
 import edu.scripps.yates.utilities.appversion.AppVersion;
 import edu.scripps.yates.utilities.files.FileUtils;
 import edu.scripps.yates.utilities.maths.Maths;
@@ -42,7 +44,6 @@ import gnu.trove.map.hash.TObjectDoubleHashMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import smile.math.Histogram;
 import smile.math.Math;
-import smile.math.matrix.Matrix;
 import smile.netlib.NLMatrix;
 
 public class QuantSiteOutputComparator {
@@ -56,7 +57,7 @@ public class QuantSiteOutputComparator {
 	private static final double defaultQValueThreshold = 0.05;
 	private static final String currentFolder = System.getProperty("user.dir");
 	private final List<File> inputFiles = new ArrayList<File>();
-	private final double rInf;
+	private final Double rInf;
 	private String outputFileName;
 	private final PValueCorrectionType pValueCorrectionMethod;
 	private final double qValueThreshold;
@@ -278,18 +279,18 @@ public class QuantSiteOutputComparator {
 	private void writePairWisePValueMatrixes(QuantifiedSiteSet quantSites) throws IOException {
 		final int numSamples = quantSites.getNumExperiments();
 
-		final Map<String, NLMatrix> matrixMap = new THashMap<String, NLMatrix>();
+		final Map<String, TTestMatrix> matrixMap = new THashMap<String, TTestMatrix>();
 		for (final QuantifiedSite quantSite : quantSites.getSortedByRatios()) {
-			final NLMatrix matrix = new NLMatrix(numSamples, numSamples, Double.NaN);
+			final TTestMatrix matrix = new TTestMatrix(numSamples, numSamples);
 			matrixMap.put(quantSite.getNodeKey(), matrix);
 			for (int sampleIndex1 = 0; sampleIndex1 < numSamples; sampleIndex1++) {
 				for (int sampleIndex2 = sampleIndex1 + 1; sampleIndex2 < numSamples; sampleIndex2++) {
 					if (quantSite.getNodeKey().equals("O75369#K1838") && sampleIndex1 == 7 && sampleIndex2 == 9) {
 						log.info(quantSite);
 					}
-					final double pValue = performTTest(quantSite, sampleIndex1, sampleIndex2,
+					final MyTTest ttest = performTTest(quantSite, sampleIndex1, sampleIndex2,
 							getDistributionAverage(quantSites), getDistributionSigma(quantSites));
-					matrix.set(sampleIndex1, sampleIndex2, pValue);
+					matrix.set(sampleIndex1, sampleIndex2, ttest);
 				}
 			}
 		}
@@ -305,11 +306,14 @@ public class QuantSiteOutputComparator {
 				final TObjectDoubleHashMap<String> pValues = new TObjectDoubleHashMap<String>();
 				final Set<String> quantSiteKeys = quantSites.getQuantifiedSitesByKey().keySet();
 				for (final String quantSite : quantSiteKeys) {
-					final NLMatrix matrix = matrixMap.get(quantSite);
+					final TTestMatrix matrix = matrixMap.get(quantSite);
 					if (matrix != null) {
-						final double pValue = matrix.get(sampleIndex1, sampleIndex2);
-						if (!Double.isNaN(pValue)) {
-							pValues.put(quantSite, pValue);
+						final MyTTest myTTest = matrix.get(sampleIndex1, sampleIndex2);
+						if (myTTest.isUseForPVAlueCorrection()) {
+							final double pValue = myTTest.getPValue();
+							if (!Double.isNaN(pValue)) {
+								pValues.put(quantSite, pValue);
+							}
 						}
 					}
 				}
@@ -317,7 +321,7 @@ public class QuantSiteOutputComparator {
 				final PValueCorrectionResult pAdjust = PValueCorrection.pAdjust(pValueCollection,
 						pValueCorrectionMethod);
 				for (final String quantSite : quantSiteKeys) {
-					final NLMatrix matrix = matrixMap.get(quantSite);
+					final TTestMatrix matrix = matrixMap.get(quantSite);
 					if (matrix != null) {
 						final Double adjustedPValue = pAdjust.getCorrectedPValues().getPValue(quantSite);
 						if (adjustedPValue != null) {
@@ -329,7 +333,7 @@ public class QuantSiteOutputComparator {
 									numberOfDiscoveriesPerSite.put(quantSite, 1);
 								}
 							}
-							matrix.set(sampleIndex1, sampleIndex2, adjustedPValue);
+							matrix.get(sampleIndex1, sampleIndex2).setPValue(adjustedPValue);
 						}
 					}
 					if (numberOfDiscoveriesPerSite.get(quantSite) < minNumberOfDiscoveries) {
@@ -379,7 +383,7 @@ public class QuantSiteOutputComparator {
 			fw.write(quantifiedSite.getNodeKey() + "\n");
 			fw.write("Number of discoveries:\t" + numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey()) + "\n");
 
-			final NLMatrix matrix = matrixMap.get(quantifiedSite.getNodeKey());
+			final TTestMatrix matrix = matrixMap.get(quantifiedSite.getNodeKey());
 			if (matrix == null) {
 				continue;
 			}
@@ -397,7 +401,7 @@ public class QuantSiteOutputComparator {
 				individualMatrixFileWriter.close();
 				for (int i = 0; i < numSamples; i++) {
 					for (int j = i + 1; j < numSamples; j++) {
-						final double pvalue = matrix.get(i, j);
+						final double pvalue = matrix.get(i, j).getPValue();
 						if (pvalue < qValueThreshold) {
 							sampleComparisonMatrix.set(i, j, sampleComparisonMatrix.get(i, j) + 1);
 						}
@@ -500,7 +504,8 @@ public class QuantSiteOutputComparator {
 					.get(quantSite.getNodeKey());
 			fw.write(quantifiedSite.getNodeKey() + "\t");
 			for (int index = 0; index < mergedQuantSites.getNumExperiments(); index++) {
-				fw.write(quantifiedSite.getLog2Ratio(index) + "\t");
+				final Double log2Ratio = replaceInfinite(quantifiedSite.getLog2Ratio(index), rInf);
+				fw.write(log2Ratio + "\t");
 				final int numMeasurements = quantifiedSite.getNumMeasurements(index);
 				Double stdev = quantifiedSite.getRatioScoreValue(index);
 				if (numMeasurements <= 1) {
@@ -523,7 +528,25 @@ public class QuantSiteOutputComparator {
 
 	}
 
-	private double performTTest(QuantifiedSite quantSite, int sampleIndex1, int sampleIndex2, double distributionAvg,
+	private double replaceInfinite(Double log2Ratio, Double rInf) {
+
+		if (log2Ratio == null || Double.isNaN(log2Ratio)) {
+			return Double.NaN;
+		}
+		if (rInf == null) {
+			return log2Ratio;
+		}
+		if (Double.isInfinite(log2Ratio)) {
+			if (Double.POSITIVE_INFINITY == log2Ratio) {
+				return rInf;
+			} else if (Double.NEGATIVE_INFINITY == log2Ratio) {
+				return -rInf;
+			}
+		}
+		return log2Ratio;
+	}
+
+	private MyTTest performTTest(QuantifiedSite quantSite, int sampleIndex1, int sampleIndex2, double distributionAvg,
 			double distributionSigma) {
 		final double mean1 = quantSite.getLog2Ratio(sampleIndex1);
 		final double mean2 = quantSite.getLog2Ratio(sampleIndex2);
@@ -535,14 +558,13 @@ public class QuantSiteOutputComparator {
 		final int n2 = quantSite.getNumMeasurements(sampleIndex2);
 
 		if (n1 < 2 || n2 < 2 || stdev1 == Double.NaN || stdev2 == Double.NaN) {
-			return Double.NaN;
+			return new MyTTest(Double.NaN, false);
 		}
-		if ((Double.isInfinite(mean1) && Double.isInfinite(mean2))
-				|| (Double.compare(Math.abs(mean1), rInf) == 0 && Double.compare(Math.abs(mean2), rInf) == 0)) {
+		if ((Double.isInfinite(mean1) && Double.isInfinite(mean2))) {
 			if (mean1 == mean2) {
-				return 1.0; // no significant
+				return new MyTTest(1.0, false); // no significant
 			} else {
-				return 0.0; // significant
+				return new MyTTest(0.0, false); // significant
 			}
 		} else {
 			if (Double.isInfinite(mean1) || Double.isInfinite(mean2)) {
@@ -552,25 +574,25 @@ public class QuantSiteOutputComparator {
 				final double infinite = Double.isInfinite(mean1) ? mean1 : mean2;
 				if (Double.POSITIVE_INFINITY == infinite) {
 					if (finite < distributionAvg + numberSigmas * distributionSigma) {
-						return 0.0;
+						return new MyTTest(0.0, false);
 					} else {
-						return 1.0;
+						return new MyTTest(1.0, false);
 					}
 				} else {
 					// negative infinity
 					if (finite > distributionAvg + numberSigmas * distributionSigma) {
 						// significant
-						return 0.0;
+						return new MyTTest(0.0, false);
 					} else {
 						// no significant
-						return 1.0;
+						return new MyTTest(1.0, false);
 					}
 				}
 			}
 		}
 		final edu.scripps.yates.utilities.maths.TTest pValue = edu.scripps.yates.utilities.maths.TTest.test(mean1, var1,
 				n1, mean2, var2, n2, true);
-		return pValue.pvalue;
+		return new MyTTest(pValue, true);
 
 	}
 
@@ -668,7 +690,7 @@ public class QuantSiteOutputComparator {
 							indexesByHeaders.put(split[i], i);
 						}
 					} else {
-						final QuantifiedSite quantSite = new QuantifiedSite(split, indexesByHeaders, rInf);
+						final QuantifiedSite quantSite = new QuantifiedSite(split, indexesByHeaders);
 						ret.add(quantSite);
 					}
 				} finally {
@@ -690,7 +712,7 @@ public class QuantSiteOutputComparator {
 		// create Options object
 		options = new Options();
 		final Option opt1 = new Option("RInf", "replace_infinity", true,
-				"[MANDATORY] -RInf replaces +/- Infinity with a user defined (+/-)value");
+				"[OPTIONAL] -RInf replaces +/- Infinity with a user defined (+/-) value in the output summary table file");
 		opt1.setRequired(true);
 		options.addOption(opt1);
 		final Option opt2 = new Option("f", "input_file", true,
@@ -745,7 +767,65 @@ public class QuantSiteOutputComparator {
 	 *            Print the full matrix if true. Otherwise only print top left 7
 	 *            x 7 submatrix.
 	 */
-	public String printMatrix(Matrix matrix, QuantifiedSite quantifiedSite) {
+	public String printMatrix(TTestMatrix matrix, QuantifiedSite quantifiedSite) {
+		final StringBuilder sb = new StringBuilder();
+		final int numRows = matrix.nrows();
+		final int numCols = matrix.ncols();
+
+		final String newline = numCols < matrix.ncols() ? "...\n" : "\n";
+		// header
+		if (quantifiedSite != null) {
+			sb.append("Site(s)\tPosition(s)\tProtein(s)\tGene(s)\n");
+			sb.append(quantifiedSite.getNodeKey() + "\t" + quantifiedSite.getPositions() + "\t"
+					+ quantifiedSite.getProteins() + "\t" + quantifiedSite.getGenes() + "\n");
+		}
+		sb.append("\t");
+		if (quantifiedSite != null) {
+			sb.append("\t");
+		}
+		for (int i = 0; i < numCols; i++) {
+			sb.append(getSampleNameByFile(inputFiles.get(i)) + "\t");
+		}
+		sb.append("\n");
+		sb.append("\t");
+		if (quantifiedSite != null) {
+			sb.append("\t");
+			for (int i = 0; i < numCols; i++) {
+				final Double log2Ratio = quantifiedSite.getLog2Ratio(i);
+				sb.append(log2Ratio + "\t");
+			}
+		}
+		sb.append("\n");
+		for (int i = 0; i < numRows; i++) {
+			sb.append(getSampleNameByFile(inputFiles.get(i)) + "\t");
+			if (quantifiedSite != null) {
+				final Double log2Ratio = quantifiedSite.getLog2Ratio(i);
+				sb.append(log2Ratio + "\t");
+			}
+
+			for (int j = 0; j < numCols; j++) {
+				sb.append(matrix.get(i, j) + "\t");
+			}
+			sb.append(newline);
+		}
+
+		if (numRows < matrix.nrows()) {
+			sb.append("  ...\n");
+		}
+
+		return sb.toString();
+	}
+
+	/**
+	 * Returns the string representation of matrix.
+	 * 
+	 * @param quantifiedSite
+	 * 
+	 * @param full
+	 *            Print the full matrix if true. Otherwise only print top left 7
+	 *            x 7 submatrix.
+	 */
+	public String printMatrix(NLMatrix matrix, QuantifiedSite quantifiedSite) {
 		final StringBuilder sb = new StringBuilder();
 		final int numRows = matrix.nrows();
 		final int numCols = matrix.ncols();
