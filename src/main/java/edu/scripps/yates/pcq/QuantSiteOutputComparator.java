@@ -309,7 +309,7 @@ public class QuantSiteOutputComparator {
 					final TTestMatrix matrix = matrixMap.get(quantSite);
 					if (matrix != null) {
 						final MyTTest myTTest = matrix.get(sampleIndex1, sampleIndex2);
-						if (myTTest.isUseForPVAlueCorrection()) {
+						if (myTTest.isUseForPValueCorrection()) {
 							final double pValue = myTTest.getPValue();
 							if (!Double.isNaN(pValue)) {
 								pValues.put(quantSite, pValue);
@@ -318,14 +318,27 @@ public class QuantSiteOutputComparator {
 					}
 				}
 				final PValuesCollection pValueCollection = new PValuesCollection(pValues);
-				log.info("Adjusting p-values using this method:  " + pValueCorrectionMethod.name() + " ("
-						+ pValueCorrectionMethod.getReference() + ")");
-				final PValueCorrectionResult pAdjust = PValueCorrection.pAdjust(pValueCollection,
-						pValueCorrectionMethod);
+				PValueCorrectionResult pAdjust = null;
+				if (pValues.size() > 0) {
+					log.info("Adjusting " + pValues.size() + " p-values using this method:  "
+							+ pValueCorrectionMethod.name() + " (" + pValueCorrectionMethod.getReference() + ")");
+					pAdjust = PValueCorrection.pAdjust(pValueCollection, pValueCorrectionMethod);
+				} else {
+					pAdjust = new PValueCorrectionResult();
+					pAdjust.setCorrectedPValues(pValueCollection);
+					pAdjust.setOriginalPValues(pValueCollection);
+				}
 				for (final String quantSite : quantSiteKeys) {
 					final TTestMatrix matrixOfTTests = matrixMap.get(quantSite);
 					if (matrixOfTTests != null) {
-						final Double adjustedPValue = pAdjust.getCorrectedPValues().getPValue(quantSite);
+						Double adjustedPValue = pAdjust.getCorrectedPValues().getPValue(quantSite);
+						if (adjustedPValue == null) {
+							// here he have to take the sites that are
+							// significant because we compared INFINITIES, but
+							// in this case, they are not in the corrected
+							// pvalues
+							adjustedPValue = matrixOfTTests.get(sampleIndex1, sampleIndex2).getPValue();
+						}
 						if (adjustedPValue != null) {
 							if (adjustedPValue < qValueThreshold) {
 								if (numberOfDiscoveriesPerSite.contains(quantSite)) {
