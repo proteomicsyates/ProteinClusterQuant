@@ -321,8 +321,8 @@ public class QuantSiteOutputComparator {
 				final PValueCorrectionResult pAdjust = PValueCorrection.pAdjust(pValueCollection,
 						pValueCorrectionMethod);
 				for (final String quantSite : quantSiteKeys) {
-					final TTestMatrix matrix = matrixMap.get(quantSite);
-					if (matrix != null) {
+					final TTestMatrix matrixOfTTests = matrixMap.get(quantSite);
+					if (matrixOfTTests != null) {
 						final Double adjustedPValue = pAdjust.getCorrectedPValues().getPValue(quantSite);
 						if (adjustedPValue != null) {
 							if (adjustedPValue < qValueThreshold) {
@@ -333,7 +333,7 @@ public class QuantSiteOutputComparator {
 									numberOfDiscoveriesPerSite.put(quantSite, 1);
 								}
 							}
-							matrix.get(sampleIndex1, sampleIndex2).setPValue(adjustedPValue);
+							matrixOfTTests.get(sampleIndex1, sampleIndex2).setPValue(adjustedPValue);
 						}
 					}
 					if (numberOfDiscoveriesPerSite.get(quantSite) < minNumberOfDiscoveries) {
@@ -383,25 +383,26 @@ public class QuantSiteOutputComparator {
 			fw.write(quantifiedSite.getNodeKey() + "\n");
 			fw.write("Number of discoveries:\t" + numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey()) + "\n");
 
-			final TTestMatrix matrix = matrixMap.get(quantifiedSite.getNodeKey());
-			if (matrix == null) {
+			final TTestMatrix matrixOfTTests = matrixMap.get(quantifiedSite.getNodeKey());
+			if (matrixOfTTests == null) {
 				continue;
 			}
 			atLeastOneMatrix = true;
-			fw.write(printMatrix(matrix, quantifiedSite) + "\n");
+			fw.write(printMatrix(matrixOfTTests, quantifiedSite) + "\n");
 
-			// independent file with the matrix
+			// keep number of discoveries
 			final int numDiscoveries = numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey());
 			nums.add(numDiscoveries);
 
+			// independent file with the matrix
 			final File individualMatrixFile = getIndividualMatrixFile(numDiscoveries, quantifiedSite.getNodeKey());
 			if (numDiscoveries > 0 && numDiscoveries >= minNumberOfDiscoveries) {
 				final FileWriter individualMatrixFileWriter = new FileWriter(individualMatrixFile);
-				individualMatrixFileWriter.write(printMatrix(matrix, quantifiedSite));
+				individualMatrixFileWriter.write(printMatrix(matrixOfTTests, quantifiedSite));
 				individualMatrixFileWriter.close();
 				for (int i = 0; i < numSamples; i++) {
 					for (int j = i + 1; j < numSamples; j++) {
-						final double pvalue = matrix.get(i, j).getPValue();
+						final double pvalue = matrixOfTTests.get(i, j).getPValue();
 						if (pvalue < qValueThreshold) {
 							sampleComparisonMatrix.set(i, j, sampleComparisonMatrix.get(i, j) + 1);
 						}
