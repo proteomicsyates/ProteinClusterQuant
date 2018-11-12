@@ -34,8 +34,6 @@ import edu.scripps.yates.utilities.maths.PValueCorrection;
 import edu.scripps.yates.utilities.maths.PValueCorrectionResult;
 import edu.scripps.yates.utilities.maths.PValueCorrectionType;
 import edu.scripps.yates.utilities.maths.PValuesCollection;
-import edu.scripps.yates.utilities.progresscounter.ProgressCounter;
-import edu.scripps.yates.utilities.progresscounter.ProgressPrintingType;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
@@ -296,9 +294,7 @@ public class QuantSiteOutputComparator {
 		}
 		// correct the pValues per pair of samples, that is
 		// sampleIndex1+sampleIndex2
-		final ProgressCounter counter = new ProgressCounter(
-				Double.valueOf(numSamples * (numSamples - 1) / 2).intValue(), ProgressPrintingType.PERCENTAGE_STEPS, 1,
-				true);
+
 		// to keep the number of significant pvalues after the pvalue correction
 		final TObjectIntHashMap<String> numberOfDiscoveriesPerSite = new TObjectIntHashMap<String>();
 		for (int sampleIndex1 = 0; sampleIndex1 < numSamples; sampleIndex1++) {
@@ -355,11 +351,7 @@ public class QuantSiteOutputComparator {
 						matrixMap.remove(quantSite);
 					}
 				}
-				counter.increment();
-				final String printIfNecessary = counter.printIfNecessary();
-				if (!"".equals(printIfNecessary)) {
-					log.info("Correcting pValues... " + printIfNecessary);
-				}
+
 			}
 		}
 		if (matrixMap.size() < 1) {
