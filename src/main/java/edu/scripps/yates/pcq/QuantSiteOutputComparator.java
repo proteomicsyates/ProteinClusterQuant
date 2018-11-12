@@ -318,6 +318,8 @@ public class QuantSiteOutputComparator {
 					}
 				}
 				final PValuesCollection pValueCollection = new PValuesCollection(pValues);
+				log.info("Adjusting p-values using this method:  " + pValueCorrectionMethod.name() + " ("
+						+ pValueCorrectionMethod.getReference() + ")");
 				final PValueCorrectionResult pAdjust = PValueCorrection.pAdjust(pValueCollection,
 						pValueCorrectionMethod);
 				for (final String quantSite : quantSiteKeys) {
