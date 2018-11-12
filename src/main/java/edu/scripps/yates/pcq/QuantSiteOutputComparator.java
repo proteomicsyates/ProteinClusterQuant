@@ -742,7 +742,7 @@ public class QuantSiteOutputComparator {
 				"[OPTIONAL] q-value threshold to apply to the corrected p-values. A value between 0 and 1 is permitted. If not provided, a threshold of "
 						+ defaultQValueThreshold + " will be applied.");
 		opt5.setRequired(false);
-
+		options.addOption(opt5);
 		final Option opt6 = new Option("md", "minimum_discoveries", true,
 				"[OPTIONAL] minimum number of discoveries (significantly different between two samples) required for a quantified site to be in the output files. If not provided, there will be no minimum number, although no quant sites without any significantly different site between 2 samples will be reported in the Excel output file.");
 		opt6.setRequired(false);
