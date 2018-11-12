@@ -23,7 +23,7 @@ public class MyTTest {
 		return ttestResult;
 	}
 
-	public boolean isUseForPVAlueCorrection() {
+	public boolean isUseForPValueCorrection() {
 		return useForPVAlueCorrection;
 	}
 
