@@ -48,8 +48,7 @@ public class QuantifiedSite {
 	private final String positions;
 	private final List<PositionInProtein> positionInProteinList;
 
-	public QuantifiedSite(String[] split, TObjectIntHashMap<String> indexesByHeaders,
-			double valueToSubstituteIfInfinite) {
+	public QuantifiedSite(String[] split, TObjectIntHashMap<String> indexesByHeaders) {
 		nodeKey = split[indexesByHeaders.get(NODE_KEY)];
 		positionInProteinList = PositionInProtein.parseStringToPositionInProtein(nodeKey, "-");
 		final StringBuilder sb = new StringBuilder();
@@ -67,7 +66,7 @@ public class QuantifiedSite {
 		}
 		if (!"".equals(numberString)) {
 			final Double num = Double.valueOf(numberString);
-			log2Ratio.add(replaceInfinite(num, valueToSubstituteIfInfinite));
+			log2Ratio.add(num);
 		} else {
 			log2Ratio.add(Double.NaN);
 		}
@@ -91,20 +90,6 @@ public class QuantifiedSite {
 		positionsInPeptide.addAll(PositionInPeptide.parseStringToPositionInPeptide(positionsInPeptideString, "-"));
 		proteins = split[indexesByHeaders.get(PROTEINS)];
 		genes = split[indexesByHeaders.get(GENES)];
-	}
-
-	private double replaceInfinite(Double log2Ratio, double rInf) {
-		if (log2Ratio == null || Double.isNaN(log2Ratio)) {
-			return Double.NaN;
-		}
-		if (Double.isInfinite(log2Ratio)) {
-			if (Double.POSITIVE_INFINITY == log2Ratio) {
-				return rInf;
-			} else if (Double.NEGATIVE_INFINITY == log2Ratio) {
-				return -rInf;
-			}
-		}
-		return log2Ratio;
 	}
 
 	public List<PositionInPeptide> getPositionsInPeptide() {
