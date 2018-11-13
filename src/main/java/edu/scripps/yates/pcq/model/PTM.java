@@ -96,6 +96,7 @@ public class PTM {
 	 */
 	public static PTM parseString(String string) {
 		try {
+			string = string.trim();
 			if (!"".equals(string)) {
 				if (string.contains("@")) {
 					final double massShift = Double.valueOf(string.substring(0, string.indexOf("@")));
@@ -118,7 +119,7 @@ public class PTM {
 				}
 			}
 		} catch (final Exception e) {
-			log.error("Malformed ptm string: '" + string + "'");
+			log.error("Malformed PTM string: '" + string + "'");
 		}
 		return null;
 	}
