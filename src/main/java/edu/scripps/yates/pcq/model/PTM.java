@@ -1,7 +1,6 @@
 package edu.scripps.yates.pcq.model;
 
 import org.apache.log4j.Logger;
-import org.junit.Test;
 
 import edu.scripps.yates.utilities.sequence.PTMInProtein;
 
@@ -124,8 +123,33 @@ public class PTM {
 		return null;
 	}
 
-	@Test
-	public void test() {
-		final PTM ptm = PTM.parseString("+34.5@K");
+	@Override
+	public String toString() {
+		final StringBuilder sb = new StringBuilder();
+		if (massShift != null) {
+			sb.append(massShift);
+		} else {
+			sb.append("Any PTM");
+		}
+		sb.append(" at ");
+		if (aas.length > 0) {
+			for (final char c : aas) {
+				sb.append(c + " ");
+			}
+		} else {
+			sb.append("any AA");
+		}
+		return sb.toString();
+	}
+
+	public static void main(String[] args) {
+		PTM ptm = PTM.parseString("+34.5@K");
+		System.out.println(ptm);
+		ptm = PTM.parseString("+79.96@PST");
+		System.out.println(ptm);
+		ptm = PTM.parseString("K");
+		System.out.println(ptm);
+		ptm = PTM.parseString("+79.96");
+		System.out.println(ptm);
 	}
 }
