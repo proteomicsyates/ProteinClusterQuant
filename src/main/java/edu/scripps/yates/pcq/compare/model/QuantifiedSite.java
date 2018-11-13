@@ -47,6 +47,7 @@ public class QuantifiedSite {
 	private final String genes;
 	private final String positions;
 	private final List<PositionInProtein> positionInProteinList;
+	private TTestMatrix ttestMatrix;
 
 	public QuantifiedSite(String[] split, TObjectIntHashMap<String> indexesByHeaders) {
 		nodeKey = split[indexesByHeaders.get(NODE_KEY)];
@@ -171,5 +172,13 @@ public class QuantifiedSite {
 
 	public List<PositionInProtein> getPositionInProteinList() {
 		return positionInProteinList;
+	}
+
+	public TTestMatrix getTtestMatrix() {
+		return ttestMatrix;
+	}
+
+	public void setTtestMatrix(TTestMatrix ttestMatrix) {
+		this.ttestMatrix = ttestMatrix;
 	}
 }

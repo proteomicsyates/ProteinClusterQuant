@@ -17,6 +17,7 @@ import edu.scripps.yates.pcq.filter.PCQFilterByIonCount;
 import edu.scripps.yates.pcq.filter.PCQFilterByPSMCount;
 import edu.scripps.yates.pcq.filter.PCQFilterByReplicateCount;
 import edu.scripps.yates.pcq.model.IsobaricRatioType;
+import edu.scripps.yates.pcq.model.PTM;
 import edu.scripps.yates.pcq.sanxot.SanxotRunner;
 import edu.scripps.yates.pcq.util.AnalysisInputType;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
@@ -108,9 +109,9 @@ public class ProteinClusterQuantParameters {
 	private boolean ignoreTaxonomies;
 	private boolean ignoreACCFormat;
 	private UniprotProteoformRetrieverFromXML uniprotProteoformRetrieverFromXML;
-	private boolean collapseByPTMs;
 	private int maxNumPTMsPerProtein = 4;
 	private boolean useMayorityRule = true;
+	private List<PTM> ptmsQuantified;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -1211,12 +1212,8 @@ public class ProteinClusterQuantParameters {
 		this.maxNumPTMsPerProtein = maxNumPTMsPerProtein;
 	}
 
-	public void setCollapseByPTMs(boolean collapseByPTMs) {
-		this.collapseByPTMs = collapseByPTMs;
-	}
-
 	public boolean isCollapseByPTMs() {
-		return collapseByPTMs;
+		return ptmsQuantified != null && !ptmsQuantified.isEmpty();
 	}
 
 	public boolean isUseMayorityRule() {
@@ -1225,5 +1222,28 @@ public class ProteinClusterQuantParameters {
 
 	public void setUseMayorityRule(boolean b) {
 		useMayorityRule = b;
+	}
+
+	public List<PTM> getPTMsQuantified() {
+		return ptmsQuantified;
+	}
+
+	public void setPTMQuantified(String ptmQuantifiedParameter) {
+		ptmsQuantified = new ArrayList<PTM>();
+		// split by comma
+		if (ptmQuantifiedParameter.contains(",")) {
+			final String[] split = ptmQuantifiedParameter.split(",");
+			for (final String string : split) {
+				final PTM ptm = PTM.parseString(string);
+				if (ptm != null) {
+					ptmsQuantified.add(ptm);
+				}
+			}
+		} else {
+			final PTM ptm = PTM.parseString(ptmQuantifiedParameter);
+			if (ptm != null) {
+				ptmsQuantified.add(ptm);
+			}
+		}
 	}
 }

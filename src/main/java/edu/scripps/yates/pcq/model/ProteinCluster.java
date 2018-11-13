@@ -619,8 +619,8 @@ public class ProteinCluster {
 				// - it could be shared by more than one protein
 				// - it could have more than one quantified aminoacid in its
 				// sequence
-				final List<PTMInProtein> ptmsInProteinFromPeptide1 = peptide1.getPTMInProtein(uplr,
-						PCQUtils.proteinSequences);
+				final List<PTMInProtein> ptmsInProteinFromPeptide1 = filterPTMsOfInterest(
+						peptide1.getPTMInProtein(uplr, PCQUtils.proteinSequences));
 				for (int j = i + 1; j < peptides.size(); j++) {
 					final QuantifiedPeptideInterface peptide2 = peptides.get(j);
 					// get the keys from the peptide.
@@ -631,8 +631,8 @@ public class ProteinCluster {
 					// - it could have more than one quantified aminoacid in its
 					// sequence
 
-					final List<PTMInProtein> ptmsInProteinFromPeptide2 = peptide2.getPTMInProtein(uplr,
-							PCQUtils.proteinSequences);
+					final List<PTMInProtein> ptmsInProteinFromPeptide2 = filterPTMsOfInterest(
+							peptide2.getPTMInProtein(uplr, PCQUtils.proteinSequences));
 
 					// iterate over all the keys
 
@@ -713,7 +713,8 @@ public class ProteinCluster {
 			// only one peptide
 			// create a peptide node for each position in the peptide
 			final QuantifiedPeptideInterface peptide = peptides.iterator().next();
-			final List<PTMInProtein> positionsInProtein = peptide.getPTMInProtein(uplr, PCQUtils.proteinSequences);
+			final List<PTMInProtein> positionsInProtein = filterPTMsOfInterest(
+					peptide.getPTMInProtein(uplr, PCQUtils.proteinSequences));
 
 			final String key = QuantUtils.getPositionsInProteinsKey(
 					QuantUtils.getAsPositionInProtein(positionsInProtein), useProteinGeneName, useProteinID, uplr,
@@ -731,6 +732,37 @@ public class ProteinCluster {
 
 		}
 
+	}
+
+	/**
+	 * Selects the {@link PTMInProtein} objects that are among the ones stated
+	 * as quantified in the input parameter file
+	 * 
+	 * @param ptmsInProteins
+	 * @return
+	 */
+	private List<PTMInProtein> filterPTMsOfInterest(List<PTMInProtein> ptmsInProteins) {
+		if (getParams().isCollapseByPTMs()) {
+			if (getParams().getPTMsQuantified() != null) {
+				final List<PTM> quantifiedPTMs = getParams().getPTMsQuantified();
+
+				final List<PTMInProtein> ret = new ArrayList<PTMInProtein>();
+				for (final PTMInProtein ptmInProtein : ptmsInProteins) {
+					boolean valid = false;
+					for (final PTM ptm : quantifiedPTMs) {
+						if (ptm.isEquivalent(ptmInProtein)) {
+							valid = true;
+							break;
+						}
+					}
+					if (valid) {
+						ret.add(ptmInProtein);
+					}
+				}
+				return ret;
+			}
+		}
+		return Collections.emptyList();
 	}
 
 	private void createProteinNodes() throws IOException {

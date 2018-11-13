@@ -6,6 +6,7 @@ public class MyTTest {
 	private final TTest ttestResult;
 	private final boolean useForPVAlueCorrection;
 	private Double pvalue;
+	private Double correctedPValue;
 
 	public MyTTest(TTest ttestResult, boolean useForPVAlueCorrection) {
 		this.ttestResult = ttestResult;
@@ -41,5 +42,13 @@ public class MyTTest {
 		} else {
 			pvalue = pValue;
 		}
+	}
+
+	public Double getCorrectedPValue() {
+		return correctedPValue;
+	}
+
+	public void setCorrectedPValue(Double correctedPValue) {
+		this.correctedPValue = correctedPValue;
 	}
 }

@@ -198,7 +198,8 @@ public class PropertiesReader {
 		if (properties.containsKey("collapsePeptidesByPTMs")) {
 			final String collapsePeptidesByPTMsString = properties.getProperty("collapsePeptidesByPTMs");
 			try {
-				params.setCollapseByPTMs(Boolean.valueOf(collapsePeptidesByPTMsString));
+				params.setPTMQuantified(collapsePeptidesByPTMsString);
+				log.info("Collapsing by " + params.getPTMsQuantified().size() + " ptm(s)");
 			} catch (final Exception e) {
 				throw new IllegalArgumentException("collapsePeptidesByPTMs is not recognized as '"
 						+ collapsePeptidesByPTMsString + ". Posible values are TRUE or FALSE");
