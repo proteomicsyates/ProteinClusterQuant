@@ -1761,7 +1761,8 @@ public class ProteinClusterQuant {
 		} else if (inputType == AnalysisInputType.CENSUS_OUT) {
 			return QuantificationType.SILAC;
 		} else {
-			if (QuantificationLabel.isTMT(params.getNumeratorLabel())) {
+			if (QuantificationLabel.isTMT10PLEX(params.getNumeratorLabel())
+					|| QuantificationLabel.isTMT6PLEX(params.getNumeratorLabel())) {
 				return QuantificationType.iTRAQ;
 			} else if (QuantificationLabel.isN15(params.getNumeratorLabel())) {
 				return QuantificationType.N15;
