@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.apache.commons.io.FilenameUtils;
+
 import edu.scripps.yates.census.read.util.QuantificationLabel;
 import edu.scripps.yates.pcq.model.IsobaricRatioType;
 import edu.scripps.yates.pcq.util.AnalysisInputType;
@@ -27,13 +29,13 @@ public class PropertiesReader {
 	private static final String PROPERTIES_FILE_NAME = "setup.properties";
 	private final static org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(PropertiesReader.class);
 
-	public static ProteinClusterQuantProperties readerProperties() {
+	public static ProteinClusterQuantProperties readerProperties() throws IOException {
 		final ClassLoader cl = PropertiesReader.class.getClassLoader();
 		final InputStream inputStream = cl.getResourceAsStream(PROPERTIES_FILE_NAME);
 		return readProperties(inputStream);
 	}
 
-	public static ProteinClusterQuantProperties readProperties(File setupPropertiesFile) {
+	public static ProteinClusterQuantProperties readProperties(File setupPropertiesFile) throws IOException {
 		if (setupPropertiesFile == null || !setupPropertiesFile.exists()) {
 			throw new IllegalArgumentException("setup properties file not valid or null");
 		}
@@ -41,13 +43,12 @@ public class PropertiesReader {
 			final InputStream inputStream = new FileInputStream(setupPropertiesFile);
 			final ProteinClusterQuantProperties prop = readProperties(inputStream);
 			return prop;
-		} catch (final FileNotFoundException e) {
-			e.printStackTrace();
-			throw new IllegalArgumentException(e);
+		} catch (final IOException e) {
+			throw e;
 		}
 	}
 
-	public static ProteinClusterQuantProperties readProperties(InputStream inputStream) {
+	public static ProteinClusterQuantProperties readProperties(InputStream inputStream) throws IOException {
 
 		if (inputStream == null) {
 			throw new IllegalArgumentException("input stream is null");
@@ -59,7 +60,7 @@ public class PropertiesReader {
 			return prop;
 		} catch (final IOException e) {
 			e.printStackTrace();
-			throw new IllegalArgumentException(e);
+			throw e;
 		}
 
 	}
@@ -313,7 +314,8 @@ public class PropertiesReader {
 		final String outputSuffix = properties.getProperty("outputSuffix", true);
 		params.setOutputSuffix(outputSuffix);
 		// input file folder
-		final File inputFileFolder = new File(properties.getProperty("inputFilePath", System.getProperty("user.dir")));
+		final String inputFilePathProperty = properties.getProperty("inputFilePath", System.getProperty("user.dir"));
+		final File inputFileFolder = new File(FilenameUtils.separatorsToSystem(inputFilePathProperty));
 		if (!inputFileFolder.exists()) {
 			throw new FileNotFoundException(
 					"Input file folder " + inputFileFolder.getAbsolutePath() + " doesn't exist");
@@ -328,7 +330,7 @@ public class PropertiesReader {
 		params.setTemporalOutputFolder(temporalOutputFolder);
 		if (!temporalOutputFolder.exists()) {
 			// create it
-			log.info("Creating temporal output folder at: " + outputFileFolder.getAbsolutePath());
+			log.info("Creating temporal output folder at: " + temporalOutputFolder.getAbsolutePath());
 			temporalOutputFolder.mkdirs();
 		}
 		params.setOutputFileFolder(outputFileFolder);
@@ -607,7 +609,7 @@ public class PropertiesReader {
 	 * @param trim
 	 * @return
 	 */
-	private static ExperimentFiles parseExperimentFileNames(String string) {
+	public static ExperimentFiles parseExperimentFileNames(String string) {
 		ExperimentFiles ret = null;
 		try {
 			final int firstBracketPosition = string.indexOf("[");

@@ -1,4 +1,4 @@
-package edu.scripps.yates.pcq;
+package edu.scripps.yates.pcq.quantsite;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -23,6 +23,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 
+import edu.scripps.yates.pcq.ProteinClusterQuant;
 import edu.scripps.yates.pcq.compare.model.MyTTest;
 import edu.scripps.yates.pcq.compare.model.QuantifiedSite;
 import edu.scripps.yates.pcq.compare.model.QuantifiedSiteSet;
@@ -48,11 +49,11 @@ public class QuantSiteOutputComparator {
 	private static Logger log = Logger.getLogger(QuantSiteOutputComparator.class);
 	private static Options options;
 	private static File fileOfFiles;
-	private static Map<File, String> sampleNamesByFiles = new THashMap<File, String>();
+	public static Map<File, String> sampleNamesByFiles = new THashMap<File, String>();
 	private static AppVersion version;
 	// default values
-	private static final PValueCorrectionType defaultPValueCorrectionMethod = PValueCorrectionType.BY;
-	private static final double defaultQValueThreshold = 0.05;
+	public static final PValueCorrectionType defaultPValueCorrectionMethod = PValueCorrectionType.BY;
+	public static final double defaultQValueThreshold = 0.05;
 	private static final String currentFolder = System.getProperty("user.dir");
 	private final List<File> inputFiles = new ArrayList<File>();
 	private final Double rInf;
@@ -119,16 +120,8 @@ public class QuantSiteOutputComparator {
 				if (!folder.exists()) {
 					throw new Exception("Folder '" + folder.getAbsolutePath() + "' not found");
 				}
-				final File[] files = folder.listFiles(new FilenameFilter() {
 
-					@Override
-					public boolean accept(File dir, String name) {
-						if (name.contains("peptideNodeTable")) {
-							return true;
-						}
-						return false;
-					}
-				});
+				final File[] files = folder.listFiles(getPeptideNodeFileFilter());
 				if (files.length == 0) {
 					throw new Exception("peptideNodeTable file not found at folder '" + folder.getAbsolutePath() + "'");
 				}
@@ -250,7 +243,21 @@ public class QuantSiteOutputComparator {
 
 	}
 
-	private void run() throws IOException {
+	public static FilenameFilter getPeptideNodeFileFilter() {
+		final FilenameFilter fileFilter = new FilenameFilter() {
+
+			@Override
+			public boolean accept(File dir, String name) {
+				if (name.contains("peptideNodeTable")) {
+					return true;
+				}
+				return false;
+			}
+		};
+		return fileFilter;
+	}
+
+	public void run() throws IOException {
 		QuantifiedSiteSet quantSites = null;
 		for (final File file : inputFiles) {
 			final String sampleName = getSampleNameByFile(file);
@@ -811,7 +818,7 @@ public class QuantSiteOutputComparator {
 	 *            Print the full matrix if true. Otherwise only print top left 7
 	 *            x 7 submatrix.
 	 */
-	public String printMatrix(TTestMatrix matrix, QuantifiedSite quantifiedSite, boolean printCorrectedPValues) {
+	private String printMatrix(TTestMatrix matrix, QuantifiedSite quantifiedSite, boolean printCorrectedPValues) {
 		final StringBuilder sb = new StringBuilder();
 		final int numRows = matrix.nrows();
 		final int numCols = matrix.ncols();
@@ -878,7 +885,7 @@ public class QuantSiteOutputComparator {
 	 *            Print the full matrix if true. Otherwise only print top left 7
 	 *            x 7 submatrix.
 	 */
-	public String printMatrix(NLMatrix matrix, QuantifiedSite quantifiedSite) {
+	private String printMatrix(NLMatrix matrix, QuantifiedSite quantifiedSite) {
 		final StringBuilder sb = new StringBuilder();
 		final int numRows = matrix.nrows();
 		final int numCols = matrix.ncols();

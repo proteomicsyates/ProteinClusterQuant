@@ -2,6 +2,7 @@ package edu.scripps.yates.pcq.model;
 
 import org.apache.log4j.Logger;
 
+import edu.scripps.yates.utilities.masses.AssignMass;
 import edu.scripps.yates.utilities.sequence.PTMInProtein;
 
 public class PTM {
@@ -22,6 +23,9 @@ public class PTM {
 	}
 
 	public PTM(Double massShift, char aa) {
+		if (!AssignMass.containsMass(aa)) {
+			throw new IllegalArgumentException("'" + aa + "' not recognized.");
+		}
 		this.massShift = massShift;
 		aas = new char[1];
 		aas[0] = aa;
@@ -31,14 +35,22 @@ public class PTM {
 		this.massShift = massShift;
 		aas = new char[aasString.length()];
 		int i = 0;
-		for (final char c : aasString.toCharArray()) {
-			aas[i++] = c;
+		for (final char aa : aasString.toCharArray()) {
+			if (!AssignMass.containsMass(aa)) {
+				throw new IllegalArgumentException("'" + aa + "' not recognized.");
+			}
+			aas[i++] = aa;
 		}
 	}
 
 	public PTM(Double massShift, char[] aas) {
 		this.massShift = massShift;
 		this.aas = aas;
+		for (final char aa : aas) {
+			if (!AssignMass.containsMass(aa)) {
+				throw new IllegalArgumentException("'" + aa + "' not recognized.");
+			}
+		}
 	}
 
 	public double getMassShift() {

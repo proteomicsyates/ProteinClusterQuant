@@ -120,8 +120,14 @@ public class ProteinClusterQuant {
 	private DTASelectParser idParser;
 	private Set<ProteinCluster> clusterSet;
 
-	public ProteinClusterQuant(File setupPropertiesFile) {
-		this(ProteinClusterQuantParameters.getInstance(), setupPropertiesFile);
+	public ProteinClusterQuant(File setupPropertiesFile, boolean analysisRun) throws IOException {
+		params = ProteinClusterQuantParameters.getInstance();
+		params.clear();
+		this.setupPropertiesFile = setupPropertiesFile;
+		PropertiesReader.readProperties(setupPropertiesFile);
+
+		params.setAnalysisRun(analysisRun);
+		printWelcome();
 	}
 
 	public ProteinClusterQuant(ProteinClusterQuantParameters params, File setupPropertiesFile) {
@@ -187,9 +193,8 @@ public class ProteinClusterQuant {
 				}
 				log.info("Using setup.properties file at: " + propertiesFilePath);
 				final File setupPropertiesFile = new File(propertiesFilePath);
-				PropertiesReader.readProperties(setupPropertiesFile);
-				ProteinClusterQuantParameters.getInstance().setAnalysisRun(true);
-				final ProteinClusterQuant clusterCreator = new ProteinClusterQuant(setupPropertiesFile);
+
+				final ProteinClusterQuant clusterCreator = new ProteinClusterQuant(setupPropertiesFile, true);
 				clusterCreator.run();
 			}
 		} catch (final Exception e) {
@@ -2840,5 +2845,9 @@ public class ProteinClusterQuant {
 		}
 		return version;
 
+	}
+
+	public ProteinClusterQuantParameters getParams() {
+		return params;
 	}
 }
