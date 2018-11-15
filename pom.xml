@@ -169,40 +169,7 @@
 	      <version>1.5.2</version>
 	    </dependency>
 	</dependencies>
-	<repositories>
-      <repository>
-         <releases>
-            <enabled>true</enabled>
-         </releases>
-         <snapshots>
-            <enabled>false</enabled>
-         </snapshots>
-         <id>ebi-repo</id>
-         <name>The EBI Maven 2 repository</name>
-         <url>http://www.ebi.ac.uk/~maven/m2repo</url>
-      </repository>
-      <repository>
-         <releases>
-            <enabled>false</enabled>
-         </releases>
-         <snapshots>
-            <enabled>true</enabled>
-         </snapshots>
-         <id>ebi-repo-snapshots</id>
-         <name>The EBI internal repository</name>
-         <url>http://www.ebi.ac.uk/~maven/m2repo_snapshots</url>
-      </repository>
-      <repository>
-         <id>genesis-maven2-repository</id>
-         <name>Genesis maven2 repository</name>
-         <url>http://genesis.UGent.be/maven2</url>
-      </repository>
-      <repository>
-         <id>JBoss</id>
-         <name>JBoss repository</name>
-         <url>https://repository.jboss.org/nexus/content/repositories/releases/</url>
-      </repository>
-   </repositories>
+	
 	<profiles>
       <profile>
          <id>PCQ</id>
