@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.log4j.Logger;
@@ -147,6 +148,7 @@ public class TMTQuantSiteComparator {
 			System.out.println("Program finished successfully.");
 			System.exit(0);
 		} catch (final Exception e) {
+			errorInParameters();
 			e.printStackTrace();
 			System.out.println("Program finished with some error: " + e.getMessage());
 			System.exit(-1);
@@ -241,5 +243,15 @@ public class TMTQuantSiteComparator {
 		opt10.setRequired(false);
 		options.addOption(opt10);
 
+	}
+
+	private static void errorInParameters() {
+		// automatically generate the help statement
+		final HelpFormatter formatter = new HelpFormatter();
+
+		formatter.printHelp(150, "java -jar TMTQuantSiteComparator.jar", "with the following parameters:", options,
+				"\n\nContact Salvador Martinez-Bartolome at salvador@scripps.edu for more help");
+
+		System.exit(0);
 	}
 }
