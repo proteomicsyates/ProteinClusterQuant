@@ -127,45 +127,32 @@ public class TMTPairWisePCQInputParametersGenerator {
 		log.info(
 				"Creating a PCQ parameter file for all pairwise combinations of TMT using as a base the parameter file "
 						+ baseParamFile.getAbsolutePath());
-		FileWriter fw = null;
-		final File bashScriptFile = new File(getBashPCQScriptFile());
-		try {
-			fw = new FileWriter(bashScriptFile);
 
-			final List<QuantificationLabel> labels = getLabelList();
-			for (int i = 0; i < labels.size(); i++) {
-				final QuantificationLabel labelNumerator = labels.get(i);
-				for (int j = i + 1; j < labels.size(); j++) {
-					final QuantificationLabel labelDenominator = labels.get(j);
-					final List<File> pairWiseTSVPCQInputFiles = new ArrayList<File>();
-					for (final File tmtFile : tmtFiles) {
-						final File pairWiseTSVPCQInputFile = getOutputFileForTSVData(tmtFile, labelNumerator,
-								labelDenominator);
-						if (!pairWiseTSVPCQInputFile.exists()) {
-							throw new IllegalArgumentException(
-									"File '" + pairWiseTSVPCQInputFile.getAbsolutePath() + "' has not been created");
-						}
-						pairWiseTSVPCQInputFiles.add(pairWiseTSVPCQInputFile);
-					}
-					final File parameterFile = createPCQParameterFile(pairWiseTSVPCQInputFiles, labelNumerator,
+		final List<QuantificationLabel> labels = getLabelList();
+		for (int i = 0; i < labels.size(); i++) {
+			final QuantificationLabel labelNumerator = labels.get(i);
+			for (int j = i + 1; j < labels.size(); j++) {
+				final QuantificationLabel labelDenominator = labels.get(j);
+				final List<File> pairWiseTSVPCQInputFiles = new ArrayList<File>();
+				for (final File tmtFile : tmtFiles) {
+					final File pairWiseTSVPCQInputFile = getOutputFileForTSVData(tmtFile, labelNumerator,
 							labelDenominator);
-					pcqParamtersFiles.add(parameterFile);
-					System.out.println(
-							"PCQ parameter file created: " + FilenameUtils.getName(parameterFile.getAbsolutePath()));
-					fw.write("pcq -f " + parameterFile.getAbsolutePath() + "\n");
+					if (!pairWiseTSVPCQInputFile.exists()) {
+						throw new IllegalArgumentException(
+								"File '" + pairWiseTSVPCQInputFile.getAbsolutePath() + "' has not been created");
+					}
+					pairWiseTSVPCQInputFiles.add(pairWiseTSVPCQInputFile);
 				}
-			}
-		} finally {
-			fw.close();
-		}
-		System.out.println("Bash script file created: " + FilenameUtils.getName(bashScriptFile.getAbsolutePath()));
-		return pcqParamtersFiles;
-	}
+				final File parameterFile = createPCQParameterFile(pairWiseTSVPCQInputFiles, labelNumerator,
+						labelDenominator);
+				pcqParamtersFiles.add(parameterFile);
+				System.out.println(
+						"PCQ parameter file created: " + FilenameUtils.getName(parameterFile.getAbsolutePath()));
 
-	private String getBashPCQScriptFile() {
-		final String string = baseParamFile.getParentFile().getAbsolutePath() + File.separator
-				+ FilenameUtils.getBaseName(baseParamFile.getAbsolutePath()) + "_pcq_script.sh";
-		return string;
+			}
+		}
+
+		return pcqParamtersFiles;
 	}
 
 	private File createPCQParameterFile(List<File> pairWiseTSVPCQInputFiles, QuantificationLabel labelNumerator,
