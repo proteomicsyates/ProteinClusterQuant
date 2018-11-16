@@ -172,8 +172,8 @@ public class TMTPairWisePCQInputParametersGenerator {
 		boolean containsInputFilePath = false;
 		boolean containsInputFiles = false;
 		boolean containsOutputSuffix = false;
-		final String parentPath = Paths.get(pairWiseTSVPCQInputFiles.get(0).getAbsolutePath()).toString().replace("\\",
-				"\\\\");
+		final String parentPath = Paths.get(pairWiseTSVPCQInputFiles.get(0).getAbsolutePath()).getParent()
+				.toAbsolutePath().toString().replace("\\", "\\\\");
 		String originalInputParentPath = null;
 		try {
 			log.info("Creating PCQ parameters file for TMT comparison " + labelNumerator + " vs " + labelDenominator);
