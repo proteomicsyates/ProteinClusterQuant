@@ -137,6 +137,7 @@ public class TMTPairWisePCQInputParametersGenerator {
 				for (final File tmtFile : tmtFiles) {
 					final File pairWiseTSVPCQInputFile = getOutputFileForTSVData(tmtFile, labelNumerator,
 							labelDenominator);
+					log.info("Using tsv file " + pairWiseTSVPCQInputFile.getAbsolutePath());
 					if (!pairWiseTSVPCQInputFile.exists()) {
 						throw new IllegalArgumentException(
 								"File '" + pairWiseTSVPCQInputFile.getAbsolutePath() + "' has not been created");
@@ -157,8 +158,11 @@ public class TMTPairWisePCQInputParametersGenerator {
 
 	private File createPCQParameterFile(List<File> pairWiseTSVPCQInputFiles, QuantificationLabel labelNumerator,
 			QuantificationLabel labelDenominator) throws IOException {
+		log.info("Reading base parameter file: " + baseParamFile.getAbsolutePath());
 		final List<String> paramLines = Files.readAllLines(Paths.get(baseParamFile.toURI()));
 		final File outputParamFile = getOutputFileForPCQParameters(baseParamFile, labelNumerator, labelDenominator);
+		log.info("File to be created at: " + outputParamFile.getAbsolutePath());
+
 		FileWriter fw = null;
 		boolean containsInputType = false;
 		boolean containsQuantChannels = false;
