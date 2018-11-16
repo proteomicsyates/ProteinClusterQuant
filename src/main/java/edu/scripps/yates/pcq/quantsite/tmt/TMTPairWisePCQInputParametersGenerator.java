@@ -158,6 +158,7 @@ public class TMTPairWisePCQInputParametersGenerator {
 
 	private File createPCQParameterFile(List<File> pairWiseTSVPCQInputFiles, QuantificationLabel labelNumerator,
 			QuantificationLabel labelDenominator) throws IOException {
+		log.info("Creating PCQ Parameter file for comparison: " + labelNumerator + " vs " + labelDenominator);
 		log.info("Reading base parameter file: " + baseParamFile.getAbsolutePath());
 		final List<String> paramLines = Files.readAllLines(Paths.get(baseParamFile.getAbsolutePath()));
 		log.info(paramLines.size() + " lines read from parameter file");
@@ -419,6 +420,7 @@ public class TMTPairWisePCQInputParametersGenerator {
 		fileFullPath += FilenameUtils.getBaseName(file.getAbsolutePath()) + "_" + labelNumerator.name() + "_vs_"
 				+ labelDenominator.name() + "." + extension;
 		final File ret = new File(fileFullPath);
+		log.info("file " + ret.getAbsolutePath());
 		if (!ret.getParentFile().exists()) {
 			ret.getParentFile().mkdirs();
 		}
