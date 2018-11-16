@@ -806,7 +806,6 @@ public class QuantSiteOutputComparator {
 		formatter.printHelp(150, "java -jar QuantSiteoutputComparator.jar", "with the following parameters:", options,
 				"\n\nContact Salvador Martinez-Bartolome at salvador@scripps.edu for more help");
 
-		System.exit(0);
 	}
 
 	/**
