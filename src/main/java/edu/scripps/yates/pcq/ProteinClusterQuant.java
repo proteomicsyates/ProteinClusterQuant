@@ -224,6 +224,48 @@ public class ProteinClusterQuant {
 		clusterSet = new THashSet<ProteinCluster>();
 
 		try {
+			// this has to be done when not looking for proteoforms
+			// when looking to proteoforms, the sequences are grabbed at
+			// ProteinCluster.createProteinNodes()
+			// also is done for performing ratio integrations by collapsing by
+			// sites or ptms
+			if (!params.isLookForProteoforms() || (params.isPerformRatioIntegration()
+					&& (params.isCollapseByPTMs() || params.isCollapseBySites()))) {
+				// grab all the protein sequences to then used them in the
+				// creation of peptides nodes, mapping peptides to this proteins
+				// we dont need to create the protein nodes from variants, since
+				// the protein variants should be already included in the
+				// quantifiedProteins
+				if (params.getFastaFile() != null) {
+					// using FAsta file:
+
+					log.info("Reading protein sequences from FASTA file...");
+					final FASTADBLoader loader = new FASTADBLoader();
+					loader.load(params.getFastaFile().getAbsolutePath());
+					Protein protein = null;
+					while ((protein = loader.nextProtein()) != null) {
+						final String fastaAccession = FastaParser.getACC(protein.getHeader().getRawHeader())
+								.getFirstelement();
+						// if (inputProteinAccs.contains(fastaAccession)) {
+						PCQUtils.proteinSequences.put(fastaAccession, protein.getSequence().getSequence());
+						// }
+					}
+					log.info(PCQUtils.proteinSequences.size() + " protein sequences readed from FASTA file");
+				} else {
+					log.info("Retrieving protein sequences from Uniprot...");
+					annotatedProteins = getAnnotatedProteins();
+					for (final String acc : annotatedProteins.keySet()) {
+						final Entry uniprotEntry = annotatedProteins.get(acc);
+						final String proteinSequence = UniprotEntryUtil.getProteinSequence(uniprotEntry);
+						if (proteinSequence != null && !"".equals(proteinSequence)) {
+							PCQUtils.proteinSequences.put(acc, proteinSequence);
+						}
+					}
+					log.info(PCQUtils.proteinSequences.size() + " protein sequences retrieved from Uniprot");
+
+				}
+			}
+
 			final Set<String> peptideInclusionList = getPeptideInclusionList();
 			final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
 					params.getNumeratorLabel(), params.getDenominatorLabel());
@@ -263,47 +305,6 @@ public class ProteinClusterQuant {
 			// make aligment
 			if (params.isMakeAlignments()) {
 				makePeptideAlignments(peptideList);
-			}
-			// this has to be done when not looking for proteoforms
-			// when looking to proteoforms, the sequences are grabbed at
-			// ProteinCluster.createProteinNodes()
-			// also is done for performing ratio integrations by collapsing by
-			// sites or ptms
-			if (!params.isLookForProteoforms() || (params.isPerformRatioIntegration()
-					&& (params.isCollapseByPTMs() || params.isCollapseBySites()))) {
-				// grab all the protein sequences to then used them in the
-				// creation of peptides nodes, mapping peptides to this proteins
-				// we dont need to create the protein nodes from variants, since
-				// the protein variants should be already included in the
-				// quantifiedProteins
-				if (params.getFastaFile() != null) {
-					// using FAsta file:
-
-					log.info("Reading protein sequences from FASTA file...");
-					final FASTADBLoader loader = new FASTADBLoader();
-					loader.load(params.getFastaFile().getAbsolutePath());
-					Protein protein = null;
-					while ((protein = loader.nextProtein()) != null) {
-						final String fastaAccession = FastaParser.getACC(protein.getHeader().getRawHeader())
-								.getFirstelement();
-						if (inputProteinAccs.contains(fastaAccession)) {
-							PCQUtils.proteinSequences.put(fastaAccession, protein.getSequence().getSequence());
-						}
-					}
-					log.info(PCQUtils.proteinSequences.size() + " protein sequences readed from FASTA file");
-				} else {
-					log.info("Retrieving protein sequences from Uniprot...");
-					annotatedProteins = getAnnotatedProteins();
-					for (final String acc : annotatedProteins.keySet()) {
-						final Entry uniprotEntry = annotatedProteins.get(acc);
-						final String proteinSequence = UniprotEntryUtil.getProteinSequence(uniprotEntry);
-						if (proteinSequence != null && !"".equals(proteinSequence)) {
-							PCQUtils.proteinSequences.put(acc, proteinSequence);
-						}
-					}
-					log.info(PCQUtils.proteinSequences.size() + " protein sequences retrieved from Uniprot");
-
-				}
 			}
 
 			int numClusters = 0;
@@ -662,6 +663,8 @@ public class ProteinClusterQuant {
 			if (params.isCollapseBySites()) {
 				out.write("\t" + "QuantSitePositionInPeptide" + "\t" + "QuantSitePositionInProtein(s)" + "\t"
 						+ "Quant site");
+			} else if (params.isCollapseByPTMs()) {
+				out.write("\t" + "PTMPositionInPeptide" + "\t" + "PTMPositionInProtein(s)");
 			}
 
 			final List<PCQPeptideNode> peptideNodeList = new ArrayList<PCQPeptideNode>();
@@ -731,8 +734,13 @@ public class ProteinClusterQuant {
 							.getQuantifiedSitePositionInPeptide();
 					final Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptideKeys = new THashMap<PositionInPeptide, List<PositionInProtein>>();
 					for (final QuantifiedPeptideInterface peptide : peptideNode.getItemsInNode()) {
-						proteinKeysByPeptideKeys.putAll(peptide.getProteinKeysByPeptideKeysForQuantifiedAAs(
-								params.getAaQuantified(), uplr, PCQUtils.proteinSequences));
+						if (params.isCollapseBySites()) {
+							proteinKeysByPeptideKeys.putAll(peptide.getProteinKeysByPeptideKeysForQuantifiedAAs(
+									params.getAaQuantified(), uplr, PCQUtils.proteinSequences));
+						} else {
+							proteinKeysByPeptideKeys.putAll(
+									peptide.getProteinKeysByPeptideKeysForPTMs(uplr, PCQUtils.proteinSequences));
+						}
 					}
 					final StringBuilder quantifiedSitepositionInProtein = new StringBuilder();
 
@@ -760,17 +768,26 @@ public class ProteinClusterQuant {
 
 					if (quantifiedSitePositionInPeptide == null || quantifiedSitePositionInPeptide.isEmpty()) {
 						out.write("\t");
-						if (!PCQUtils.containsAny(peptideNode.getItemsInNode().iterator().next().getSequence(),
-								params.getAaQuantified())) {
+						if (params.isCollapseBySites()
+								&& !PCQUtils.containsAny(peptideNode.getItemsInNode().iterator().next().getSequence(),
+										params.getAaQuantified())) {
+							out.write("not found\tnot found");
+						} else if (params.isCollapseByPTMs()
+								&& peptideNode.getItemsInNode().iterator().next().getPtms().isEmpty()) {
 							out.write("not found\tnot found");
 						} else {
 							out.write("ambiguous\t" + quantifiedSitepositionInProtein.toString());
 						}
-						out.write("\t" + StringUtils.getSeparatedValueStringFromChars(params.getAaQuantified(), ","));
+						if (params.isCollapseBySites()) {
+							out.write(
+									"\t" + StringUtils.getSeparatedValueStringFromChars(params.getAaQuantified(), ","));
+						}
 					} else {
 						out.write("\t" + QuantUtils.printPositionsInPeptideInOrder(quantifiedSitePositionInPeptide)
-								+ "\t" + quantifiedSitepositionInProtein.toString() + "\t"
-								+ quantRatio.getQuantifiedAA());
+								+ "\t" + quantifiedSitepositionInProtein.toString());
+						if (params.isCollapseBySites()) {
+							out.write("\t" + quantRatio.getQuantifiedAA());
+						}
 					}
 				}
 
