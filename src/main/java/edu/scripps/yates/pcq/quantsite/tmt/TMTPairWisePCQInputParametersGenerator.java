@@ -115,6 +115,7 @@ public class TMTPairWisePCQInputParametersGenerator {
 	 * @throws IOException
 	 */
 	public List<File> run() throws IOException {
+		log.info("Running " + getClass().getCanonicalName());
 		final List<File> pcqParamtersFiles = new ArrayList<File>();
 		labelsByConditions = generateLabelsByConditions();
 
@@ -123,6 +124,9 @@ public class TMTPairWisePCQInputParametersGenerator {
 			createPairWiseTMTTSVFiles(tmtFile);
 		}
 		// now create a parameter file per pairwise comparison of labels
+		log.info(
+				"Creating a PCQ parameter file for all pairwise combinations of TMT using as a base the parameter file "
+						+ baseParamFile.getAbsolutePath());
 		FileWriter fw = null;
 		final File bashScriptFile = new File(getBashPCQScriptFile());
 		try {
@@ -177,6 +181,7 @@ public class TMTPairWisePCQInputParametersGenerator {
 		final String parentPath = pairWiseTSVPCQInputFiles.get(0).getParent().replace("\\", "\\\\");
 		String originalInputParentPath = null;
 		try {
+			log.info("Creating PCQ parameters file for TMT comparison " + labelNumerator + " vs " + labelDenominator);
 
 			fw = new FileWriter(outputParamFile);
 			for (final String paramLine : paramLines) {
@@ -216,6 +221,8 @@ public class TMTPairWisePCQInputParametersGenerator {
 					fw.write("\n");
 				}
 			}
+			log.info("PCQ parameters file created for TMT comparison " + labelNumerator + " vs " + labelDenominator);
+
 			return outputParamFile;
 		} finally {
 			if (!containsInputType) {
@@ -306,6 +313,8 @@ public class TMTPairWisePCQInputParametersGenerator {
 	}
 
 	private void createPairWiseTMTTSVFiles(File tmtFile) throws IOException {
+		log.info("Creating data file (TSV format) for all pairwise combinations of TMT in file "
+				+ tmtFile.getAbsolutePath());
 		final CensusOutParser parser = new CensusOutParser(tmtFile, labelsByConditions, null, null);
 		final List<String> psmKeys = new ArrayList<String>();
 		psmKeys.addAll(parser.getPSMMap().keySet());
@@ -316,6 +325,7 @@ public class TMTPairWisePCQInputParametersGenerator {
 			final QuantificationLabel labelNumerator = labels.get(i);
 			for (int j = i + 1; j < labels.size(); j++) {
 				final QuantificationLabel labelDenominator = labels.get(j);
+				log.info("Creating data file (TSV format) for " + labelNumerator + " vs " + labelDenominator);
 
 				final File outputTSVFile = getOutputFileForTSVData(tmtFile, labelNumerator, labelDenominator);
 				FileWriter fw = null;
@@ -362,6 +372,7 @@ public class TMTPairWisePCQInputParametersGenerator {
 							fw.write("\n");
 						}
 					}
+					log.info("Data file (TSV format) for " + labelNumerator + " vs " + labelDenominator + " created");
 				} finally {
 					if (fw != null) {
 						fw.close();
