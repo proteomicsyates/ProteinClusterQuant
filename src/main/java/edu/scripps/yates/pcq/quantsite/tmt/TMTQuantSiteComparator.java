@@ -27,11 +27,11 @@ public class TMTQuantSiteComparator {
 	private final static Logger log = Logger.getLogger(TMTQuantSiteComparator.class);
 	private static Options options;
 	private static AppVersion version;
-	private File paramFile;
-	private List<File> tmtFiles;
-	private String tmtType;
+	private final File paramFile;
+	private final List<File> tmtFiles;
+	private final String tmtType;
 	private double rInf;
-	private String outputFileName;
+	private final String outputFileName;
 	private PValueCorrectionType pValueCorrectionType;
 	private double qValueThreshold;
 	private int numberSigmas;
@@ -143,7 +143,8 @@ public class TMTQuantSiteComparator {
 
 			final List<File> tmtFiles = Files.readAllLines(Paths.get(inputFiles.toURI())).stream()
 					.map(fullPath -> new File(fullPath)).collect(Collectors.toList());
-			final TMTQuantSiteComparator runner = new TMTQuantSiteComparator(paramFile, tmtFiles, tmtType);
+			final TMTQuantSiteComparator runner = new TMTQuantSiteComparator(paramFile, tmtFiles, tmtType,
+					outputFileName);
 			runner.run();
 			System.out.println("Program finished successfully.");
 			System.exit(0);
@@ -157,7 +158,7 @@ public class TMTQuantSiteComparator {
 
 	private void run() throws IOException {
 		final TMTPairWisePCQInputParametersGenerator pcqInputParamtersGenerator = new TMTPairWisePCQInputParametersGenerator(
-				paramFile, tmtFiles, tmtType);
+				paramFile, tmtFiles, tmtType, outputFileName);
 		final List<File> pcqParameters = pcqInputParamtersGenerator.run();
 		final PCQBatchRunner pcqBatchRunner = new PCQBatchRunner(pcqParameters);
 		final Map<String, File> outputFolders = pcqBatchRunner.run();
@@ -185,14 +186,12 @@ public class TMTQuantSiteComparator {
 		return ret;
 	}
 
-	public TMTQuantSiteComparator(File paramFile, List<File> tmtFiles, String tmtType) throws IOException {
+	public TMTQuantSiteComparator(File paramFile, List<File> tmtFiles, String tmtType, String outputFileName)
+			throws IOException {
 		this.paramFile = paramFile;
 		this.tmtFiles = tmtFiles;
 		this.tmtType = tmtType;
-	}
-
-	public TMTQuantSiteComparator(Map<String, File> pcqPeptideNodesPerSiteOutputFiles) {
-
+		this.outputFileName = outputFileName;
 	}
 
 	private static void setupCommandLineOptions() {

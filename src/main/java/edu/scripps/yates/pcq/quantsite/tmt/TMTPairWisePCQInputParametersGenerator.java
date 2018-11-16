@@ -52,15 +52,18 @@ public class TMTPairWisePCQInputParametersGenerator {
 	private final List<File> tmtFiles;
 	private final String tmtType;
 	private Map<QuantCondition, QuantificationLabel> labelsByConditions;
+	private final String outputFileName;
 	public final static String TMT10PLEX = "10PLEX";
 	public final static String TMT6PLEX = "6PLEX";
 	private static final String TMT_DATA_FILES = "tmt_pairwise_data_files";
 	private static final String PCQ_PARAMETERS = "pcq_parameters";
 
-	public TMTPairWisePCQInputParametersGenerator(File paramFile, List<File> tmtFiles, String tmtType) {
+	public TMTPairWisePCQInputParametersGenerator(File paramFile, List<File> tmtFiles, String tmtType,
+			String outputFileName) {
 		baseParamFile = paramFile;
 		this.tmtFiles = tmtFiles;
 		this.tmtType = tmtType;
+		this.outputFileName = outputFileName;
 	}
 
 	public static void main(String[] args) {
@@ -81,10 +84,11 @@ public class TMTPairWisePCQInputParametersGenerator {
 				throw new IllegalArgumentException("Invalid value for tmt parameter: '" + tmtType
 						+ "'. Valid values are " + TMT10PLEX + " or " + TMT6PLEX + " in tmt parameter");
 			}
+			final String outputFileName = cmd.getOptionValue("out");
 			final List<File> tmtFiles = Files.readAllLines(Paths.get(inputFiles.toURI())).stream()
 					.map(fullPath -> new File(fullPath)).collect(Collectors.toList());
 			final TMTPairWisePCQInputParametersGenerator script = new TMTPairWisePCQInputParametersGenerator(paramFile,
-					tmtFiles, tmtType);
+					tmtFiles, tmtType, outputFileName);
 			script.run();
 			System.exit(0);
 		} catch (final Exception e) {
