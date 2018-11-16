@@ -409,16 +409,21 @@ public class TMTPairWisePCQInputParametersGenerator {
 
 	private File getOutputFile(File file, String folder, QuantificationLabel labelNumerator,
 			QuantificationLabel labelDenominator, String extension) {
+		log.info("Returning file for creation, using: " + file.getAbsolutePath() + ", folder: " + folder + ", "
+				+ labelNumerator + " vs " + labelDenominator + ", extension: " + extension);
 		String basefolder = file.getAbsolutePath();
 		if (file.isFile()) {
 			basefolder = file.getParentFile().getAbsolutePath();
 		}
+		log.info("base folder: " + basefolder);
 		String fileFullPath = basefolder + File.separator;
 		if (folder != null && !"".equals(folder)) {
 			fileFullPath += folder + File.separator;
 		}
+		log.info("fileFullPath: " + fileFullPath);
 		fileFullPath += FilenameUtils.getBaseName(file.getAbsolutePath()) + "_" + labelNumerator.name() + "_vs_"
 				+ labelDenominator.name() + "." + extension;
+		log.info("fileFullPath: " + fileFullPath);
 		final File ret = new File(fileFullPath);
 		log.info("file " + ret.getAbsolutePath());
 		if (!ret.getParentFile().exists()) {
