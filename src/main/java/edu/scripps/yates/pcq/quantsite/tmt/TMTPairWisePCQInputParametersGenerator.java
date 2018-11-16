@@ -419,10 +419,7 @@ public class TMTPairWisePCQInputParametersGenerator {
 				+ labelNumerator + " vs " + labelDenominator + ", extension: " + extension);
 		String basefolder = file.getAbsolutePath();
 		if (file.isFile()) {
-			if (file.getParentFile() != null) {
-				basefolder = file.getParentFile().getAbsolutePath();
-			}
-			basefolder = Paths.get(file.getAbsolutePath()).getParent().getFileName().toString();
+			basefolder = Paths.get(file.getAbsolutePath()).getParent().toAbsolutePath().toString();
 		}
 		log.info("base folder: " + basefolder);
 		String fileFullPath = basefolder + File.separator;
