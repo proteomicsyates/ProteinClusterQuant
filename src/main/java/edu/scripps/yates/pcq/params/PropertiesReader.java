@@ -212,7 +212,7 @@ public class PropertiesReader {
 		}
 		if (properties.containsKey("maxNumPTMsPerProtein")) {
 			if (params.isCollapseByPTMs()) {
-				final String maxNumPTMsPerProteinString = properties.getProperty("maxNumPTMsPerProtein ");
+				final String maxNumPTMsPerProteinString = properties.getProperty("maxNumPTMsPerProtein");
 				try {
 					final Integer max = Integer.valueOf(maxNumPTMsPerProteinString);
 					if (max < 0) {
