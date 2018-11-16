@@ -172,7 +172,8 @@ public class TMTPairWisePCQInputParametersGenerator {
 		boolean containsInputFilePath = false;
 		boolean containsInputFiles = false;
 		boolean containsOutputSuffix = false;
-		final String parentPath = pairWiseTSVPCQInputFiles.get(0).getParent().replace("\\", "\\\\");
+		final String parentPath = Paths.get(pairWiseTSVPCQInputFiles.get(0).getAbsolutePath()).toString().replace("\\",
+				"\\\\");
 		String originalInputParentPath = null;
 		try {
 			log.info("Creating PCQ parameters file for TMT comparison " + labelNumerator + " vs " + labelDenominator);
@@ -206,8 +207,9 @@ public class TMTPairWisePCQInputParametersGenerator {
 						fw.write("outputSuffix = " + suffix);
 						containsOutputSuffix = true;
 					} else if (isInputIDFiles(paramLine)) {
-						// move input ID files
-						moveInputIDFiles(paramLine, new File(originalInputParentPath));
+						// copy input ID files
+						copyInputIDFiles(paramLine, new File(originalInputParentPath), labelNumerator,
+								labelDenominator);
 					} else {
 						fw.write(paramLine);
 					}
@@ -246,7 +248,8 @@ public class TMTPairWisePCQInputParametersGenerator {
 
 	}
 
-	private void moveInputIDFiles(String paramLine, File originalInputFileFolder) throws IOException {
+	private void copyInputIDFiles(String paramLine, File originalInputFileFolder, QuantificationLabel labelNumerator,
+			QuantificationLabel labelDenominator) throws IOException {
 		final String fileNamesString = paramLine.split("=")[1].trim();
 		if (fileNamesString != null) {
 			final List<ExperimentFiles> expFiles = new ArrayList<ExperimentFiles>();
@@ -265,8 +268,11 @@ public class TMTPairWisePCQInputParametersGenerator {
 			for (final ExperimentFiles experimentFiles : expFiles) {
 				final List<String> files = experimentFiles.getRelicateFileNames();
 				for (final String file : files) {
-					final File destFile = new File(originalInputFileFolder.getAbsolutePath() + File.separator
-							+ TMT_DATA_FILES + File.separator + FilenameUtils.getName(file));
+					final File tsvDataFile = getOutputFileForTSVData(originalInputFileFolder, labelNumerator,
+							labelDenominator);
+					final String path = Paths.get(tsvDataFile.getAbsolutePath()).getParent().toString();
+					final File destFile = new File(path + File.separator + FilenameUtils.getName(file));
+
 					final File originFile = new File(
 							originalInputFileFolder.getAbsolutePath() + File.separator + FilenameUtils.getName(file));
 
