@@ -119,6 +119,7 @@ public class ProteinClusterQuant {
 	private final Map<String, Set<String>> nonModifiedToModifiedMap = new THashMap<String, Set<String>>();
 	private DTASelectParser idParser;
 	private Set<ProteinCluster> clusterSet;
+	private boolean createXGMMLFile = true;
 
 	public ProteinClusterQuant(File setupPropertiesFile, boolean analysisRun) throws IOException {
 		params = ProteinClusterQuantParameters.getInstance();
@@ -419,8 +420,9 @@ public class ProteinClusterQuant {
 			printPSEAQuantFiles(clusterSet);
 
 			// export to XGMML format
-			exportToXGMML(clusterSet);
-
+			if (createXGMMLFile) {
+				exportToXGMML(clusterSet);
+			}
 			// export discarded Peptides
 			printDiscardedPeptides();
 
@@ -658,8 +660,8 @@ public class ProteinClusterQuant {
 			out.write(QuantifiedSite.NODE_KEY + "\t" + "Raw file " + "\t" + "Unique" + "\t"
 					+ QuantifiedSite.NUMMEASUREMENTS + "\t" + QuantifiedSite.NUMPSMS + "\t" + QuantifiedSite.NUMPEPTIDES
 					+ "\t" + QuantifiedSite.SEQUENCE + "\t" + "Protein(s)" + "\t" + "Genes" + "\t" + "Species" + "\t"
-					+ "Ratio Name" + "\t" + QuantifiedSite.LOG2RATIO + "\t" + "Ratio Score Name" + "\t"
-					+ QuantifiedSite.RATIOSCOREVALUE);
+					+ "Ratio Name" + "\t" + QuantifiedSite.LOG2RATIO + "\t" + QuantifiedSite.STDEV + "\t"
+					+ "Ratio Score Name" + "\t" + QuantifiedSite.RATIOSCOREVALUE);
 			if (params.isCollapseBySites()) {
 				out.write("\t" + "QuantSitePositionInPeptide" + "\t" + "QuantSitePositionInProtein(s)" + "\t"
 						+ "Quant site");
@@ -714,6 +716,10 @@ public class ProteinClusterQuant {
 						+ "\t" + peptideNode.getFullSequence() + "\t" + accessionString + "\t" + geneNameString + "\t"
 						+ speciesString + "\t" + quantRatio.getDescription() + "\t"
 						+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)));
+				// STDEV of the ratio
+				out.write(quantRatio.getStandardDeviationOfLog2Ratios() + "\t");
+
+				// score of the ratio
 				if (quantRatio.getAssociatedConfidenceScore() != null) {
 					out.write("\t" + quantRatio.getAssociatedConfidenceScore().getScoreName() + "\t" + PCQUtils
 							.escapeInfinity(Double.valueOf(quantRatio.getAssociatedConfidenceScore().getValue())));
@@ -2866,5 +2872,13 @@ public class ProteinClusterQuant {
 
 	public ProteinClusterQuantParameters getParams() {
 		return params;
+	}
+
+	public boolean isCreateXGMMLFile() {
+		return createXGMMLFile;
+	}
+
+	public void setCreateXGMMLFile(boolean createXGMMLFile) {
+		this.createXGMMLFile = createXGMMLFile;
 	}
 }

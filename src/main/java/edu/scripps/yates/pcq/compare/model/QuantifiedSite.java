@@ -28,17 +28,18 @@ public class QuantifiedSite {
 	public static final String SEQUENCE = "Sequence";
 	public static final String LOG2RATIO = "Log2Ratio";
 	public static final String RATIOSCOREVALUE = "Ratio Score Value";
+	public static final String STDEV = "Ratio STDEV";
 	public static final String NUMPSMS = "Num PSMs";
 	public static final String NUMPEPTIDES = "Num Peptides";
 	public static final String NUMMEASUREMENTS = "Num Measurements";
 	public static final String PROTEINS = "Protein(s)";
 	public static final String GENES = "Genes";
-	public static final String POSITIONSINPEPTIDE = "QuantSitePositionInPeptide";
+	public static final String QUANTPOSITIONSINPEPTIDE = "QuantSitePositionInPeptide";
 
 	private final String nodeKey;
 	private final String sequence;
 	private final TDoubleArrayList log2Ratio = new TDoubleArrayList();
-	private final TDoubleArrayList ratioScoreValue = new TDoubleArrayList();
+	private final TDoubleArrayList ratioStdevs = new TDoubleArrayList();
 	private final TIntArrayList numPSMs = new TIntArrayList();
 	private final TIntArrayList numPeptides = new TIntArrayList();;
 	private final TIntArrayList numMeasurements = new TIntArrayList();;
@@ -71,15 +72,18 @@ public class QuantifiedSite {
 		} else {
 			log2Ratio.add(Double.NaN);
 		}
-		String ratioScoreValueString = split[indexesByHeaders.get(RATIOSCOREVALUE)];
-		if (ratioScoreValueString.startsWith("'")) {
-			ratioScoreValueString = ratioScoreValueString.substring(1);
+
+		// stdev
+		String stdevString = split[indexesByHeaders.get(STDEV)];
+		if (stdevString.startsWith("'")) {
+			stdevString = stdevString.substring(1);
 		}
-		if (!"".equals(ratioScoreValueString)) {
-			ratioScoreValue.add(Double.valueOf(ratioScoreValueString));
+		if (!"".equals(stdevString)) {
+			ratioStdevs.add(Double.valueOf(stdevString));
 		} else {
-			ratioScoreValue.add(Double.NaN);
+			ratioStdevs.add(Double.NaN);
 		}
+
 		numPSMs.add(Integer.valueOf(split[indexesByHeaders.get(NUMPSMS)]));
 		numPeptides.add(Integer.valueOf(split[indexesByHeaders.get(NUMPEPTIDES)]));
 		if (indexesByHeaders.containsKey(NUMMEASUREMENTS)) {
@@ -87,8 +91,13 @@ public class QuantifiedSite {
 		} else {
 			numMeasurements.add(0);
 		}
-		final String positionsInPeptideString = split[indexesByHeaders.get(POSITIONSINPEPTIDE)];
-		positionsInPeptide.addAll(PositionInPeptide.parseStringToPositionInPeptide(positionsInPeptideString, "-"));
+		String positionsInPeptideString = null;
+		if (indexesByHeaders.contains(QUANTPOSITIONSINPEPTIDE)) {
+			positionsInPeptideString = split[indexesByHeaders.get(QUANTPOSITIONSINPEPTIDE)];
+		}
+		if (positionsInPeptideString != null) {
+			positionsInPeptide.addAll(PositionInPeptide.parseStringToPositionInPeptide(positionsInPeptideString, "-"));
+		}
 		proteins = split[indexesByHeaders.get(PROTEINS)];
 		genes = split[indexesByHeaders.get(GENES)];
 	}
@@ -118,8 +127,12 @@ public class QuantifiedSite {
 		return log2Ratio.get(index);
 	}
 
-	public Double getRatioScoreValue(int index) {
-		return ratioScoreValue.get(index);
+	public Double getRatioStdev(int index) {
+		return ratioStdevs.get(index);
+	}
+
+	public void addRatioStdev(Double stdev) {
+		ratioStdevs.add(stdev);
 	}
 
 	public int getNumPSMs(int index) {
@@ -136,10 +149,6 @@ public class QuantifiedSite {
 
 	public void addLog2Ratio(Double log2Ratio2) {
 		log2Ratio.add(log2Ratio2);
-	}
-
-	public void addRatioScoreValue(Double ratioScoreValue2) {
-		ratioScoreValue.add(ratioScoreValue2);
 	}
 
 	public void addNumPSMs(int numPSMs2) {

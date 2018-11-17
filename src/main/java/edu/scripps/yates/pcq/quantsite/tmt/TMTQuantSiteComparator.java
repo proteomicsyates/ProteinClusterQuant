@@ -157,14 +157,17 @@ public class TMTQuantSiteComparator {
 	}
 
 	private void run() throws IOException {
+		// get PCQ parameters and pairwise ratio files
 		final TMTPairWisePCQInputParametersGenerator pcqInputParamtersGenerator = new TMTPairWisePCQInputParametersGenerator(
 				paramFile, tmtFiles, tmtType, outputFileName);
-		final List<File> pcqParameters = pcqInputParamtersGenerator.run();
+		final Map<String, File> pcqParameters = pcqInputParamtersGenerator.run();
+		// run pcq in batch
 		final PCQBatchRunner pcqBatchRunner = new PCQBatchRunner(pcqParameters);
 		final Map<String, File> outputFolders = pcqBatchRunner.run();
-		final List<File> pcqOutputQuantPerSiteFileMap = getPCQOutputQuantPerSiteFileMap(outputFolders);
-
-		final QuantSiteOutputComparator comparator = new QuantSiteOutputComparator(pcqOutputQuantPerSiteFileMap, rInf,
+		// grab pcq outputs
+		final List<File> pcqOutputQuantPerSiteFileList = getPCQOutputQuantPerSiteFileMap(outputFolders);
+		// use them for quant site output
+		final QuantSiteOutputComparator comparator = new QuantSiteOutputComparator(pcqOutputQuantPerSiteFileList, rInf,
 				outputFileName, pValueCorrectionType, qValueThreshold, numberSigmas, minNumberOfDiscoveries);
 		comparator.run();
 
@@ -181,6 +184,7 @@ public class TMTQuantSiteComparator {
 			}
 			ret.add(listFiles[0]);
 			// not proud of this use of static: but it is ok
+			// this will be used then in quantsiteoutputcomparator
 			QuantSiteOutputComparator.sampleNamesByFiles.put(listFiles[0], expName);
 		}
 		return ret;

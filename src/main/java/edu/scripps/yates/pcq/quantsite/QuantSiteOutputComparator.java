@@ -262,10 +262,10 @@ public class QuantSiteOutputComparator {
 		for (final File file : inputFiles) {
 			final String sampleName = getSampleNameByFile(file);
 			if (quantSites == null) {
-				quantSites = readFile(file);
+				quantSites = readPCQOutputFile(file);
 				quantSites.addSampleName(sampleName);
 			} else {
-				final QuantifiedSiteSet quantSites2 = readFile(file);
+				final QuantifiedSiteSet quantSites2 = readPCQOutputFile(file);
 				final List<String> sampleNames = quantSites.getSampleNames();
 				quantSites = mergeQuantifiedSiteSets(quantSites, quantSites2);
 				for (final String sampleName2 : sampleNames) {
@@ -515,12 +515,12 @@ public class QuantSiteOutputComparator {
 		for (int index = 0; index < mergedQuantSites.getNumExperiments(); index++) {
 			final int num = index + 1;
 			fw.write(QuantifiedSite.LOG2RATIO + "_" + num + "\t");
-			fw.write(QuantifiedSite.RATIOSCOREVALUE + "_" + num + "\t");
+			fw.write(QuantifiedSite.STDEV + "_" + num + "\t");
 			// fw.write(QuantifiedSite.NUMPSMS + "_" + (index + 1) + "\t");
 			fw.write(QuantifiedSite.NUMMEASUREMENTS + "_" + num + "\t");
 		}
 		fw.write(QuantifiedSite.SEQUENCE + "\t");
-		fw.write(QuantifiedSite.POSITIONSINPEPTIDE + "\t");
+		fw.write(QuantifiedSite.QUANTPOSITIONSINPEPTIDE + "\t");
 		fw.write(QuantifiedSite.PROTEINS + "\t");
 		fw.write(QuantifiedSite.GENES + "\t");
 		fw.write("# discoveries (q-value < " + qValueThreshold + ")\t");
@@ -541,7 +541,7 @@ public class QuantSiteOutputComparator {
 				final Double log2Ratio = replaceInfiniteWithRInfParameter(quantifiedSite.getLog2Ratio(index), rInf);
 				fw.write(log2Ratio + "\t");
 				final int numMeasurements = quantifiedSite.getNumMeasurements(index);
-				Double stdev = quantifiedSite.getRatioScoreValue(index);
+				Double stdev = quantifiedSite.getRatioStdev(index);
 				if (numMeasurements <= 1) {
 					stdev = Double.NaN;
 				}
@@ -601,9 +601,9 @@ public class QuantSiteOutputComparator {
 		}
 		final double mean1 = quantSite.getLog2Ratio(sampleIndex1);
 		final double mean2 = quantSite.getLog2Ratio(sampleIndex2);
-		final double stdev1 = quantSite.getRatioScoreValue(sampleIndex1);
+		final double stdev1 = quantSite.getRatioStdev(sampleIndex1);
 		final double var1 = Math.pow(stdev1, 2);
-		final double stdev2 = quantSite.getRatioScoreValue(sampleIndex2);
+		final double stdev2 = quantSite.getRatioStdev(sampleIndex2);
 		final double var2 = Math.pow(stdev2, 2);
 		final int n1 = quantSite.getNumMeasurements(sampleIndex1);
 		final int n2 = quantSite.getNumMeasurements(sampleIndex2);
@@ -713,7 +713,7 @@ public class QuantSiteOutputComparator {
 				quantSite1.addNumMeasurements(quantSite2.getNumMeasurements(0));
 				quantSite1.addNumPeptides(quantSite2.getNumPeptides(0));
 				quantSite1.addNumPSMs(quantSite2.getNumPSMs(0));
-				quantSite1.addRatioScoreValue(quantSite2.getRatioScoreValue(0));
+				quantSite1.addRatioStdev(quantSite2.getRatioStdev(0));
 				quantSite1.getPositionsInPeptide().addAll(quantSite2.getPositionsInPeptide());
 				ret.add(quantSite1);
 			}
@@ -724,7 +724,10 @@ public class QuantSiteOutputComparator {
 		return ret;
 	}
 
-	private QuantifiedSiteSet readFile(File inputFile) throws IOException {
+	/**
+	 * Reads PCQ output file
+	 */
+	private QuantifiedSiteSet readPCQOutputFile(File inputFile) throws IOException {
 		int numLine = 1;
 		String line = null;
 		try {

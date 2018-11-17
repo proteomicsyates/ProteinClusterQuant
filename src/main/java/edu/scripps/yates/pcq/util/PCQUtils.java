@@ -2552,6 +2552,7 @@ public class PCQUtils {
 			if (stdev != null) {
 				censusRatio.setRatioScore(new RatioScore(String.valueOf(stdev), "STDEV", "Standard deviation of ratios",
 						"Standard deviation of the ratios averaged"));
+				censusRatio.setStandardDeviationOfLog2Ratio(stdev);
 			}
 
 			return censusRatio;
@@ -2603,6 +2604,7 @@ public class PCQUtils {
 			if (stdev != null) {
 				censusRatio.setRatioScore(new RatioScore(String.valueOf(stdev), "STDEV", "Standard deviation of ratios",
 						"Standard deviation of the ratios averaged"));
+				censusRatio.setStandardDeviationOfLog2Ratio(stdev);
 			}
 			if (!positionsInPeptide.isEmpty()) {
 				for (final PositionInPeptide positionInPeptide : positionsInPeptide) {
@@ -2656,6 +2658,7 @@ public class PCQUtils {
 			if (stdev != null) {
 				censusRatio.setRatioScore(new RatioScore(String.valueOf(stdev), "STDEV", "Standard deviation of ratios",
 						"Standard deviation of the ratios averaged"));
+				censusRatio.setStandardDeviationOfLog2Ratio(stdev);
 			}
 			return censusRatio;
 		}
