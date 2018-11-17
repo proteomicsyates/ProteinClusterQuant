@@ -420,7 +420,7 @@ public class QuantSiteOutputComparator {
 				nums.add(numDiscoveries);
 
 				// independent file with the matrix
-				final File individualMatrixFile = File.createTempFile(quantifiedSite.getNodeKey(), "tmp");
+				final File individualMatrixFile = File.createTempFile("node", "tmp");
 				individualMatrixFile.deleteOnExit();
 				if (numDiscoveries > 0 && numDiscoveries >= minNumberOfDiscoveries) {
 					final FileWriter individualMatrixFileWriter = new FileWriter(individualMatrixFile);
