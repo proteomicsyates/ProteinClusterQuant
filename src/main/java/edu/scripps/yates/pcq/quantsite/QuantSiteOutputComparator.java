@@ -420,11 +420,13 @@ public class QuantSiteOutputComparator {
 				nums.add(numDiscoveries);
 
 				// independent file with the matrix
-				final File individualMatrixFile = getIndividualMatrixFile(numDiscoveries, quantifiedSite.getNodeKey());
+				final File individualMatrixFile = File.createTempFile(quantifiedSite.getNodeKey(), "tmp");
+				individualMatrixFile.deleteOnExit();
 				if (numDiscoveries > 0 && numDiscoveries >= minNumberOfDiscoveries) {
 					final FileWriter individualMatrixFileWriter = new FileWriter(individualMatrixFile);
 					individualMatrixFileWriter.write(printMatrix(matrixOfTTests, quantifiedSite, true));
 					individualMatrixFileWriter.close();
+
 					for (int i = 0; i < numSamples; i++) {
 						for (int j = i + 1; j < numSamples; j++) {
 							final double pvalue = matrixOfTTests.get(i, j).getCorrectedPValue();
