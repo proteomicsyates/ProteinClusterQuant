@@ -715,7 +715,7 @@ public class ProteinClusterQuant {
 						+ peptideNode.getQuantifiedPSMs().size() + "\t" + peptideNode.getQuantifiedPeptides().size()
 						+ "\t" + peptideNode.getFullSequence() + "\t" + accessionString + "\t" + geneNameString + "\t"
 						+ speciesString + "\t" + quantRatio.getDescription() + "\t"
-						+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)));
+						+ PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2)) + "\t");
 				// STDEV of the ratio
 				out.write(quantRatio.getStandardDeviationOfLog2Ratios() + "\t");
 
