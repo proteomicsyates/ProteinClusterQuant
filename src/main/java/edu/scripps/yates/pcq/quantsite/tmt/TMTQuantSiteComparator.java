@@ -30,12 +30,12 @@ public class TMTQuantSiteComparator {
 	private final File paramFile;
 	private final List<File> tmtFiles;
 	private final String tmtType;
-	private double rInf;
+	private final double rInf;
 	private final String outputFileName;
-	private PValueCorrectionType pValueCorrectionType;
-	private double qValueThreshold;
-	private int numberSigmas;
-	private int minNumberOfDiscoveries;
+	private final PValueCorrectionType pValueCorrectionType;
+	private final double qValueThreshold;
+	private final int numberSigmas;
+	private final int minNumberOfDiscoveries;
 
 	public static void main(String[] args) {
 		version = ProteinClusterQuant.getVersion();
@@ -143,8 +143,8 @@ public class TMTQuantSiteComparator {
 
 			final List<File> tmtFiles = Files.readAllLines(Paths.get(inputFiles.toURI())).stream()
 					.map(fullPath -> new File(fullPath)).collect(Collectors.toList());
-			final TMTQuantSiteComparator runner = new TMTQuantSiteComparator(paramFile, tmtFiles, tmtType,
-					outputFileName);
+			final TMTQuantSiteComparator runner = new TMTQuantSiteComparator(paramFile, tmtFiles, tmtType, rInf,
+					outputFileName, pValueCorrectionType, qValueThreshold, numberSigmas, minNumberOfDiscoveries);
 			runner.run();
 			System.out.println("Program finished successfully.");
 			System.exit(0);
@@ -190,12 +190,18 @@ public class TMTQuantSiteComparator {
 		return ret;
 	}
 
-	public TMTQuantSiteComparator(File paramFile, List<File> tmtFiles, String tmtType, String outputFileName)
-			throws IOException {
+	public TMTQuantSiteComparator(File paramFile, List<File> tmtFiles, String tmtType, double rInf,
+			String outputFileName, PValueCorrectionType pValueCorrectionType, double qValueThreshold, int numberSigmas,
+			int minNumberOfDiscoveries) throws IOException {
 		this.paramFile = paramFile;
 		this.tmtFiles = tmtFiles;
 		this.tmtType = tmtType;
 		this.outputFileName = outputFileName;
+		this.pValueCorrectionType = pValueCorrectionType;
+		this.minNumberOfDiscoveries = minNumberOfDiscoveries;
+		this.numberSigmas = numberSigmas;
+		this.qValueThreshold = qValueThreshold;
+		this.rInf = rInf;
 	}
 
 	private static void setupCommandLineOptions() {
