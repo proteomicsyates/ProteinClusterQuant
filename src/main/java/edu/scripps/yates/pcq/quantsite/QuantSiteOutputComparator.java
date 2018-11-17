@@ -608,7 +608,7 @@ public class QuantSiteOutputComparator {
 		final int n1 = quantSite.getNumMeasurements(sampleIndex1);
 		final int n2 = quantSite.getNumMeasurements(sampleIndex2);
 
-		if (n1 < 2 || n2 < 2 || stdev1 == Double.NaN || stdev2 == Double.NaN) {
+		if (n1 < 2 || n2 < 2 || Double.isNaN(stdev1) || Double.isNaN(stdev2)) {
 			return new MyTTest(Double.NaN, false);
 		}
 		if ((Double.isInfinite(mean1) && Double.isInfinite(mean2))) {
