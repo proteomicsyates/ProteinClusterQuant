@@ -2294,7 +2294,7 @@ public class PCQUtils {
 	}
 
 	public static Double stdevOfRatiosTakingIntoAccountInfinitiesAndNans(Collection<QuantRatio> ratios,
-			QuantCondition cond1, QuantCondition cond2) {
+			QuantCondition cond1, QuantCondition cond2, boolean useMayorityRule) {
 		final List<Double> ratioValues = new ArrayList<Double>();
 		for (final QuantRatio ratio : ratios) {
 			if (ratio != null) {
@@ -2310,26 +2310,101 @@ public class PCQUtils {
 				|| areAll(-Double.MAX_VALUE, ratioValues);
 		if (areInfinities) {
 			// return it (we assume is only one sign of the infinities here
-			return 0.0;
+			return ratioValues.iterator().next();
 		} else {
 			// if they are all Nan,return nan
 			if (areAll(Double.NaN, ratioValues)) {
 				return Double.NaN;
 			}
-			// return an average of the non infinities
-			final TDoubleArrayList nonInfinityNonNanValues = new TDoubleArrayList();
-			for (final Double ratioValue : ratioValues) {
-				if (!ratioValue.isInfinite() && !ratioValue.isNaN()) {
-					nonInfinityNonNanValues.add(ratioValue);
+			if (!useMayorityRule) {
+				// return an average of the non infinities
+				final TDoubleArrayList nonInfinityNonNanValues = new TDoubleArrayList();
+				for (final Double ratioValue : ratioValues) {
+					if (!ratioValue.isInfinite() && !ratioValue.isNaN()) {
+						nonInfinityNonNanValues.add(ratioValue);
+					}
+				}
+				// report the average
+				return Maths.stddev(nonInfinityNonNanValues);
+			} else {
+				// return the average of the most frequent ratio, either non
+				// infinity or infinity
+				final TDoubleArrayList nonInfs = new TDoubleArrayList();
+				final TDoubleArrayList infs = new TDoubleArrayList();
+				for (final Double ratioValue : ratioValues) {
+					if (Double.isFinite(ratioValue)) {
+						nonInfs.add(ratioValue);
+					} else if (Double.isInfinite(ratioValue)) {
+						infs.add(ratioValue);
+					}
+				}
+				// infinities
+				if (infs.size() > nonInfs.size()) {
+					final Double infinityValue = areAllINFValuesSame(infs);
+					if (infinityValue != null) {
+						return infinityValue;
+					} else {
+						// mix of +INF and -INF (and maybe nonINF)
+						final TDoubleArrayList posInfs = new TDoubleArrayList();
+						final TDoubleArrayList negInfs = new TDoubleArrayList();
+						for (final double inf : infs.toArray()) {
+							if (Double.POSITIVE_INFINITY == inf) {
+								posInfs.add(inf);
+							} else {
+								negInfs.add(inf);
+							}
+						}
+						if (posInfs.size() > negInfs.size()) {
+							if (posInfs.size() > nonInfs.size()) {
+								return Double.POSITIVE_INFINITY;
+							} else {
+								// +INF<=nonINF, take average of nonINF if > 0
+								if (posInfs.size() < nonInfs.size() || Maths.mean(nonInfs) > 0) {
+									return Maths.stddev(nonInfs);
+								} else {
+									return Double.NaN;
+								}
+							}
+						} else if (negInfs.size() > posInfs.size()) {
+							if (negInfs.size() > nonInfs.size()) {
+								return Double.NaN;
+							} else {
+								// -INF<=nonINF, take average of nonINF if < 0
+								if (negInfs.size() < nonInfs.size() || Maths.mean(nonInfs) < 0) {
+									return Maths.stddev(nonInfs);
+								} else {
+									return Double.NaN;
+								}
+							}
+						} else if (nonInfs.size() > negInfs.size()) {
+							if (nonInfs.size() > posInfs.size()) {
+								return Maths.stddev(nonInfs);
+							} else {
+								// +INF>=nonINF, take average of nonINF if > 0
+								if (nonInfs.size() > posInfs.size() || Maths.stddev(nonInfs) > 0) {
+									return Maths.stddev(nonInfs);
+								} else if (nonInfs.size() < posInfs.size()) {
+									return Double.NaN;
+								} else {
+									return Double.NaN;
+								}
+							}
+						} else {
+							if (posInfs.size() == nonInfs.size() && negInfs.size() == nonInfs.size()) {
+								if (Maths.mean(nonInfs) > 4.0) {
+									return Double.NaN;
+								} else if (Maths.mean(nonInfs) < -4.0) {
+									return Double.NaN;
+								}
+							}
+							return Double.NaN;
+
+						}
+					}
+				} else {
+					return Maths.stddev(nonInfs);
 				}
 			}
-			// report the stdev
-
-			double stddev = Maths.stddev(nonInfinityNonNanValues);
-			if (nonInfinityNonNanValues.size() == 1) {
-				stddev = 0;
-			}
-			return stddev;
 		}
 	}
 
@@ -2548,11 +2623,14 @@ public class PCQUtils {
 				censusRatio.addQuantifiedSitePositionInPeptide(quantifiedSitePositionInPeptideList.get(0));
 				censusRatio.setQuantifiedAA(quantifiedSitePositionInPeptideList.get(0).getAa());
 			}
-			final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
-			if (stdev != null) {
-				censusRatio.setRatioScore(new RatioScore(String.valueOf(stdev), "STDEV", "Standard deviation of ratios",
-						"Standard deviation of the ratios averaged"));
-				censusRatio.setStandardDeviationOfLog2Ratio(stdev);
+			if (!Double.isNaN(censusRatio.getValue())) {
+				final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2,
+						params.isUseMayorityRule());
+				if (stdev != null) {
+					censusRatio.setRatioScore(new RatioScore(String.valueOf(stdev), "STDEV",
+							"Standard deviation of ratios", "Standard deviation of the ratios averaged"));
+					censusRatio.setStandardDeviationOfLog2Ratio(stdev);
+				}
 			}
 
 			return censusRatio;
@@ -2600,7 +2678,8 @@ public class PCQUtils {
 			final CensusRatio censusRatio = new CensusRatio(finalValue.getFirstelement(), true, cond1, cond2,
 					AggregationLevel.PEPTIDE_NODE, "Avg ratios for site");
 			censusRatio.setNumMeasurements(finalValue.getSecondElement());
-			final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
+			final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2,
+					ProteinClusterQuantParameters.getInstance().isUseMayorityRule());
 			if (stdev != null) {
 				censusRatio.setRatioScore(new RatioScore(String.valueOf(stdev), "STDEV", "Standard deviation of ratios",
 						"Standard deviation of the ratios averaged"));
@@ -2654,7 +2733,8 @@ public class PCQUtils {
 			final CensusRatio censusRatio = new CensusRatio(finalValue.getFirstelement(), true, cond1, cond2,
 					AggregationLevel.PEPTIDE_NODE, "Avg Ri ratios for site");
 			censusRatio.setNumMeasurements(finalValue.getSecondElement());
-			final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2);
+			final Double stdev = PCQUtils.stdevOfRatiosTakingIntoAccountInfinitiesAndNans(toAverage, cond1, cond2,
+					ProteinClusterQuantParameters.getInstance().isUseMayorityRule());
 			if (stdev != null) {
 				censusRatio.setRatioScore(new RatioScore(String.valueOf(stdev), "STDEV", "Standard deviation of ratios",
 						"Standard deviation of the ratios averaged"));
