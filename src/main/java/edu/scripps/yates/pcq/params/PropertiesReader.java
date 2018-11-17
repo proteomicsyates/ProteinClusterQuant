@@ -37,7 +37,8 @@ public class PropertiesReader {
 
 	public static ProteinClusterQuantProperties readProperties(File setupPropertiesFile) throws IOException {
 		if (setupPropertiesFile == null || !setupPropertiesFile.exists()) {
-			throw new IllegalArgumentException("setup properties file not valid or null");
+			throw new IllegalArgumentException(
+					"parameters file '" + setupPropertiesFile.getAbsolutePath() + "' is null or doesn't exist");
 		}
 		try {
 			final InputStream inputStream = new FileInputStream(setupPropertiesFile);
