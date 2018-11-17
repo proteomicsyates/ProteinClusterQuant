@@ -33,7 +33,7 @@ public class PCQBatchRunner {
 
 	public PCQBatchRunner(Map<String, File> pcqParameters) {
 		for (final String expName : pcqParameters.keySet()) {
-			final File pcqParameterFile = pcqParametersMap.get(expName);
+			final File pcqParameterFile = pcqParameters.get(expName);
 			// to validate file
 			try {
 				PropertiesReader.readProperties(pcqParameterFile);
