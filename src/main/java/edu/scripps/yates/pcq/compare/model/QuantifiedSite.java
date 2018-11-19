@@ -74,8 +74,13 @@ public class QuantifiedSite {
 		}
 
 		// stdev
-		String stdevString = split[indexesByHeaders.get(STDEV)];
-		if (stdevString.startsWith("'")) {
+		String stdevString = null;
+		if (indexesByHeaders.contains(STDEV)) {
+			stdevString = split[indexesByHeaders.get(STDEV)];
+		} else {
+			stdevString = split[indexesByHeaders.get(RATIOSCOREVALUE)];
+		}
+		if (stdevString != null && stdevString.startsWith("'")) {
 			stdevString = stdevString.substring(1);
 		}
 		if (!"".equals(stdevString)) {
