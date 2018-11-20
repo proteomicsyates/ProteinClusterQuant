@@ -27,7 +27,7 @@ public class TMTQuantSiteComparator {
 	private final static Logger log = Logger.getLogger(TMTQuantSiteComparator.class);
 	private static Options options;
 	private static AppVersion version;
-	private static final boolean defaultCytParameterValue = true;
+	private static final boolean defaultCytParameterValue = false;
 	private final File paramFile;
 	private final List<File> tmtFiles;
 	private final String tmtType;
@@ -159,7 +159,6 @@ public class TMTQuantSiteComparator {
 			} else {
 				log.info("cyt parameter is not provided. Using " + generateXGMMLFiles + " by default.");
 			}
-			generateXGMMLFiles = false;
 			final List<File> tmtFiles = Files.readAllLines(Paths.get(inputFiles.toURI())).stream()
 					.map(fullPath -> new File(fullPath)).collect(Collectors.toList());
 			final TMTQuantSiteComparator runner = new TMTQuantSiteComparator(paramFile, tmtFiles, tmtType, rInf,
