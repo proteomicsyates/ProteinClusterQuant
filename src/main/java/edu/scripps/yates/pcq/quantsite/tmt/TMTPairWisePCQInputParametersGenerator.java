@@ -56,6 +56,7 @@ public class TMTPairWisePCQInputParametersGenerator {
 	public final static String TMT6PLEX = "6PLEX";
 	private static final String TMT_DATA_FILES = "tmt_pairwise_data_files";
 	private static final String PCQ_PARAMETERS = "pcq_parameters";
+	public static final String VS = " vs ";
 
 	public TMTPairWisePCQInputParametersGenerator(File paramFile, List<File> tmtFiles, String tmtType,
 			String outputFileName) {
@@ -148,7 +149,7 @@ public class TMTPairWisePCQInputParametersGenerator {
 				}
 				final File parameterFile = createPCQParameterFile(pairWiseTSVPCQInputFiles, labelNumerator,
 						labelDenominator);
-				final String exName = labelNumerator + " vs " + labelDenominator;
+				final String exName = labelNumerator + VS + labelDenominator;
 				pcqParamtersFiles.put(exName, parameterFile);
 				System.out.println(
 						"PCQ parameter file created: " + FilenameUtils.getName(parameterFile.getAbsolutePath()));
@@ -451,7 +452,7 @@ public class TMTPairWisePCQInputParametersGenerator {
 
 	private Map<QuantCondition, QuantificationLabel> generateLabelsByConditions() {
 		final Map<QuantCondition, QuantificationLabel> labelsByConditions = new THashMap<QuantCondition, QuantificationLabel>();
-		Set<QuantificationLabel> labels = null;
+		List<QuantificationLabel> labels = null;
 		if (TMT10PLEX.equals(tmtType)) {
 			labels = QuantificationLabel.getTMT10PlexLabels();
 		} else if (TMT6PLEX.equals(tmtType)) {

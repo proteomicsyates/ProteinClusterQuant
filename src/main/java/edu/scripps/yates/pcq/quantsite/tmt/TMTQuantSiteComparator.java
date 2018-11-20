@@ -27,6 +27,7 @@ public class TMTQuantSiteComparator {
 	private final static Logger log = Logger.getLogger(TMTQuantSiteComparator.class);
 	private static Options options;
 	private static AppVersion version;
+	private static final boolean defaultCytParameterValue = true;
 	private final File paramFile;
 	private final List<File> tmtFiles;
 	private final String tmtType;
@@ -36,6 +37,7 @@ public class TMTQuantSiteComparator {
 	private final double qValueThreshold;
 	private final int numberSigmas;
 	private final int minNumberOfDiscoveries;
+	private final boolean generateXGMMLFiles;
 
 	public static void main(String[] args) {
 		version = ProteinClusterQuant.getVersion();
@@ -141,10 +143,28 @@ public class TMTQuantSiteComparator {
 				log.info("ns (number_sigmas) parameter wasn't set. Using " + numberSigmas + " by default.");
 			}
 
+			boolean generateXGMMLFiles = defaultCytParameterValue; // by default
+			if (cmd.hasOption("cyt")) {
+				try {
+					generateXGMMLFiles = Boolean.valueOf(cmd.getOptionValue("cyt"));
+					if (numberSigmas < 0) {
+						throw new Exception();
+					}
+					log.info("Generate Cytoscape network = " + generateXGMMLFiles);
+				} catch (final Exception e) {
+					final String errorMessage = "Invalid cyt value '" + cmd.getOptionValue("cyt")
+							+ "'. Use true or false.";
+					throw new Exception(errorMessage);
+				}
+			} else {
+				log.info("cyt parameter is not provided. Using " + generateXGMMLFiles + " by default.");
+			}
+			generateXGMMLFiles = false;
 			final List<File> tmtFiles = Files.readAllLines(Paths.get(inputFiles.toURI())).stream()
 					.map(fullPath -> new File(fullPath)).collect(Collectors.toList());
 			final TMTQuantSiteComparator runner = new TMTQuantSiteComparator(paramFile, tmtFiles, tmtType, rInf,
-					outputFileName, pValueCorrectionType, qValueThreshold, numberSigmas, minNumberOfDiscoveries);
+					outputFileName, pValueCorrectionType, qValueThreshold, numberSigmas, minNumberOfDiscoveries,
+					generateXGMMLFiles);
 			runner.run();
 			System.out.println("Program finished successfully.");
 			System.exit(0);
@@ -162,18 +182,18 @@ public class TMTQuantSiteComparator {
 				paramFile, tmtFiles, tmtType, outputFileName);
 		final Map<String, File> pcqParameters = pcqInputParamtersGenerator.run();
 		// run pcq in batch
-		final PCQBatchRunner pcqBatchRunner = new PCQBatchRunner(pcqParameters);
+		final PCQBatchRunner pcqBatchRunner = new PCQBatchRunner(pcqParameters, generateXGMMLFiles);
 		final Map<String, File> outputFolders = pcqBatchRunner.run();
 		// grab pcq outputs
-		final List<File> pcqOutputQuantPerSiteFileList = getPCQOutputQuantPerSiteFileMap(outputFolders);
+		final List<File> pcqOutputQuantPerSiteFileList = getPCQOutputQuantPerSiteFile(outputFolders);
 		// use them for quant site output
 		final QuantSiteOutputComparator comparator = new QuantSiteOutputComparator(pcqOutputQuantPerSiteFileList, rInf,
-				outputFileName, pValueCorrectionType, qValueThreshold, numberSigmas, minNumberOfDiscoveries);
+				outputFileName, pValueCorrectionType, qValueThreshold, numberSigmas, minNumberOfDiscoveries, true);
 		comparator.run();
 
 	}
 
-	private List<File> getPCQOutputQuantPerSiteFileMap(Map<String, File> outputFolders) {
+	private List<File> getPCQOutputQuantPerSiteFile(Map<String, File> outputFolders) {
 		final List<File> ret = new ArrayList<File>();
 		for (final String expName : outputFolders.keySet()) {
 			final File[] listFiles = outputFolders.get(expName)
@@ -183,16 +203,20 @@ public class TMTQuantSiteComparator {
 						+ outputFolders.get(expName).getAbsolutePath() + "' for experiment " + expName);
 			}
 			ret.add(listFiles[0]);
+			///////////////////////////////////////////////////////////////////////
 			// not proud of this use of static: but it is ok
 			// this will be used then in quantsiteoutputcomparator
-			QuantSiteOutputComparator.sampleNamesByFiles.put(listFiles[0], expName);
+			final String sampleName = expName;
+
+			QuantSiteOutputComparator.sampleNamesByFiles.put(listFiles[0], sampleName);
+			///////////////////////////////////////////////////////////////////////
 		}
 		return ret;
 	}
 
 	public TMTQuantSiteComparator(File paramFile, List<File> tmtFiles, String tmtType, double rInf,
 			String outputFileName, PValueCorrectionType pValueCorrectionType, double qValueThreshold, int numberSigmas,
-			int minNumberOfDiscoveries) throws IOException {
+			int minNumberOfDiscoveries, boolean generateXGMMLFiles2) throws IOException {
 		this.paramFile = paramFile;
 		this.tmtFiles = tmtFiles;
 		this.tmtType = tmtType;
@@ -202,6 +226,7 @@ public class TMTQuantSiteComparator {
 		this.numberSigmas = numberSigmas;
 		this.qValueThreshold = qValueThreshold;
 		this.rInf = rInf;
+		generateXGMMLFiles = generateXGMMLFiles2;
 	}
 
 	private static void setupCommandLineOptions() {
@@ -251,6 +276,12 @@ public class TMTQuantSiteComparator {
 						+ "If R1=NEGATIVE_INFINITY and R2 > avg_distribution + ns*sigma_distribution_of_ratios, then R2 is significantly different.");
 		opt10.setRequired(false);
 		options.addOption(opt10);
+
+		final Option opt11 = new Option("cyt", "cytoscape_network", true,
+				"[OPTIONAL] whether to create or not the cytoscape network for each of the pairwise comparisons performed with PCQ in order to speed-up the run.\n"
+						+ "This parameter is " + defaultCytParameterValue + " by default.");
+		opt11.setRequired(false);
+		options.addOption(opt11);
 
 	}
 

@@ -21,13 +21,18 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.commons.math3.fitting.GaussianCurveFitter;
+import org.apache.commons.math3.fitting.WeightedObservedPoints;
 import org.apache.log4j.Logger;
 
+import edu.scripps.yates.census.read.util.QuantificationLabel;
 import edu.scripps.yates.pcq.ProteinClusterQuant;
 import edu.scripps.yates.pcq.compare.model.MyTTest;
 import edu.scripps.yates.pcq.compare.model.QuantifiedSite;
 import edu.scripps.yates.pcq.compare.model.QuantifiedSiteSet;
 import edu.scripps.yates.pcq.compare.model.TTestMatrix;
+import edu.scripps.yates.pcq.quantsite.tmt.TMTPairWisePCQInputParametersGenerator;
 import edu.scripps.yates.utilities.appversion.AppVersion;
 import edu.scripps.yates.utilities.files.FileUtils;
 import edu.scripps.yates.utilities.maths.Maths;
@@ -35,6 +40,8 @@ import edu.scripps.yates.utilities.maths.PValueCorrection;
 import edu.scripps.yates.utilities.maths.PValueCorrectionResult;
 import edu.scripps.yates.utilities.maths.PValueCorrectionType;
 import edu.scripps.yates.utilities.maths.PValuesCollection;
+import edu.scripps.yates.utilities.progresscounter.ProgressCounter;
+import edu.scripps.yates.utilities.progresscounter.ProgressPrintingType;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.list.array.TIntArrayList;
@@ -66,10 +73,11 @@ public class QuantSiteOutputComparator {
 	private final int minNumberOfDiscoveries;
 	private THashMap<String, TTestMatrix> ttestMatrixesByQuantSites;
 	private TObjectIntHashMap<String> numberOfDiscoveriesPerSite;
+	private final boolean tmtData;
 
 	public QuantSiteOutputComparator(List<File> inputFiles, double rInf, String outputFileName,
 			PValueCorrectionType pValueCorrectionType, double qValueThreshold, int numberSigmas,
-			int minNumberOfDiscoveries) {
+			int minNumberOfDiscoveries, boolean tmtData) {
 		this.inputFiles.addAll(inputFiles);
 		this.rInf = rInf;
 		this.outputFileName = outputFileName;
@@ -80,6 +88,7 @@ public class QuantSiteOutputComparator {
 		this.numberSigmas = numberSigmas;
 		pValueCorrectionMethod = pValueCorrectionType;
 		this.minNumberOfDiscoveries = minNumberOfDiscoveries;
+		this.tmtData = tmtData;
 	}
 
 	public static void main(String[] args) {
@@ -219,8 +228,10 @@ public class QuantSiteOutputComparator {
 			} else {
 				log.info("ns (number_sigmas) parameter wasn't set. Using " + numberSigmas + " by default.");
 			}
+			// tmt
+			final boolean tmtData = true;
 			quantSiteComparator = new QuantSiteOutputComparator(inputFiles, rInf, outputFileName, pValueCorrectionType,
-					qValueThreshold, numberSigmas, minNumberOfDiscoveries);
+					qValueThreshold, numberSigmas, minNumberOfDiscoveries, tmtData);
 
 		} catch (final Exception e) {
 			e.printStackTrace();
@@ -258,6 +269,38 @@ public class QuantSiteOutputComparator {
 	}
 
 	public void run() throws IOException {
+		if (tmtData) {
+			runTMTData();
+		} else {
+			runRegularData();
+		}
+	}
+
+	public void runTMTData() throws IOException {
+		QuantifiedSiteSet quantSites = null;
+		// here each file is a comparison between 2 samples
+		for (final File file : inputFiles) {
+			final String samplePairName = getSampleNameByFile(file);
+			if (quantSites == null) {
+				quantSites = readPCQOutputFile(file);
+				quantSites.addSampleName(samplePairName);
+			} else {
+				final QuantifiedSiteSet quantSites2 = readPCQOutputFile(file);
+				final List<String> sampleNames = quantSites.getSampleNames();
+				quantSites = mergeQuantifiedSiteSets(quantSites, quantSites2);
+				for (final String sampleName2 : sampleNames) {
+					quantSites.addSampleName(sampleName2);
+				}
+				quantSites.addSampleName(samplePairName);
+			}
+
+		}
+
+		writePairWisePValueMatrixesForTMT(quantSites);
+		writeTripletsOutput(quantSites);
+	}
+
+	public void runRegularData() throws IOException {
 		QuantifiedSiteSet quantSites = null;
 		for (final File file : inputFiles) {
 			final String sampleName = getSampleNameByFile(file);
@@ -472,6 +515,241 @@ public class QuantSiteOutputComparator {
 			System.out.println("Number of sites with at least one discovery: " + numSitesWithAtLeastOneDiscovery);
 		}
 
+	}
+
+	private void writePairWisePValueMatrixesForTMT(QuantifiedSiteSet quantSites) throws IOException {
+		final int numSamplesPairs = quantSites.getNumExperiments();
+		// create a matrix per quantSite
+		final THashMap<QuantifiedSite, NLMatrix> matrixByQuantSites = new THashMap<QuantifiedSite, NLMatrix>();
+		for (final QuantifiedSite quantSite : quantSites.getSortedByRatios()) {
+			final NLMatrix matrix = new NLMatrix(numSamplesPairs, numSamplesPairs, Double.NaN);
+			matrixByQuantSites.put(quantSite, matrix);
+		}
+		// to keep the number of significant pvalues after the pvalue
+		// correction
+		numberOfDiscoveriesPerSite = new TObjectIntHashMap<String>();
+
+		//
+		for (int sampleIndexPair = 0; sampleIndexPair < numSamplesPairs; sampleIndexPair++) {
+			final String samplePairName = quantSites.getSampleNames().get(sampleIndexPair);
+
+			// for each sample pair (each sampleIndex), get all ratios to build
+			// the ratio distribution
+			final TDoubleArrayList ratioCollection = new TDoubleArrayList();
+			for (final QuantifiedSite quantSite : quantSites.getSortedByRatios()) {
+				final Double ratio = quantSite.getLog2Ratio(sampleIndexPair);
+				if (ratio != null && !Double.isNaN(ratio) && !Double.isInfinite(ratio)) {
+					ratioCollection.add(ratio);
+				}
+			}
+			// Now, we normalize the distribution to be centered at 0 (mean 0)
+			final double mean = Maths.mean(ratioCollection);
+			if (Double.compare(mean, 0.0) != 0) {
+				log.info("Mean of all sites ratios for comparison " + samplePairName + " is " + mean
+						+ ". Correcting distribution to center at 0.");
+				int offset = 0;
+				for (final double ratio : ratioCollection.toArray()) {
+					ratioCollection.setQuick(offset++, ratio - mean);
+				}
+				// check that now the mean is 0
+				final double newMean = Maths.mean(ratioCollection);
+				log.info("After correction, the mean of all sites ratios for comparison " + samplePairName + " is "
+						+ newMean);
+			}
+			log.info("Final ratio distribution for " + samplePairName + ": mean=" + Maths.mean(ratioCollection)
+					+ " and stdev=" + Maths.stddev(ratioCollection));
+			// create the gaussian fitter
+			// make an histogram
+			final double[][] histogram = Histogram.histogram(ratioCollection.toArray(), 500);
+			final GaussianCurveFitter gaussianfitter = GaussianCurveFitter.create();
+			final WeightedObservedPoints obs = new WeightedObservedPoints();
+			for (int j = 0; j < histogram[2].length; j++) {
+				obs.add((histogram[0][j] + histogram[1][j]) / 2, histogram[2][j]);
+			}
+			final double[] bestFit = gaussianfitter.fit(obs.toList());
+			final double gaussianNorm = bestFit[0];
+			final double gaussianMean = bestFit[1];
+			final double gaussianSigma = bestFit[2];
+			final NormalDistribution normalDistribution = new NormalDistribution(gaussianMean, gaussianSigma);
+			// now, per each site, calculate the p-value against the
+			// distribution
+			// keep pvalues here:
+			final TObjectDoubleHashMap<QuantifiedSite> pvalues = new TObjectDoubleHashMap<QuantifiedSite>();
+			for (final QuantifiedSite quantSite : quantSites.getSortedByRatios()) {
+				double pvalue = 1.0;
+				final Double ratio = quantSite.getLog2Ratio(sampleIndexPair);
+				if (ratio != null && !Double.isNaN(ratio) && !Double.isInfinite(ratio)) {
+					pvalue = normalDistribution.cumulativeProbability(ratio);
+					// this p is the probability that a ratio is <= than ratio
+					if (ratio > gaussianMean) {
+						pvalue = 1 - pvalue; // this would be the probability
+												// that a ratio is > than the
+												// ratio
+					}
+				} else if (Double.isInfinite(ratio)) {
+					pvalue = 0;
+				}
+				pvalues.put(quantSite, pvalue);
+			}
+			// create the pvalues collection
+			final PValuesCollection<QuantifiedSite> pValuesCollection = new PValuesCollection<QuantifiedSite>(pvalues);
+			// correct the pvalues
+			final PValueCorrectionResult<QuantifiedSite> adjustedPValues = PValueCorrection.pAdjust(pValuesCollection,
+					pValueCorrectionMethod);
+
+			for (final QuantifiedSite quantSite : adjustedPValues.getSortedKeysByCorrectedPValue()) {
+				final Double correctedPValue = adjustedPValues.getCorrectedPValues().getPValue(quantSite);
+				matrixByQuantSites.get(quantSite).set(getRowSampleIndex(samplePairName),
+						getColumnSampleIndex(samplePairName), correctedPValue);
+				if (correctedPValue < qValueThreshold) {
+					if (numberOfDiscoveriesPerSite.contains(quantSite.getNodeKey())) {
+						numberOfDiscoveriesPerSite.put(quantSite.getNodeKey(),
+								numberOfDiscoveriesPerSite.get(quantSite.getNodeKey()) + 1);
+					} else {
+						numberOfDiscoveriesPerSite.put(quantSite.getNodeKey(), 1);
+					}
+				}
+			}
+		}
+
+		// if (numberOfDiscoveriesPerSite.get(quantSite) >=
+		// minNumberOfDiscoveries) {
+		// numSitesWithMinimumDiscoveries++;
+		// }
+		//
+		// if (numSitesWithMinimumDiscoveries == 0) {
+		// log.warn("There is not any matrix with a minimum number of
+		// discoveries of " + minNumberOfDiscoveries
+		// + " !!!");
+		// } else {
+		// log.info("Writting output files with " +
+		// numSitesWithMinimumDiscoveries
+		// + " quant sites with minimum number of discoveries...");
+		// }
+		final File matrixSummaryFile = getMatrixSummaryFile();
+		final File excelSummaryFile = getExcelMatrixSummaryFile();
+		// delete excel file if exists
+		if (excelSummaryFile.exists()) {
+			excelSummaryFile.delete();
+		}
+		final TIntArrayList nums = new TIntArrayList();
+
+		// delete previous matrixes in the folder
+		final File matrixFolder = getIndividualMatrixFolder();
+		if (!matrixFolder.exists()) {
+			matrixFolder.mkdirs();
+		}
+		if (matrixFolder.listFiles().length > 0) {
+			for (final File file : matrixFolder.listFiles()) {
+				file.delete();
+			}
+		}
+		// this integer matrix will store how many time each pair of samples is
+		// significant
+		final NLMatrix sampleComparisonMatrix = new NLMatrix(numSamplesPairs, numSamplesPairs, 0);
+
+		final FileWriter fw = new FileWriter(matrixSummaryFile);
+		boolean atLeastOneMatrix = false;
+		// sort by number of discoveries and by ratios
+		final int total = quantSites.getQuantifiedSitesByKey().size();
+		final ProgressCounter counter = new ProgressCounter(total, ProgressPrintingType.PERCENTAGE_STEPS, 0, true);
+		counter.setSuffix(" writting Excel file...");
+		for (final QuantifiedSite quantifiedSite : quantSites
+				.getSortedByNumDiscoveriesAndProteinsAndSites(numberOfDiscoveriesPerSite)) {
+			counter.increment();
+			if (!"".equals(counter.printIfNecessary())) {
+				log.info(counter.printIfNecessary());
+			}
+			fw.write(quantifiedSite.getNodeKey() + "\n");
+			fw.write("Number of discoveries:\t" + numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey()) + "\n");
+
+			final NLMatrix matrixOfPValues = matrixByQuantSites.get(quantifiedSite);
+			if (matrixOfPValues == null) {
+				continue;
+			}
+			if (numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey()) >= minNumberOfDiscoveries) {
+				atLeastOneMatrix = true;
+				fw.write(printMatrix(matrixOfPValues, quantifiedSite) + "\n");
+
+				// keep number of discoveries
+				final int numDiscoveries = numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey());
+				nums.add(numDiscoveries);
+
+				// independent file with the matrix
+				final File individualMatrixFile = File.createTempFile("node", "tmp");
+				individualMatrixFile.deleteOnExit();
+				if (numDiscoveries > 0 && numDiscoveries >= minNumberOfDiscoveries) {
+					final FileWriter individualMatrixFileWriter = new FileWriter(individualMatrixFile);
+					individualMatrixFileWriter.write(printMatrix(matrixOfPValues, quantifiedSite));
+					individualMatrixFileWriter.close();
+
+					for (int i = 0; i < numSamplesPairs; i++) {
+						for (int j = i + 1; j < numSamplesPairs; j++) {
+							final double pvalue = matrixOfPValues.get(i, j);
+							if (pvalue < qValueThreshold) {
+								sampleComparisonMatrix.set(i, j, sampleComparisonMatrix.get(i, j) + 1);
+							}
+						}
+					}
+
+					// add the individual file to the Excel file
+
+					FileUtils.separatedValuesToXLSX(individualMatrixFile.getAbsolutePath(),
+							excelSummaryFile.getAbsolutePath(), "\t",
+							numDiscoveries + "_" + quantifiedSite.getNodeKey());
+
+				}
+			}
+		}
+		final String message = "Comparison matrix: number sites in which each pair of sample has been found significant with q-value < "
+				+ qValueThreshold;
+		System.out.println(message);
+		fw.write("\n\n" + message + "\n");
+		System.out.println(printMatrix(sampleComparisonMatrix, null));
+		fw.write(printMatrix(sampleComparisonMatrix, null) + "\n");
+		fw.close();
+		if (atLeastOneMatrix) {
+			log.info("Output file written at: '" + matrixSummaryFile.getAbsolutePath() + "'");
+			log.info("Output file written at: '" + excelSummaryFile.getAbsolutePath() + "'");
+		} else {
+			log.info(
+					"No output was generated because there is not any quantified site with a minimum number of discoveries (significant pairwise comparisons with q-value<"
+							+ qValueThreshold + ") of " + minNumberOfDiscoveries);
+		}
+		if (!nums.isEmpty() && nums.max() > 1) {
+			final double[][] histogram = Histogram.histogram(nums.toArray(), nums.max());
+			int numSitesWithAtLeastOneDiscovery = 0;
+			for (int j = 0; j < histogram[2].length; j++) {
+				System.out.println("Number of sites with " + j + " discoveries " + histogram[2][j]);
+				if (j > 0) {
+					numSitesWithAtLeastOneDiscovery += histogram[2][j];
+				}
+			}
+			System.out.println("Number of sites with at least one discovery: " + numSitesWithAtLeastOneDiscovery);
+		}
+
+	}
+
+	private int getColumnSampleIndex(String samplePairName) {
+		if (samplePairName.contains(TMTPairWisePCQInputParametersGenerator.VS)) {
+			final String labelString = samplePairName.split(TMTPairWisePCQInputParametersGenerator.VS)[1];
+			final QuantificationLabel label = QuantificationLabel.valueOf(labelString);
+			if (QuantificationLabel.isTMT10PLEX(label)) {
+				return QuantificationLabel.getTMT10PlexLabels().indexOf(label);
+			}
+		}
+		return -1;
+	}
+
+	private int getRowSampleIndex(String samplePairName) {
+		if (samplePairName.contains(TMTPairWisePCQInputParametersGenerator.VS)) {
+			final String labelString = samplePairName.split(TMTPairWisePCQInputParametersGenerator.VS)[0];
+			final QuantificationLabel label = QuantificationLabel.valueOf(labelString);
+			if (QuantificationLabel.isTMT10PLEX(label)) {
+				return QuantificationLabel.getTMT10PlexLabels().indexOf(label);
+			}
+		}
+		return -1;
 	}
 
 	private File getIndividualMatrixFile(int numDiscoveries, String site) {
