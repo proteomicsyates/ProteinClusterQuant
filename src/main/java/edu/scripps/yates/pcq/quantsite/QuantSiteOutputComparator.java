@@ -1224,8 +1224,11 @@ public class QuantSiteOutputComparator {
 		if (quantifiedSite != null) {
 			sb.append("\t");
 			for (int i = 0; i < numCols; i++) {
-				final Double log2Ratio = quantifiedSite.getLog2Ratio(i);
-				sb.append(log2Ratio + "\t");
+				if (tmtData) {
+					sb.append("-" + "\t");
+				} else {
+					sb.append(quantifiedSite.getLog2Ratio(i) + "\t");
+				}
 			}
 		}
 		sb.append("\n");
@@ -1234,11 +1237,13 @@ public class QuantSiteOutputComparator {
 				sb.append(getTMTSampleName(getSampleNameByFile(inputFiles.get(i)), i) + "\t");
 			} else {
 				sb.append(getSampleNameByFile(inputFiles.get(i)) + "\t");
-
 			}
 			if (quantifiedSite != null) {
-				final Double log2Ratio = quantifiedSite.getLog2Ratio(i);
-				sb.append(log2Ratio + "\t");
+				if (tmtData) {
+					sb.append("-" + "\t");
+				} else {
+					sb.append(quantifiedSite.getLog2Ratio(i) + "\t");
+				}
 			}
 
 			for (int j = 0; j < numCols; j++) {
