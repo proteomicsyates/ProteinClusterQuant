@@ -189,6 +189,7 @@ public class TMTQuantSiteComparator {
 		// use them for quant site output
 		final QuantSiteOutputComparator comparator = new QuantSiteOutputComparator(pcqOutputQuantPerSiteFileList, rInf,
 				outputFileName, pValueCorrectionType, qValueThreshold, numberSigmas, minNumberOfDiscoveries, true);
+		comparator.setOutputFolder(paramFile.getParent());
 		comparator.run();
 
 	}

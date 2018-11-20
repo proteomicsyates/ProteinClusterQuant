@@ -48,6 +48,7 @@ import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.map.hash.TObjectDoubleHashMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
+import gnu.trove.set.hash.THashSet;
 import smile.math.Histogram;
 import smile.math.Math;
 import smile.netlib.NLMatrix;
@@ -74,6 +75,7 @@ public class QuantSiteOutputComparator {
 	private THashMap<String, TTestMatrix> ttestMatrixesByQuantSites;
 	private TObjectIntHashMap<String> numberOfDiscoveriesPerSite;
 	private final boolean tmtData;
+	private String outputFolder;
 
 	public QuantSiteOutputComparator(List<File> inputFiles, double rInf, String outputFileName,
 			PValueCorrectionType pValueCorrectionType, double qValueThreshold, int numberSigmas,
@@ -560,7 +562,8 @@ public class QuantSiteOutputComparator {
 					+ " and stdev=" + Maths.stddev(ratioCollection));
 			// create the gaussian fitter
 			// make an histogram
-			final double[][] histogram = Histogram.histogram(ratioCollection.toArray(), 500);
+			log.info("Creating histogram of distribution of ratios");
+			final double[][] histogram = Histogram.histogram(ratioCollection.toArray());
 			final GaussianCurveFitter gaussianfitter = GaussianCurveFitter.create();
 			final WeightedObservedPoints obs = new WeightedObservedPoints();
 			for (int j = 0; j < histogram[2].length; j++) {
@@ -574,6 +577,8 @@ public class QuantSiteOutputComparator {
 			// now, per each site, calculate the p-value against the
 			// distribution
 			// keep pvalues here:
+			final Set<QuantifiedSite> significantSitesBecauseOfInfinity = new THashSet<QuantifiedSite>();
+
 			final TObjectDoubleHashMap<QuantifiedSite> pvalues = new TObjectDoubleHashMap<QuantifiedSite>();
 			for (final QuantifiedSite quantSite : quantSites.getSortedByRatios()) {
 				double pvalue = 1.0;
@@ -586,10 +591,11 @@ public class QuantSiteOutputComparator {
 												// that a ratio is > than the
 												// ratio
 					}
+					pvalues.put(quantSite, pvalue);
 				} else if (Double.isInfinite(ratio)) {
-					pvalue = 0;
+					significantSitesBecauseOfInfinity.add(quantSite);
 				}
-				pvalues.put(quantSite, pvalue);
+
 			}
 			// create the pvalues collection
 			final PValuesCollection<QuantifiedSite> pValuesCollection = new PValuesCollection<QuantifiedSite>(pvalues);
@@ -597,10 +603,24 @@ public class QuantSiteOutputComparator {
 			final PValueCorrectionResult<QuantifiedSite> adjustedPValues = PValueCorrection.pAdjust(pValuesCollection,
 					pValueCorrectionMethod);
 
-			for (final QuantifiedSite quantSite : adjustedPValues.getSortedKeysByCorrectedPValue()) {
-				final Double correctedPValue = adjustedPValues.getCorrectedPValues().getPValue(quantSite);
-				matrixByQuantSites.get(quantSite).set(getRowSampleIndex(samplePairName),
-						getColumnSampleIndex(samplePairName), correctedPValue);
+			for (final QuantifiedSite quantSite : quantSites.getQuantifiedSitesByKey().values()) {
+				Double correctedPValue = adjustedPValues.getCorrectedPValues().getPValue(quantSite);
+				if (correctedPValue == null) {
+					// it is because is coming from an infinity and therefore is
+					// not in the corrected pvalues because it wasn't use for
+					// the pvalue correction. Anyway, the corrected pvalue is 0
+					if (significantSitesBecauseOfInfinity.contains(quantSite)) {
+						correctedPValue = 0.0;
+					}
+				}
+				final int rowSampleIndex = getRowSampleIndex(samplePairName);
+				final int columnSampleIndex = getColumnSampleIndex(samplePairName);
+				if (correctedPValue == null) {
+					// this is because the original non corrected pvalues was
+					// NaN
+					correctedPValue = Double.NaN;
+				}
+				matrixByQuantSites.get(quantSite).set(rowSampleIndex, columnSampleIndex, correctedPValue);
 				if (correctedPValue < qValueThreshold) {
 					if (numberOfDiscoveriesPerSite.contains(quantSite.getNodeKey())) {
 						numberOfDiscoveriesPerSite.put(quantSite.getNodeKey(),
@@ -778,11 +798,14 @@ public class QuantSiteOutputComparator {
 	}
 
 	private String getOutputFolder() {
-		if (fileOfFiles != null) {
-			return fileOfFiles.getParentFile().getAbsolutePath();
-		} else {
-			return inputFiles.get(0).getParentFile().getAbsolutePath();
+		if (outputFolder == null) {
+			if (fileOfFiles != null) {
+				outputFolder = fileOfFiles.getParentFile().getAbsolutePath();
+			} else {
+				outputFolder = inputFiles.get(0).getParentFile().getAbsolutePath();
+			}
 		}
+		return outputFolder;
 	}
 
 	private void writeTripletsOutput(QuantifiedSiteSet mergedQuantSites) throws IOException {
@@ -1214,5 +1237,9 @@ public class QuantSiteOutputComparator {
 		}
 
 		return sb.toString();
+	}
+
+	public void setOutputFolder(String outputFolder) {
+		this.outputFolder = outputFolder;
 	}
 }
