@@ -14,8 +14,19 @@ import gnu.trove.map.hash.THashMap;
 public class PCQBatchRunner {
 	private final static Logger log = Logger.getLogger(PCQBatchRunner.class);
 	private final Map<String, File> pcqParametersMap = new THashMap<String, File>();
+	private boolean generateXGMMLFiles = true;
 
+	/**
+	 * Constructor using generateXGMMLFiles as TRUE by default
+	 * 
+	 * @param pcqParameters
+	 */
 	public PCQBatchRunner(List<File> pcqParameters) {
+		this(pcqParameters, true);
+	}
+
+	public PCQBatchRunner(List<File> pcqParameters, boolean generateXGMMLFiles) {
+		this.generateXGMMLFiles = generateXGMMLFiles;
 		final String expName = "exp";
 		int num = 1;
 		for (final File file : pcqParameters) {
@@ -31,7 +42,8 @@ public class PCQBatchRunner {
 		}
 	}
 
-	public PCQBatchRunner(Map<String, File> pcqParameters) {
+	public PCQBatchRunner(Map<String, File> pcqParameters, boolean generateXGMMLFiles) {
+		this.generateXGMMLFiles = generateXGMMLFiles;
 		for (final String expName : pcqParameters.keySet()) {
 			final File pcqParameterFile = pcqParameters.get(expName);
 			// to validate file
@@ -57,11 +69,20 @@ public class PCQBatchRunner {
 			log.info("Running PCQ with file " + FilenameUtils.getName(setupPropertiesFile.getAbsolutePath()) + " ("
 					+ expName + ") " + count++ + "/" + pcqParametersMap.size());
 			final ProteinClusterQuant pcq = new ProteinClusterQuant(setupPropertiesFile, true);
+			pcq.setCreateXGMMLFile(generateXGMMLFiles);
 			pcq.run();
 			final File outputFolder = pcq.getParams().getOutputFileFolder();
 			outputFolders.put(expName, outputFolder);
 		}
 		log.info("All PCQ runs are done with no problems");
 		return outputFolders;
+	}
+
+	public boolean isGenerateXGMMLFiles() {
+		return generateXGMMLFiles;
+	}
+
+	public void setGenerateXGMMLFiles(boolean generateXGMMLFiles) {
+		this.generateXGMMLFiles = generateXGMMLFiles;
 	}
 }
