@@ -521,10 +521,11 @@ public class QuantSiteOutputComparator {
 
 	private void writePairWisePValueMatrixesForTMT(QuantifiedSiteSet quantSites) throws IOException {
 		final int numSamplesPairs = quantSites.getNumExperiments();
+		final int numSamples = Double.valueOf((1 + Math.sqrt(1 + 8 * numSamplesPairs)) / 2).intValue();
 		// create a matrix per quantSite
 		final THashMap<QuantifiedSite, NLMatrix> matrixByQuantSites = new THashMap<QuantifiedSite, NLMatrix>();
 		for (final QuantifiedSite quantSite : quantSites.getSortedByRatios()) {
-			final NLMatrix matrix = new NLMatrix(numSamplesPairs, numSamplesPairs, Double.NaN);
+			final NLMatrix matrix = new NLMatrix(numSamples, numSamples, Double.NaN);
 			matrixByQuantSites.put(quantSite, matrix);
 		}
 		// to keep the number of significant pvalues after the pvalue
@@ -666,7 +667,7 @@ public class QuantSiteOutputComparator {
 		}
 		// this integer matrix will store how many time each pair of samples is
 		// significant
-		final NLMatrix sampleComparisonMatrix = new NLMatrix(numSamplesPairs, numSamplesPairs, 0);
+		final NLMatrix sampleComparisonMatrix = new NLMatrix(numSamples, numSamples, 0);
 
 		final FileWriter fw = new FileWriter(matrixSummaryFile);
 		boolean atLeastOneMatrix = false;
@@ -703,8 +704,8 @@ public class QuantSiteOutputComparator {
 					individualMatrixFileWriter.write(printMatrix(matrixOfPValues, quantifiedSite));
 					individualMatrixFileWriter.close();
 
-					for (int i = 0; i < numSamplesPairs; i++) {
-						for (int j = i + 1; j < numSamplesPairs; j++) {
+					for (int i = 0; i < numSamples; i++) {
+						for (int j = i + 1; j < numSamples; j++) {
 							final double pvalue = matrixOfPValues.get(i, j);
 							if (pvalue < qValueThreshold) {
 								sampleComparisonMatrix.set(i, j, sampleComparisonMatrix.get(i, j) + 1);
@@ -756,6 +757,8 @@ public class QuantSiteOutputComparator {
 			final QuantificationLabel label = QuantificationLabel.valueOf(labelString);
 			if (QuantificationLabel.isTMT10PLEX(label)) {
 				return QuantificationLabel.getTMT10PlexLabels().indexOf(label);
+			} else if (QuantificationLabel.isTMT6PLEX(label)) {
+				return QuantificationLabel.getTMT6PlexLabels().indexOf(label);
 			}
 		}
 		return -1;
@@ -767,6 +770,8 @@ public class QuantSiteOutputComparator {
 			final QuantificationLabel label = QuantificationLabel.valueOf(labelString);
 			if (QuantificationLabel.isTMT10PLEX(label)) {
 				return QuantificationLabel.getTMT10PlexLabels().indexOf(label);
+			} else if (QuantificationLabel.isTMT6PLEX(label)) {
+				return QuantificationLabel.getTMT6PlexLabels().indexOf(label);
 			}
 		}
 		return -1;
@@ -1207,7 +1212,12 @@ public class QuantSiteOutputComparator {
 			sb.append("\t");
 		}
 		for (int i = 0; i < numCols; i++) {
-			sb.append(getSampleNameByFile(inputFiles.get(i)) + "\t");
+			if (tmtData) {
+				sb.append(getTMTSampleName(getSampleNameByFile(inputFiles.get(i)), i) + "\t");
+
+			} else {
+				sb.append(getSampleNameByFile(inputFiles.get(i)) + "\t");
+			}
 		}
 		sb.append("\n");
 		sb.append("\t");
@@ -1220,7 +1230,12 @@ public class QuantSiteOutputComparator {
 		}
 		sb.append("\n");
 		for (int i = 0; i < numRows; i++) {
-			sb.append(getSampleNameByFile(inputFiles.get(i)) + "\t");
+			if (tmtData) {
+				sb.append(getTMTSampleName(getSampleNameByFile(inputFiles.get(i)), i) + "\t");
+			} else {
+				sb.append(getSampleNameByFile(inputFiles.get(i)) + "\t");
+
+			}
 			if (quantifiedSite != null) {
 				final Double log2Ratio = quantifiedSite.getLog2Ratio(i);
 				sb.append(log2Ratio + "\t");
@@ -1237,6 +1252,19 @@ public class QuantSiteOutputComparator {
 		}
 
 		return sb.toString();
+	}
+
+	private String getTMTSampleName(String samplePairName, int tmtIndex) {
+		if (samplePairName.contains(TMTPairWisePCQInputParametersGenerator.VS)) {
+			final String labelString = samplePairName.split(TMTPairWisePCQInputParametersGenerator.VS)[1];
+			final QuantificationLabel label = QuantificationLabel.valueOf(labelString);
+			if (QuantificationLabel.isTMT10PLEX(label)) {
+				return QuantificationLabel.getTMT10PlexLabels().get(tmtIndex).name();
+			} else if (QuantificationLabel.isTMT6PLEX(label)) {
+				return QuantificationLabel.getTMT6PlexLabels().get(tmtIndex).name();
+			}
+		}
+		return null;
 	}
 
 	public void setOutputFolder(String outputFolder) {
