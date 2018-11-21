@@ -304,6 +304,11 @@ public class TMTQuantSiteComparator {
 		opt11.setRequired(false);
 		options.addOption(opt11);
 
+		final Option opt12 = new Option("ig", "ignore_not_found_signals", true,
+				"[OPTIONAL] Ignore not found signals in TMT (avoiding infinity ratios in the analysis)");
+		opt12.setRequired(false);
+		options.addOption(opt12);
+
 	}
 
 	private static void errorInParameters() {
