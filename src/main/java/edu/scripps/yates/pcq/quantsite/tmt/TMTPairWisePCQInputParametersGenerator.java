@@ -57,12 +57,14 @@ public class TMTPairWisePCQInputParametersGenerator {
 	private static final String TMT_DATA_FILES = "tmt_pairwise_data_files";
 	private static final String PCQ_PARAMETERS = "pcq_parameters";
 	public static final String VS = " vs ";
+	private final boolean ignoreNotFoundSignals;
 
 	public TMTPairWisePCQInputParametersGenerator(File paramFile, List<File> tmtFiles, String tmtType,
-			String outputFileName) {
+			String outputFileName, boolean ignoreNotFoundSignals) {
 		baseParamFile = paramFile;
 		this.tmtFiles = tmtFiles;
 		this.tmtType = tmtType;
+		this.ignoreNotFoundSignals = ignoreNotFoundSignals;
 	}
 
 	public static void main(String[] args) {
@@ -84,10 +86,15 @@ public class TMTPairWisePCQInputParametersGenerator {
 						+ "'. Valid values are " + TMT10PLEX + " or " + TMT6PLEX + " in tmt parameter");
 			}
 			final String outputFileName = cmd.getOptionValue("out");
+
+			boolean ignoreNotFoundSignals = true;
+			if (cmd.getOptionValue("ig") != null) {
+				ignoreNotFoundSignals = Boolean.valueOf(cmd.getOptionValue("ig"));
+			}
 			final List<File> tmtFiles = Files.readAllLines(Paths.get(inputFiles.toURI())).stream()
 					.map(fullPath -> new File(fullPath)).collect(Collectors.toList());
 			final TMTPairWisePCQInputParametersGenerator script = new TMTPairWisePCQInputParametersGenerator(paramFile,
-					tmtFiles, tmtType, outputFileName);
+					tmtFiles, tmtType, outputFileName, ignoreNotFoundSignals);
 			script.run();
 			System.exit(0);
 		} catch (final Exception e) {
@@ -357,11 +364,21 @@ public class TMTPairWisePCQInputParametersGenerator {
 								}
 							}
 							// ratio
-							if (Double.isNaN(intensityNumerator) || Double.isNaN(intensityDenominator)) {
-								fw.write(Double.NaN + "\t");
-							} else {
-								final double ratio = intensityNumerator / intensityDenominator;
-								fw.write(String.valueOf(ratio) + "\t");
+							boolean ratioWritten = false;
+							if (ignoreNotFoundSignals) {
+								if (Double.compare(intensityNumerator, 0.0) == 0
+										|| Double.compare(intensityDenominator, 0.0) == 0) {
+									ratioWritten = true;
+									fw.write(Double.NaN + "\t");
+								}
+							}
+							if (!ratioWritten) {
+								if (Double.isNaN(intensityNumerator) || Double.isNaN(intensityDenominator)) {
+									fw.write(Double.NaN + "\t");
+								} else {
+									final double ratio = intensityNumerator / intensityDenominator;
+									fw.write(String.valueOf(ratio) + "\t");
+								}
 							}
 							// weight
 							double max = 0.0;

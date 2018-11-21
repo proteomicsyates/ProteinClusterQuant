@@ -28,6 +28,7 @@ public class TMTQuantSiteComparator {
 	private static Options options;
 	private static AppVersion version;
 	private static final boolean defaultCytParameterValue = false;
+	private static final boolean defaultIgnoreNotFoundSignals = true;
 	private final File paramFile;
 	private final List<File> tmtFiles;
 	private final String tmtType;
@@ -38,6 +39,7 @@ public class TMTQuantSiteComparator {
 	private final int numberSigmas;
 	private final int minNumberOfDiscoveries;
 	private final boolean generateXGMMLFiles;
+	private final boolean ignoreNotFoundSignals;
 
 	public static void main(String[] args) {
 		version = ProteinClusterQuant.getVersion();
@@ -159,11 +161,29 @@ public class TMTQuantSiteComparator {
 			} else {
 				log.info("cyt parameter is not provided. Using " + generateXGMMLFiles + " by default.");
 			}
+
+			boolean ignoreNotFoundSignals = defaultIgnoreNotFoundSignals; // by
+																			// default
+			if (cmd.hasOption("ig")) {
+				try {
+					ignoreNotFoundSignals = Boolean.valueOf(cmd.getOptionValue("ig"));
+					if (numberSigmas < 0) {
+						throw new Exception();
+					}
+					log.info("Ignore not found signals parameter = " + ignoreNotFoundSignals);
+				} catch (final Exception e) {
+					final String errorMessage = "Invalid ig value '" + cmd.getOptionValue("ig")
+							+ "'. Use true or false.";
+					throw new Exception(errorMessage);
+				}
+			} else {
+				log.info("ig parameter is not provided. Using " + ignoreNotFoundSignals + " by default.");
+			}
 			final List<File> tmtFiles = Files.readAllLines(Paths.get(inputFiles.toURI())).stream()
 					.map(fullPath -> new File(fullPath)).collect(Collectors.toList());
 			final TMTQuantSiteComparator runner = new TMTQuantSiteComparator(paramFile, tmtFiles, tmtType, rInf,
 					outputFileName, pValueCorrectionType, qValueThreshold, numberSigmas, minNumberOfDiscoveries,
-					generateXGMMLFiles);
+					generateXGMMLFiles, ignoreNotFoundSignals);
 			runner.run();
 			System.out.println("Program finished successfully.");
 			System.exit(0);
@@ -178,7 +198,7 @@ public class TMTQuantSiteComparator {
 	private void run() throws IOException {
 		// get PCQ parameters and pairwise ratio files
 		final TMTPairWisePCQInputParametersGenerator pcqInputParamtersGenerator = new TMTPairWisePCQInputParametersGenerator(
-				paramFile, tmtFiles, tmtType, outputFileName);
+				paramFile, tmtFiles, tmtType, outputFileName, ignoreNotFoundSignals);
 		final Map<String, File> pcqParameters = pcqInputParamtersGenerator.run();
 		// run pcq in batch
 		final PCQBatchRunner pcqBatchRunner = new PCQBatchRunner(pcqParameters, generateXGMMLFiles);
@@ -216,7 +236,7 @@ public class TMTQuantSiteComparator {
 
 	public TMTQuantSiteComparator(File paramFile, List<File> tmtFiles, String tmtType, double rInf,
 			String outputFileName, PValueCorrectionType pValueCorrectionType, double qValueThreshold, int numberSigmas,
-			int minNumberOfDiscoveries, boolean generateXGMMLFiles2) throws IOException {
+			int minNumberOfDiscoveries, boolean generateXGMMLFiles2, boolean ignoreNotFoundSignals) throws IOException {
 		this.paramFile = paramFile;
 		this.tmtFiles = tmtFiles;
 		this.tmtType = tmtType;
@@ -227,6 +247,7 @@ public class TMTQuantSiteComparator {
 		this.qValueThreshold = qValueThreshold;
 		this.rInf = rInf;
 		generateXGMMLFiles = generateXGMMLFiles2;
+		this.ignoreNotFoundSignals = ignoreNotFoundSignals;
 	}
 
 	private static void setupCommandLineOptions() {
