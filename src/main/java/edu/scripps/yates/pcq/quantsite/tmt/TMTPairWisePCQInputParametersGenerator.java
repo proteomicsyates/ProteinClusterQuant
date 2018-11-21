@@ -116,6 +116,10 @@ public class TMTPairWisePCQInputParametersGenerator {
 		final Option opt3 = new Option("tmt", "tmt_type", true, "[OPTIONAL] Either 10PLEX (by default) or 6PLEX");
 		opt3.setRequired(false);
 		options.addOption(opt3);
+		final Option opt4 = new Option("ig", "ignore_not_found_signals", true,
+				"[OPTIONAL] Ignore not found signals in TMT (avoiding infinity ratios in the analysis)");
+		opt4.setRequired(false);
+		options.addOption(opt4);
 
 	}
 
