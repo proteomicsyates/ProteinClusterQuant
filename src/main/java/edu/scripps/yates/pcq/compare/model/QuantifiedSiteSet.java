@@ -67,15 +67,15 @@ public class QuantifiedSiteSet extends THashSet<QuantifiedSite> {
 	}
 
 	public List<QuantifiedSite> getSortedByNumDiscoveriesAndProteinsAndSites(
-			TObjectIntHashMap<String> numberOfDiscoveriesPerSite) {
+			TObjectIntHashMap<QuantifiedSite> numberOfDiscoveriesPerSite) {
 		final List<QuantifiedSite> ret = new ArrayList<QuantifiedSite>();
 		ret.addAll(this);
 		final Comparator<QuantifiedSite> comparator = new Comparator<QuantifiedSite>() {
 
 			@Override
 			public int compare(QuantifiedSite o1, QuantifiedSite o2) {
-				final int numDiscoveries1 = numberOfDiscoveriesPerSite.get(o1.getNodeKey());
-				final int numDiscoveries2 = numberOfDiscoveriesPerSite.get(o2.getNodeKey());
+				final int numDiscoveries1 = numberOfDiscoveriesPerSite.get(o1);
+				final int numDiscoveries2 = numberOfDiscoveriesPerSite.get(o2);
 				if (numDiscoveries1 != numDiscoveries2) {
 					// reverse order
 					return Integer.compare(numDiscoveries2, numDiscoveries1);
