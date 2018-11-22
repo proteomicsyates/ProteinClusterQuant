@@ -72,10 +72,11 @@ public class QuantSiteOutputComparator {
 	private Double distributionSigma;
 	private Double distributionAverage;
 	private final int minNumberOfDiscoveries;
-	private THashMap<String, TTestMatrix> ttestMatrixesByQuantSites;
-	private TObjectIntHashMap<String> numberOfDiscoveriesPerSite;
+	private THashMap<QuantifiedSite, TTestMatrix> ttestMatrixesByQuantSites;
+	private TObjectIntHashMap<QuantifiedSite> numberOfDiscoveriesPerSite;
 	private final boolean tmtData;
 	private String outputFolder;
+	private THashMap<QuantifiedSite, NLMatrix> matrixByQuantSitesForTMT;
 
 	public QuantSiteOutputComparator(List<File> inputFiles, double rInf, String outputFileName,
 			PValueCorrectionType pValueCorrectionType, double qValueThreshold, int numberSigmas,
@@ -231,7 +232,16 @@ public class QuantSiteOutputComparator {
 				log.info("ns (number_sigmas) parameter wasn't set. Using " + numberSigmas + " by default.");
 			}
 			// tmt
-			final boolean tmtData = true;
+			boolean tmtData = false;
+			if (cmd.hasOption("tmt")) {
+				try {
+					tmtData = Boolean.valueOf(cmd.getOptionValue("tmt"));
+				} catch (final NumberFormatException e) {
+					throw new Exception(
+							"Option 'tmt' must be boolean value (true or false). If not provided it will be 'false'.");
+				}
+			}
+
 			quantSiteComparator = new QuantSiteOutputComparator(inputFiles, rInf, outputFileName, pValueCorrectionType,
 					qValueThreshold, numberSigmas, minNumberOfDiscoveries, tmtData);
 
@@ -299,7 +309,7 @@ public class QuantSiteOutputComparator {
 		}
 
 		writePairWisePValueMatrixesForTMT(quantSites);
-		writeTripletsOutput(quantSites);
+		writeRatioTableOutput(quantSites);
 	}
 
 	public void runRegularData() throws IOException {
@@ -322,27 +332,24 @@ public class QuantSiteOutputComparator {
 		}
 
 		writePairWisePValueMatrixes(quantSites);
-		writeTripletsOutput(quantSites);
+		writeRatioTableOutput(quantSites);
 	}
 
 	private static String getSampleNameByFile(File file) {
 		return sampleNamesByFiles.get(file);
 	}
 
-	private void writePairWisePValueMatrixes(QuantifiedSiteSet quantSites) throws IOException {
-		final int numSamples = quantSites.getNumExperiments();
+	private void writePairWisePValueMatrixes(QuantifiedSiteSet quantSiteSet) throws IOException {
+		final int numSamples = quantSiteSet.getNumExperiments();
 
-		ttestMatrixesByQuantSites = new THashMap<String, TTestMatrix>();
-		for (final QuantifiedSite quantSite : quantSites.getSortedByRatios()) {
+		ttestMatrixesByQuantSites = new THashMap<QuantifiedSite, TTestMatrix>();
+		for (final QuantifiedSite quantSite : quantSiteSet.getSortedByRatios()) {
 			final TTestMatrix matrix = new TTestMatrix(numSamples, numSamples);
-			ttestMatrixesByQuantSites.put(quantSite.getNodeKey(), matrix);
+			ttestMatrixesByQuantSites.put(quantSite, matrix);
 			for (int sampleIndex1 = 0; sampleIndex1 < numSamples; sampleIndex1++) {
 				for (int sampleIndex2 = sampleIndex1 + 1; sampleIndex2 < numSamples; sampleIndex2++) {
-					if (quantSite.getNodeKey().equals("O75369#K1838") && sampleIndex1 == 7 && sampleIndex2 == 9) {
-						log.info(quantSite);
-					}
 					final MyTTest ttest = performTTest(quantSite, sampleIndex1, sampleIndex2,
-							getDistributionAverage(quantSites), getDistributionSigma(quantSites));
+							getDistributionAverage(quantSiteSet), getDistributionSigma(quantSiteSet));
 					matrix.set(sampleIndex1, sampleIndex2, ttest);
 				}
 			}
@@ -351,13 +358,13 @@ public class QuantSiteOutputComparator {
 		// sampleIndex1+sampleIndex2
 
 		// to keep the number of significant pvalues after the pvalue correction
-		numberOfDiscoveriesPerSite = new TObjectIntHashMap<String>();
+		numberOfDiscoveriesPerSite = new TObjectIntHashMap<QuantifiedSite>();
 		int numSitesWithMinimumDiscoveries = 0;
 		for (int sampleIndex1 = 0; sampleIndex1 < numSamples; sampleIndex1++) {
 			for (int sampleIndex2 = sampleIndex1 + 1; sampleIndex2 < numSamples; sampleIndex2++) {
-				final TObjectDoubleHashMap<String> pValuesByQuantSite = new TObjectDoubleHashMap<String>();
-				final Set<String> quantSiteKeys = quantSites.getQuantifiedSitesByKey().keySet();
-				for (final String quantSite : quantSiteKeys) {
+				final TObjectDoubleHashMap<QuantifiedSite> pValuesByQuantSite = new TObjectDoubleHashMap<QuantifiedSite>();
+				final Collection<QuantifiedSite> quantSites = quantSiteSet.getQuantifiedSitesByKey().values();
+				for (final QuantifiedSite quantSite : quantSites) {
 					final TTestMatrix matrix = ttestMatrixesByQuantSites.get(quantSite);
 					if (matrix != null) {
 						final MyTTest myTTest = matrix.get(sampleIndex1, sampleIndex2);
@@ -369,25 +376,24 @@ public class QuantSiteOutputComparator {
 						}
 					}
 				}
-				final PValuesCollection pValueCollection = new PValuesCollection(pValuesByQuantSite);
-				PValueCorrectionResult pAdjust = null;
+				final PValuesCollection<QuantifiedSite> pValueCollection = new PValuesCollection<QuantifiedSite>(
+						pValuesByQuantSite);
+				PValueCorrectionResult<QuantifiedSite> pAdjust = null;
 				if (pValuesByQuantSite.size() > 0) {
-					log.info("Sample '" + getSampleNameByFile(inputFiles.get(sampleIndex1)) + "' vs '"
+					log.info("Sample '" + getSampleNameByFile(inputFiles.get(sampleIndex1)) + "'"
+							+ TMTPairWisePCQInputParametersGenerator.VS + "'"
 							+ getSampleNameByFile(inputFiles.get(sampleIndex2)) + "':");
 					log.info("Adjusting " + pValuesByQuantSite.size() + " p-values using method '"
 							+ pValueCorrectionMethod.name() + "'");
 					pAdjust = PValueCorrection.pAdjust(pValueCollection, pValueCorrectionMethod);
 				} else {
-					pAdjust = new PValueCorrectionResult();
+					pAdjust = new PValueCorrectionResult<QuantifiedSite>();
 					pAdjust.setCorrectedPValues(pValueCollection);
 					pAdjust.setOriginalPValues(pValueCollection);
 				}
-				for (final String quantSite : quantSiteKeys) {
+				for (final QuantifiedSite quantSite : quantSites) {
 					final TTestMatrix matrixOfTTests = ttestMatrixesByQuantSites.get(quantSite);
 					if (matrixOfTTests != null) {
-						if (quantSite.equals("Q9Y277#K266")) {
-							log.info(quantSite);
-						}
 						Double adjustedPValue = pAdjust.getCorrectedPValues().getPValue(quantSite);
 						if (adjustedPValue == null) {
 							// here he have to take the sites that are
@@ -447,21 +453,21 @@ public class QuantSiteOutputComparator {
 		final FileWriter fw = new FileWriter(matrixSummaryFile);
 		boolean atLeastOneMatrix = false;
 		// sort by number of discoveries and by ratios
-		for (final QuantifiedSite quantifiedSite : quantSites
+		for (final QuantifiedSite quantifiedSite : quantSiteSet
 				.getSortedByNumDiscoveriesAndProteinsAndSites(numberOfDiscoveriesPerSite)) {
 			fw.write(quantifiedSite.getNodeKey() + "\n");
-			fw.write("Number of discoveries:\t" + numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey()) + "\n");
+			fw.write("Number of discoveries:\t" + numberOfDiscoveriesPerSite.get(quantifiedSite) + "\n");
 
-			final TTestMatrix matrixOfTTests = ttestMatrixesByQuantSites.get(quantifiedSite.getNodeKey());
+			final TTestMatrix matrixOfTTests = ttestMatrixesByQuantSites.get(quantifiedSite);
 			if (matrixOfTTests == null) {
 				continue;
 			}
-			if (numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey()) >= minNumberOfDiscoveries) {
+			if (numberOfDiscoveriesPerSite.get(quantifiedSite) >= minNumberOfDiscoveries) {
 				atLeastOneMatrix = true;
 				fw.write(printMatrix(matrixOfTTests, quantifiedSite, true) + "\n");
 
 				// keep number of discoveries
-				final int numDiscoveries = numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey());
+				final int numDiscoveries = numberOfDiscoveriesPerSite.get(quantifiedSite);
 				nums.add(numDiscoveries);
 
 				// independent file with the matrix
@@ -519,18 +525,22 @@ public class QuantSiteOutputComparator {
 
 	}
 
+	private int getNumSamplesFromSamplePairs(int numSamplesPairs) {
+		return Double.valueOf((1 + Math.sqrt(1 + 8 * numSamplesPairs)) / 2).intValue();
+	}
+
 	private void writePairWisePValueMatrixesForTMT(QuantifiedSiteSet quantSites) throws IOException {
 		final int numSamplesPairs = quantSites.getNumExperiments();
-		final int numSamples = Double.valueOf((1 + Math.sqrt(1 + 8 * numSamplesPairs)) / 2).intValue();
+		final int numSamples = getNumSamplesFromSamplePairs(numSamplesPairs);
 		// create a matrix per quantSite
-		final THashMap<QuantifiedSite, NLMatrix> matrixByQuantSites = new THashMap<QuantifiedSite, NLMatrix>();
+		matrixByQuantSitesForTMT = new THashMap<QuantifiedSite, NLMatrix>();
 		for (final QuantifiedSite quantSite : quantSites.getSortedByRatios()) {
 			final NLMatrix matrix = new NLMatrix(numSamples, numSamples, Double.NaN);
-			matrixByQuantSites.put(quantSite, matrix);
+			matrixByQuantSitesForTMT.put(quantSite, matrix);
 		}
 		// to keep the number of significant pvalues after the pvalue
 		// correction
-		numberOfDiscoveriesPerSite = new TObjectIntHashMap<String>();
+		numberOfDiscoveriesPerSite = new TObjectIntHashMap<QuantifiedSite>();
 
 		//
 		for (int sampleIndexPair = 0; sampleIndexPair < numSamplesPairs; sampleIndexPair++) {
@@ -571,7 +581,7 @@ public class QuantSiteOutputComparator {
 				obs.add((histogram[0][j] + histogram[1][j]) / 2, histogram[2][j]);
 			}
 			final double[] bestFit = gaussianfitter.fit(obs.toList());
-			final double gaussianNorm = bestFit[0];
+			// final double gaussianNorm = bestFit[0];
 			final double gaussianMean = bestFit[1];
 			final double gaussianSigma = bestFit[2];
 			final NormalDistribution normalDistribution = new NormalDistribution(gaussianMean, gaussianSigma);
@@ -583,7 +593,10 @@ public class QuantSiteOutputComparator {
 			final TObjectDoubleHashMap<QuantifiedSite> pvalues = new TObjectDoubleHashMap<QuantifiedSite>();
 			for (final QuantifiedSite quantSite : quantSites.getSortedByRatios()) {
 				double pvalue = 1.0;
-				final Double ratio = quantSite.getLog2Ratio(sampleIndexPair);
+				final Double ratio = quantSite.getLog2Ratio(sampleIndexPair) - mean;// shifting
+																					// the
+																					// ratio
+
 				if (ratio != null && !Double.isNaN(ratio) && !Double.isInfinite(ratio)) {
 					pvalue = normalDistribution.cumulativeProbability(ratio);
 					// this p is the probability that a ratio is <= than ratio
@@ -621,13 +634,12 @@ public class QuantSiteOutputComparator {
 					// NaN
 					correctedPValue = Double.NaN;
 				}
-				matrixByQuantSites.get(quantSite).set(rowSampleIndex, columnSampleIndex, correctedPValue);
+				matrixByQuantSitesForTMT.get(quantSite).set(rowSampleIndex, columnSampleIndex, correctedPValue);
 				if (correctedPValue < qValueThreshold) {
-					if (numberOfDiscoveriesPerSite.contains(quantSite.getNodeKey())) {
-						numberOfDiscoveriesPerSite.put(quantSite.getNodeKey(),
-								numberOfDiscoveriesPerSite.get(quantSite.getNodeKey()) + 1);
+					if (numberOfDiscoveriesPerSite.contains(quantSite)) {
+						numberOfDiscoveriesPerSite.put(quantSite, numberOfDiscoveriesPerSite.get(quantSite) + 1);
 					} else {
-						numberOfDiscoveriesPerSite.put(quantSite.getNodeKey(), 1);
+						numberOfDiscoveriesPerSite.put(quantSite, 1);
 					}
 				}
 			}
@@ -682,18 +694,18 @@ public class QuantSiteOutputComparator {
 				log.info(counter.printIfNecessary());
 			}
 			fw.write(quantifiedSite.getNodeKey() + "\n");
-			fw.write("Number of discoveries:\t" + numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey()) + "\n");
+			fw.write("Number of discoveries:\t" + numberOfDiscoveriesPerSite.get(quantifiedSite) + "\n");
 
-			final NLMatrix matrixOfPValues = matrixByQuantSites.get(quantifiedSite);
+			final NLMatrix matrixOfPValues = matrixByQuantSitesForTMT.get(quantifiedSite);
 			if (matrixOfPValues == null) {
 				continue;
 			}
-			if (numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey()) >= minNumberOfDiscoveries) {
+			if (numberOfDiscoveriesPerSite.get(quantifiedSite) >= minNumberOfDiscoveries) {
 				atLeastOneMatrix = true;
 				fw.write(printMatrix(matrixOfPValues, quantifiedSite) + "\n");
 
 				// keep number of discoveries
-				final int numDiscoveries = numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey());
+				final int numDiscoveries = numberOfDiscoveriesPerSite.get(quantifiedSite);
 				nums.add(numDiscoveries);
 
 				// independent file with the matrix
@@ -777,14 +789,16 @@ public class QuantSiteOutputComparator {
 		return -1;
 	}
 
-	private File getIndividualMatrixFile(int numDiscoveries, String site) {
-		final File file = new File(getIndividualMatrixFolder().getAbsoluteFile().getAbsolutePath() + File.separator
-				+ numDiscoveries + "_" + site + ".txt");
-		if (!file.getParentFile().exists()) {
-			file.getParentFile().mkdirs();
-		}
-		return file;
-	}
+	// private File getIndividualMatrixFile(int numDiscoveries, String site) {
+	// final File file = new
+	// File(getIndividualMatrixFolder().getAbsoluteFile().getAbsolutePath() +
+	// File.separator
+	// + numDiscoveries + "_" + site + ".txt");
+	// if (!file.getParentFile().exists()) {
+	// file.getParentFile().mkdirs();
+	// }
+	// return file;
+	// }
 
 	private File getIndividualMatrixFolder() {
 		return new File(getOutputFolder() + File.separator + "matrixes_" + FilenameUtils.getBaseName(outputFileName));
@@ -813,75 +827,155 @@ public class QuantSiteOutputComparator {
 		return outputFolder;
 	}
 
-	private void writeTripletsOutput(QuantifiedSiteSet mergedQuantSites) throws IOException {
+	private void writeRatioTableOutput(QuantifiedSiteSet mergedQuantSites) throws IOException {
 
 		log.info("Writting output file...");
 		final File outputFile = new File(getOutputFolder() + File.separator + outputFileName);
 		final FileWriter fw = new FileWriter(outputFile, false);
 		// header
 		fw.write(QuantifiedSite.NODE_KEY + "\t");
-		for (int index = 0; index < mergedQuantSites.getNumExperiments(); index++) {
-			final int num = index + 1;
-			fw.write(QuantifiedSite.LOG2RATIO + "_" + num + "\t");
-			fw.write(QuantifiedSite.STDEV + "_" + num + "\t");
-			// fw.write(QuantifiedSite.NUMPSMS + "_" + (index + 1) + "\t");
-			fw.write(QuantifiedSite.NUMMEASUREMENTS + "_" + num + "\t");
+		final int numSamplesFromSamplePairs = getNumSamplesFromSamplePairs(mergedQuantSites.getNumExperiments());
+		if (tmtData) {
+			for (int i = 0; i < numSamplesFromSamplePairs; i++) {
+				for (int j = i + 1; j < numSamplesFromSamplePairs; j++) {
+
+					fw.write(QuantifiedSite.LOG2RATIO + "_" + (i + 1) + TMTPairWisePCQInputParametersGenerator.VS
+							+ (j + 1) + "\t");
+					fw.write(QuantifiedSite.STDEV + "_" + (i + 1) + TMTPairWisePCQInputParametersGenerator.VS + (j + 1)
+							+ "\t");
+					// fw.write(QuantifiedSite.NUMPSMS + "_" + (index + 1) +
+					// "\t");
+					fw.write(QuantifiedSite.NUMMEASUREMENTS + "_" + (i + 1) + TMTPairWisePCQInputParametersGenerator.VS
+							+ (j + 1) + "\t");
+				}
+			}
+		} else {
+			for (int index = 0; index < mergedQuantSites.getNumExperiments(); index++) {
+				final int num = index + 1;
+				fw.write(QuantifiedSite.LOG2RATIO + "_" + num + "\t");
+				fw.write(QuantifiedSite.STDEV + "_" + num + "\t");
+				// fw.write(QuantifiedSite.NUMPSMS + "_" + (index + 1) + "\t");
+				fw.write(QuantifiedSite.NUMMEASUREMENTS + "_" + num + "\t");
+			}
 		}
 		fw.write(QuantifiedSite.SEQUENCE + "\t");
 		fw.write(QuantifiedSite.QUANTPOSITIONSINPEPTIDE + "\t");
 		fw.write(QuantifiedSite.PROTEINS + "\t");
 		fw.write(QuantifiedSite.GENES + "\t");
 		fw.write("# discoveries (q-value < " + qValueThreshold + ")\t");
-		for (int i = 0; i < mergedQuantSites.getNumExperiments(); i++) {
-			for (int j = i + 1; j < mergedQuantSites.getNumExperiments(); j++) {
-				fw.write((i + 1) + " vs " + (j + 1) + " p-value" + "\t");
-				fw.write((i + 1) + " vs " + (j + 1) + " q-value (by " + pValueCorrectionMethod + ")" + "\t");
+		if (tmtData) {
+			for (int i = 0; i < numSamplesFromSamplePairs; i++) {
+				for (int j = i + 1; j < numSamplesFromSamplePairs; j++) {
+					fw.write((i + 1) + TMTPairWisePCQInputParametersGenerator.VS + (j + 1) + " p-value" + "\t");
+				}
+			}
+		} else {
+			for (int i = 0; i < mergedQuantSites.getNumExperiments(); i++) {
+				for (int j = i + 1; j < mergedQuantSites.getNumExperiments(); j++) {
+					fw.write((i + 1) + TMTPairWisePCQInputParametersGenerator.VS + (j + 1) + " p-value" + "\t");
+					fw.write((i + 1) + TMTPairWisePCQInputParametersGenerator.VS + (j + 1) + " q-value (by "
+							+ pValueCorrectionMethod + ")" + "\t");
+				}
 			}
 		}
 
 		fw.write("\n");
-		for (final QuantifiedSite quantSite : mergedQuantSites
+		for (final QuantifiedSite quantifiedSite : mergedQuantSites
 				.getSortedByNumDiscoveriesAndProteinsAndSites(numberOfDiscoveriesPerSite)) {
-			final QuantifiedSite quantifiedSite = mergedQuantSites.getQuantifiedSitesByKey()
-					.get(quantSite.getNodeKey());
-			fw.write(quantifiedSite.getNodeKey() + "\t");
-			for (int index = 0; index < mergedQuantSites.getNumExperiments(); index++) {
-				final Double log2Ratio = replaceInfiniteWithRInfParameter(quantifiedSite.getLog2Ratio(index), rInf);
-				fw.write(log2Ratio + "\t");
-				final int numMeasurements = quantifiedSite.getNumMeasurements(index);
-				Double stdev = quantifiedSite.getRatioStdev(index);
-				if (numMeasurements <= 1) {
-					stdev = Double.NaN;
-				}
 
-				fw.write(stdev + "\t");
-				fw.write(numMeasurements + "\t");
+			fw.write(quantifiedSite.getNodeKey() + "\t");
+			if (tmtData) {
+				for (int i = 0; i < numSamplesFromSamplePairs; i++) {
+					for (int j = i + 1; j < numSamplesFromSamplePairs; j++) {
+						final int index = getPairIndexFromSamplesIndexex(i, j);
+						final Double log2Ratio = replaceInfiniteWithRInfParameter(quantifiedSite.getLog2Ratio(index),
+								rInf);
+						fw.write(log2Ratio + "\t");
+						final int numMeasurements = quantifiedSite.getNumMeasurements(index);
+						Double stdev = quantifiedSite.getRatioStdev(index);
+						if (numMeasurements <= 1) {
+							stdev = Double.NaN;
+						}
+						fw.write(stdev + "\t");
+						fw.write(numMeasurements + "\t");
+					}
+				}
+			} else {
+				for (int index = 0; index < mergedQuantSites.getNumExperiments(); index++) {
+					final Double log2Ratio = replaceInfiniteWithRInfParameter(quantifiedSite.getLog2Ratio(index), rInf);
+					fw.write(log2Ratio + "\t");
+					final int numMeasurements = quantifiedSite.getNumMeasurements(index);
+					Double stdev = quantifiedSite.getRatioStdev(index);
+					if (numMeasurements <= 1) {
+						stdev = Double.NaN;
+					}
+
+					fw.write(stdev + "\t");
+					fw.write(numMeasurements + "\t");
+				}
 			}
 
 			fw.write(quantifiedSite.getSequence() + "\t");
 			fw.write(getSeparatedValueStringFromChars(quantifiedSite.getPositionsInPeptide(), "-") + "\t");
 			fw.write(quantifiedSite.getProteins() + "\t");
 			fw.write(quantifiedSite.getGenes() + "\t");
-			fw.write(numberOfDiscoveriesPerSite.get(quantifiedSite.getNodeKey()) + "\t");
-			final TTestMatrix tTestMatrix = ttestMatrixesByQuantSites.get(quantifiedSite.getNodeKey());
-			for (int i = 0; i < mergedQuantSites.getNumExperiments(); i++) {
-				for (int j = i + 1; j < mergedQuantSites.getNumExperiments(); j++) {
-					if (tTestMatrix != null && tTestMatrix.get(i, j) != null) {
-						final MyTTest tTest = tTestMatrix.get(i, j);
-						fw.write(tTest.getPValue() + "\t");
-						fw.write(tTest.getCorrectedPValue() + "\t");
-					} else {
-						fw.write("\t\t");
-					}
+			fw.write(numberOfDiscoveriesPerSite.get(quantifiedSite) + "\t");
 
+			if (tmtData) {
+				final NLMatrix matrix = matrixByQuantSitesForTMT.get(quantifiedSite);
+				for (int i = 0; i < matrix.nrows(); i++) {
+					for (int j = i + 1; j < matrix.ncols(); j++) {
+						if (matrix != null) {
+							final double pValue = matrix.get(i, j);
+
+							fw.write(pValue + "\t");
+						}
+					}
+				}
+			} else {
+				final TTestMatrix tTestMatrix = ttestMatrixesByQuantSites.get(quantifiedSite);
+				for (int i = 0; i < mergedQuantSites.getNumExperiments(); i++) {
+					for (int j = i + 1; j < mergedQuantSites.getNumExperiments(); j++) {
+						if (tTestMatrix != null && tTestMatrix.get(i, j) != null) {
+							final MyTTest tTest = tTestMatrix.get(i, j);
+							fw.write(tTest.getPValue() + "\t");
+							fw.write(tTest.getCorrectedPValue() + "\t");
+						} else {
+							fw.write("\t\t");
+						}
+
+					}
 				}
 			}
-
 			fw.write("\n");
 		}
 		fw.close();
 		log.info("Output file written at: '" + outputFile.getAbsolutePath() + "'");
 
+	}
+
+	private int getPairIndexFromSamplesIndexex(int i, int j) {
+		final String samplePairName = getSampleNameByFile(inputFiles.get(0));
+
+		final String labelString = samplePairName.split(TMTPairWisePCQInputParametersGenerator.VS)[1];
+		final QuantificationLabel label = QuantificationLabel.valueOf(labelString);
+
+		int max = -1;
+		if (QuantificationLabel.isTMT10PLEX(label)) {
+			max = QuantificationLabel.getTMT10PlexLabels().size();
+		} else if (QuantificationLabel.isTMT6PLEX(label)) {
+			max = QuantificationLabel.getTMT6PlexLabels().size();
+		}
+		int ret = 0;
+		for (int i2 = 0; i2 < max; i2++) {
+			for (int j2 = i2 + 1; j2 < max; j2++) {
+				if (i2 == i && j2 == j) {
+					return ret;
+				}
+				ret++;
+			}
+		}
+		return -1;
 	}
 
 	private double replaceInfiniteWithRInfParameter(Double log2Ratio, Double rInf) {
@@ -904,9 +998,6 @@ public class QuantSiteOutputComparator {
 
 	private MyTTest performTTest(QuantifiedSite quantSite, int sampleIndex1, int sampleIndex2, double distributionAvg,
 			double distributionSigma) {
-		if (quantSite.getNodeKey().equals("Q9Y277#K266")) {
-			log.info(quantSite);
-		}
 		final double mean1 = quantSite.getLog2Ratio(sampleIndex1);
 		final double mean2 = quantSite.getLog2Ratio(sampleIndex2);
 		final double stdev1 = quantSite.getRatioStdev(sampleIndex1);
@@ -1108,6 +1199,10 @@ public class QuantSiteOutputComparator {
 						+ "If R1=NEGATIVE_INFINITY and R2 > avg_distribution + ns*sigma_distribution_of_ratios, then R2 is significantly different.");
 		opt7.setRequired(false);
 		options.addOption(opt7);
+		final Option opt8 = new Option("tmt", "tmt_data", true,
+				"[OPTIONAL] whether the data is TMT or not. In case of having TMT data, it will perform the analysis accordingly. Bu default this parameter is FALSE.");
+		opt8.setRequired(false);
+		options.addOption(opt8);
 	}
 
 	private static void errorInParameters() {
