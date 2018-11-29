@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import edu.scripps.yates.annotations.uniprot.xml.Entry;
 import edu.scripps.yates.annotations.util.UniprotEntryUtil;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
@@ -16,6 +15,7 @@ import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface
 import edu.scripps.yates.census.read.util.QuantUtils;
 import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.util.PCQUtils;
+import edu.scripps.yates.utilities.annotations.uniprot.xml.Entry;
 import gnu.trove.set.hash.THashSet;
 
 /**
