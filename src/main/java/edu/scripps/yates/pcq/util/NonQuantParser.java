@@ -7,7 +7,6 @@ import java.util.regex.PatternSyntaxException;
 
 import org.apache.log4j.Logger;
 
-import edu.scripps.yates.census.analysis.util.KeyUtils;
 import edu.scripps.yates.census.read.AbstractQuantParser;
 import edu.scripps.yates.census.read.model.QuantifiedPeptide;
 import edu.scripps.yates.census.read.model.QuantifiedProteinFromDBIndexEntry;
@@ -17,14 +16,15 @@ import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 import edu.scripps.yates.dbindex.util.PeptideNotFoundInDBIndexException;
 import edu.scripps.yates.dtaselectparser.DTASelectParser;
-import edu.scripps.yates.dtaselectparser.util.DTASelectPSM;
-import edu.scripps.yates.dtaselectparser.util.DTASelectProtein;
 import edu.scripps.yates.pcq.model.NonQuantifiedPSM;
 import edu.scripps.yates.pcq.model.NonQuantifiedProtein;
 import edu.scripps.yates.utilities.fasta.dbindex.DBIndexStoreException;
 import edu.scripps.yates.utilities.fasta.dbindex.IndexedProtein;
 import edu.scripps.yates.utilities.progresscounter.ProgressCounter;
 import edu.scripps.yates.utilities.progresscounter.ProgressPrintingType;
+import edu.scripps.yates.utilities.proteomicsmodel.PSM;
+import edu.scripps.yates.utilities.proteomicsmodel.Protein;
+import edu.scripps.yates.utilities.proteomicsmodel.utils.KeyUtils;
 
 public class NonQuantParser extends AbstractQuantParser {
 	private final static Logger log = Logger.getLogger(NonQuantParser.class);
@@ -50,11 +50,11 @@ public class NonQuantParser extends AbstractQuantParser {
 	protected void process() {
 		try {
 			processed = false;
-			final Map<String, DTASelectPSM> psms = dtaSelectParser.getDTASelectPSMsByPSMID();
+			final Map<String, PSM> psms = dtaSelectParser.getPSMsByPSMID();
 			// wrapping dtaselect psms to PCQ
 			log.info("Wrapping " + psms.size() + " PSMs from DTASelect parser into PCQ");
 			final ProgressCounter counter = new ProgressCounter(psms.size(), ProgressPrintingType.PERCENTAGE_STEPS, 0);
-			for (final DTASelectPSM psm : psms.values()) {
+			for (final PSM psm : psms.values()) {
 				counter.increment();
 				final String printIfNecessary = counter.printIfNecessary();
 				if (!"".equals(printIfNecessary)) {
@@ -72,15 +72,15 @@ public class NonQuantParser extends AbstractQuantParser {
 
 	}
 
-	private void processPSM(DTASelectPSM psm) throws IOException, DBIndexStoreException {
+	private void processPSM(PSM psm) throws IOException, DBIndexStoreException {
 
-		final String experimentKey = psm.getRawFileName();
+		final String experimentKey = psm.getMSRun().getRunId();
 
 		QuantifiedPSMInterface quantifiedPSM = new NonQuantifiedPSM(psm);
 		for (final String inputFileName : dtaSelectParser.getInputFilePathes()) {
 			quantifiedPSM.getFileNames().add(inputFileName);
 		}
-		final String psmKey = KeyUtils.getSpectrumKey(quantifiedPSM, true);
+		final String psmKey = KeyUtils.getInstance().getSpectrumKey(quantifiedPSM, true);
 		// in case of TMT, the psm may have been created before
 		if (StaticQuantMaps.psmMap.containsKey(psmKey)) {
 			quantifiedPSM = StaticQuantMaps.psmMap.getItem(psmKey);
@@ -95,7 +95,7 @@ public class NonQuantParser extends AbstractQuantParser {
 
 		// create the peptide
 		QuantifiedPeptideInterface quantifiedPeptide = null;
-		final String peptideKey = KeyUtils.getSequenceKey(quantifiedPSM, true);
+		final String peptideKey = KeyUtils.getInstance().getSequenceKey(quantifiedPSM, true);
 		if (StaticQuantMaps.peptideMap.containsKey(peptideKey)) {
 			quantifiedPeptide = StaticQuantMaps.peptideMap.getItem(peptideKey);
 		} else {
@@ -124,7 +124,7 @@ public class NonQuantParser extends AbstractQuantParser {
 			// create a new Quantified Protein for each
 			// indexedProtein
 			for (final IndexedProtein indexedProtein : indexedProteins) {
-				final String proteinKey = KeyUtils.getProteinKey(indexedProtein, isIgnoreACCFormat());
+				final String proteinKey = KeyUtils.getInstance().getProteinKey(indexedProtein, isIgnoreACCFormat());
 				QuantifiedProteinInterface quantifiedProtein = null;
 				if (StaticQuantMaps.proteinMap.containsKey(proteinKey)) {
 					quantifiedProtein = StaticQuantMaps.proteinMap.getItem(proteinKey);
@@ -141,7 +141,7 @@ public class NonQuantParser extends AbstractQuantParser {
 				quantifiedProtein.addPeptide(quantifiedPeptide, true);
 				// add to the map (if it was already there
 				// is not a problem, it will be only once)
-				addToMap(proteinKey, proteinToPeptidesMap, KeyUtils.getSequenceKey(quantifiedPSM, true));
+				addToMap(proteinKey, proteinToPeptidesMap, KeyUtils.getInstance().getSequenceKey(quantifiedPSM, true));
 				// add protein to protein map
 				localProteinMap.put(proteinKey, quantifiedProtein);
 				// add to protein-experiment map
@@ -149,14 +149,14 @@ public class NonQuantParser extends AbstractQuantParser {
 
 			}
 		}
-		final Set<DTASelectProtein> proteins = psm.getProteins();
-		for (final DTASelectProtein dtaSelectProtein : proteins) {
-			final String proteinKey = dtaSelectProtein.getAccession();
+		final Set<Protein> proteins = psm.getProteins();
+		for (final Protein protein : proteins) {
+			final String proteinKey = protein.getAccession();
 			QuantifiedProteinInterface quantifiedProtein = null;
 			if (StaticQuantMaps.proteinMap.containsKey(proteinKey)) {
 				quantifiedProtein = StaticQuantMaps.proteinMap.getItem(proteinKey);
 			} else {
-				quantifiedProtein = new NonQuantifiedProtein(dtaSelectProtein, isIgnoreTaxonomies());
+				quantifiedProtein = new NonQuantifiedProtein(protein, isIgnoreTaxonomies());
 			}
 			StaticQuantMaps.proteinMap.addItem(quantifiedProtein);
 			// add psm to the proteins
@@ -167,7 +167,7 @@ public class NonQuantParser extends AbstractQuantParser {
 			quantifiedProtein.addPeptide(quantifiedPeptide, true);
 			// add to the map (if it was already there
 			// is not a problem, it will be only once)
-			addToMap(proteinKey, proteinToPeptidesMap, KeyUtils.getSequenceKey(quantifiedPSM, true));
+			addToMap(proteinKey, proteinToPeptidesMap, KeyUtils.getInstance().getSequenceKey(quantifiedPSM, true));
 			// add protein to protein map
 			localProteinMap.put(proteinKey, quantifiedProtein);
 			// add to protein-experiment map

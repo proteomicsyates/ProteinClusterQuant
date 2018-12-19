@@ -7,21 +7,27 @@ import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.read.model.CensusRatio;
 import edu.scripps.yates.census.read.model.QuantifiedProtein;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
-import edu.scripps.yates.dtaselectparser.util.DTASelectProtein;
-import edu.scripps.yates.utilities.fasta.FastaParser;
-import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.proteomicsmodel.Amount;
+import edu.scripps.yates.utilities.proteomicsmodel.Protein;
+import edu.scripps.yates.utilities.proteomicsmodel.Ratio;
+import edu.scripps.yates.utilities.proteomicsmodel.enums.AggregationLevel;
 
 public class NonQuantifiedProtein extends QuantifiedProtein {
-	private final DTASelectProtein protein;
+	private final Protein protein;
 
-	public NonQuantifiedProtein(DTASelectProtein protein, boolean ignoreTaxonomies) {
-		super(FastaParser.getACC(protein.getLocus()).getFirstelement(), ignoreTaxonomies);
+	public NonQuantifiedProtein(Protein protein, boolean ignoreTaxonomies) {
+		super(protein.getAccession(), ignoreTaxonomies);
+		mergeWithProtein(protein);
 		this.protein = protein;
 	}
 
 	@Override
-	public Set<QuantRatio> getRatios() {
+	public Set<QuantRatio> getQuantRatios() {
+		return Collections.emptySet();
+	}
+
+	@Override
+	public Set<Ratio> getRatios() {
 		return Collections.emptySet();
 	}
 
@@ -39,7 +45,12 @@ public class NonQuantifiedProtein extends QuantifiedProtein {
 	}
 
 	@Override
-	public void addRatio(QuantRatio ratio) {
+	public boolean addQuantRatio(QuantRatio ratio) {
+		throw new IllegalArgumentException("addQuantRatio not available for " + getClass().getSimpleName());
+	}
+
+	@Override
+	public boolean addRatio(Ratio ratio) {
 		throw new IllegalArgumentException("addRatio not available for " + getClass().getSimpleName());
 	}
 
@@ -59,22 +70,25 @@ public class NonQuantifiedProtein extends QuantifiedProtein {
 	}
 
 	@Override
-	public void addAmount(Amount amount) {
+	public boolean addAmount(Amount amount) {
 		throw new IllegalArgumentException("addAmount not available for " + getClass().getSimpleName());
 
 	}
 
 	@Override
 	public String getDescription() {
-		if (description == null) {
-			description = protein.getDescription();
+		if (super.getDescription() == null) {
+			setDescription(protein.getDescription());
 		}
-		return description;
+		return super.getDescription();
 	}
 
 	@Override
 	public Integer getLength() {
-		return protein.getLength();
+		if (super.getLength() == null) {
+			setLength(protein.getLength());
+		}
+		return super.getLength();
 	}
 
 	/*

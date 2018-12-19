@@ -1,7 +1,6 @@
 package edu.scripps.yates.pcq.model;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -10,53 +9,44 @@ import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.read.model.CensusRatio;
 import edu.scripps.yates.census.read.model.QuantifiedPSM;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
-import edu.scripps.yates.dtaselectparser.util.DTASelectModification;
-import edu.scripps.yates.dtaselectparser.util.DTASelectPSM;
-import edu.scripps.yates.utilities.model.enums.AggregationLevel;
 import edu.scripps.yates.utilities.proteomicsmodel.Amount;
+import edu.scripps.yates.utilities.proteomicsmodel.PSM;
+import edu.scripps.yates.utilities.proteomicsmodel.enums.AggregationLevel;
 import edu.scripps.yates.utilities.sequence.PTMInPeptide;
 
 public class NonQuantifiedPSM extends QuantifiedPSM {
-	private final DTASelectPSM psm;
+	private final PSM psm;
 
-	public NonQuantifiedPSM(DTASelectPSM psm) throws NumberFormatException, IOException {
-		super(psm.getSequence().getRawSequence(), null, null, Integer.valueOf(psm.getScan()), psm.getChargeState(),
-				psm.getRawFileName(), false);
+	public NonQuantifiedPSM(PSM psm) throws NumberFormatException, IOException {
+		super(psm.getFullSequence(), null, null, Integer.valueOf(psm.getScanNumber()), psm.getChargeState(),
+				psm.getMSRun().getRunId(), false);
 		this.psm = psm;
 	}
 
 	@Override
-	public Float getCalcMHplus() {
-		return psm.getCalcMh().floatValue();
+	public Float getCalcMH() {
+
+		return psm.getCalcMH();
 	}
 
 	@Override
-	public Float getMHplus() {
-		return psm.getMh().floatValue();
+	public Float getExperimentalMH() {
+
+		return psm.getExperimentalMH();
 	}
 
 	@Override
 	public boolean containsPTMs() {
-		return psm.getModifications() != null && !psm.getModifications().isEmpty();
+		return psm.containsPTMs();
 	}
 
 	@Override
-	public List<PTMInPeptide> getPtms() {
-		final List<PTMInPeptide> ret = new ArrayList<PTMInPeptide>();
-		final List<DTASelectModification> modifications = psm.getModifications();
-		if (modifications != null) {
-			for (final DTASelectModification dtaSelectModification : modifications) {
-				final PTMInPeptide ptm = new PTMInPeptide(dtaSelectModification.getModPosition(),
-						dtaSelectModification.getAa(), getSequence(), dtaSelectModification.getModificationShift());
-
-				ret.add(ptm);
-			}
-		}
-		return ret;
+	public List<PTMInPeptide> getPTMsInPeptide() {
+		return psm.getPTMsInPeptide();
 	}
 
 	@Override
-	public Set<QuantRatio> getRatios() {
+	public Set<QuantRatio> getQuantRatios() {
 		return Collections.emptySet();
 	}
 
@@ -73,7 +63,7 @@ public class NonQuantifiedPSM extends QuantifiedPSM {
 	}
 
 	@Override
-	public void addRatio(QuantRatio ratio) {
+	public boolean addQuantRatio(QuantRatio ratio) {
 		throw new IllegalArgumentException("addRatio not available for " + getClass().getSimpleName());
 
 	}
@@ -96,25 +86,26 @@ public class NonQuantifiedPSM extends QuantifiedPSM {
 	}
 
 	@Override
-	public void addAmount(Amount amount) {
+	public boolean addAmount(Amount amount) {
 		throw new IllegalArgumentException("addAmount not available for " + getClass().getSimpleName());
 
 	}
 
 	@Override
-	public Float getDeltaCN() {
-		return psm.getDeltacn().floatValue();
+	public Float getDeltaCn() {
+		return psm.getDeltaCn();
 	}
 
 	@Override
-	public Float getXcorr() {
-		return psm.getXcorr().floatValue();
+	public Float getXCorr() {
+		return psm.getXCorr();
 	}
 
 	@Override
-	public Float getDeltaMass() {
-		if (getCalcMHplus() != null && getMHplus() != null) {
-			return getCalcMHplus() - getMHplus();
+	public Float getMassErrorPPM() {
+
+		if (getCalcMH() != null && getExperimentalMH() != null) {
+			return getCalcMH() - getExperimentalMH();
 		}
 		return null;
 	}

@@ -35,7 +35,6 @@ import com.compomics.util.protein.Protein;
 
 import edu.scripps.yates.annotations.uniprot.UniprotProteinLocalRetriever;
 import edu.scripps.yates.annotations.uniprot.proteoform.fasta.ProteoFormFastaReader;
-import edu.scripps.yates.annotations.util.UniprotEntryUtil;
 import edu.scripps.yates.census.analysis.QuantAnalysis;
 import edu.scripps.yates.census.analysis.QuantAnalysis.ANALYSIS_LEVEL_OUTCOME;
 import edu.scripps.yates.census.analysis.QuantCondition;
@@ -82,18 +81,19 @@ import edu.scripps.yates.pcq.xgmml.util.AlignedPeptides;
 import edu.scripps.yates.pcq.xgmml.util.AlignmentSet;
 import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
+import edu.scripps.yates.utilities.annotations.uniprot.UniprotEntryUtil;
 import edu.scripps.yates.utilities.annotations.uniprot.xml.Entry;
 import edu.scripps.yates.utilities.appversion.AppVersion;
 import edu.scripps.yates.utilities.dates.DatesUtil;
 import edu.scripps.yates.utilities.fasta.Fasta;
 import edu.scripps.yates.utilities.fasta.FastaParser;
 import edu.scripps.yates.utilities.maths.Maths;
-import edu.scripps.yates.utilities.model.enums.AggregationLevel;
-import edu.scripps.yates.utilities.model.enums.CombinationType;
 import edu.scripps.yates.utilities.progresscounter.ProgressCounter;
 import edu.scripps.yates.utilities.progresscounter.ProgressPrintingType;
 import edu.scripps.yates.utilities.properties.PropertiesUtil;
 import edu.scripps.yates.utilities.proteomicsmodel.Score;
+import edu.scripps.yates.utilities.proteomicsmodel.enums.AggregationLevel;
+import edu.scripps.yates.utilities.proteomicsmodel.enums.CombinationType;
 import edu.scripps.yates.utilities.sequence.PTMInProtein;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import edu.scripps.yates.utilities.sequence.PositionInProtein;
@@ -246,7 +246,7 @@ public class ProteinClusterQuant {
 					Protein protein = null;
 					while ((protein = loader.nextProtein()) != null) {
 						final String fastaAccession = FastaParser.getACC(protein.getHeader().getRawHeader())
-								.getFirstelement();
+								.getAccession();
 						// if (inputProteinAccs.contains(fastaAccession)) {
 						PCQUtils.proteinSequences.put(fastaAccession, protein.getSequence().getSequence());
 						// }
@@ -493,8 +493,8 @@ public class ProteinClusterQuant {
 		// try to get an dtaSelectParser
 		final DTASelectParser idParserTMP = PCQUtils.getDTASelectParser(params, useFasta, null, true);
 		if (idParserTMP != null) {
-			peptideInclusionList.addAll(idParserTMP.getDTASelectPSMsByPSMID().values().parallelStream()
-					.map(psm -> psm.getSequence().getSequence()).collect(Collectors.toSet()));
+			peptideInclusionList.addAll(idParserTMP.getPSMsByPSMID().values().parallelStream()
+					.map(psm -> psm.getSequence()).collect(Collectors.toSet()));
 		}
 		log.info(peptideInclusionList.size() + " different peptides in the input files that will be indexed now...");
 		return peptideInclusionList;
@@ -545,7 +545,7 @@ public class ProteinClusterQuant {
 				for (final QuantifiedPSMInterface psm : psmList) {
 					// check if we should ignore the ptm psms
 					if (params.isIgnorePTMs()) {
-						if (psm.getPtms() != null && !psm.getPtms().isEmpty()) {
+						if (psm.getPTMsInPeptide() != null && !psm.getPTMsInPeptide().isEmpty()) {
 							continue;
 						}
 					}
@@ -779,7 +779,7 @@ public class ProteinClusterQuant {
 										params.getAaQuantified())) {
 							out.write("not found\tnot found");
 						} else if (params.isCollapseByPTMs()
-								&& peptideNode.getItemsInNode().iterator().next().getPtms().isEmpty()) {
+								&& peptideNode.getItemsInNode().iterator().next().getPTMsInPeptide().isEmpty()) {
 							out.write("not found\tnot found");
 						} else {
 							out.write("ambiguous\t" + quantifiedSitepositionInProtein.toString());
@@ -853,7 +853,7 @@ public class ProteinClusterQuant {
 				for (final QuantifiedPeptideInterface peptide : peptideList) {
 					// check if we should ignore the ptm psms
 					if (params.isIgnorePTMs()) {
-						if (peptide.getPtms() != null && !peptide.getPtms().isEmpty()) {
+						if (peptide.getPTMsInPeptide() != null && !peptide.getPTMsInPeptide().isEmpty()) {
 							continue;
 						}
 					}
@@ -2116,7 +2116,7 @@ public class ProteinClusterQuant {
 			final Set<PTMInProtein> modifiedPositionsInProtein = new THashSet<PTMInProtein>();
 			for (final QuantifiedPeptideInterface peptide : protein.getQuantifiedPeptides()) {
 				if (peptide.containsPTMs()) {
-					final List<PTMInProtein> proteinKeysByPeptideKeysForPTMs = peptide.getPTMInProtein(uplr,
+					final List<PTMInProtein> proteinKeysByPeptideKeysForPTMs = peptide.getPTMsInProtein(uplr,
 							PCQUtils.proteinSequences);
 					modifiedPositionsInProtein.addAll(proteinKeysByPeptideKeysForPTMs);
 				}
@@ -2164,7 +2164,7 @@ public class ProteinClusterQuant {
 						newProteins.put(proteinPTMKey, proteinPTM);
 					}
 					// set accession type
-					proteinPTM.setAccessionType(protein.getAccessionType());
+					proteinPTM.setPrimaryAccession(protein.getPrimaryAccession());
 					// set description
 					proteinPTM.setDescription(protein.getDescription());
 					// set evidence
@@ -2173,7 +2173,7 @@ public class ProteinClusterQuant {
 					proteinPTM.setProteinGroup(protein.getProteinGroup());
 					// taxonomy
 					if (!protein.getTaxonomies().isEmpty()) {
-						proteinPTM.setTaxonomy(protein.getTaxonomies().iterator().next());
+						proteinPTM.addTaxonomy(protein.getTaxonomies().iterator().next());
 					}
 					// set discarded
 					proteinPTM.setDiscarded(protein.isDiscarded());

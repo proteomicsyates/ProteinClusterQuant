@@ -19,7 +19,7 @@ import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface
 import edu.scripps.yates.census.read.util.QuantUtils;
 import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
 import edu.scripps.yates.pcq.util.PCQUtils;
-import edu.scripps.yates.utilities.model.enums.AggregationLevel;
+import edu.scripps.yates.utilities.proteomicsmodel.enums.AggregationLevel;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import edu.scripps.yates.utilities.util.Pair;
 import gnu.trove.map.hash.THashMap;
@@ -132,9 +132,9 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	public Set<QuantRatio> getRatios() {
 		final Set<QuantRatio> ratios = new THashSet<QuantRatio>();
 		for (final QuantifiedPeptideInterface peptide : peptideSet) {
-			ratios.addAll(peptide.getRatios());
+			ratios.addAll(peptide.getQuantRatios());
 			for (final QuantifiedPSMInterface psm : peptide.getQuantifiedPSMs()) {
-				ratios.addAll(psm.getRatios());
+				ratios.addAll(psm.getQuantRatios());
 			}
 		}
 		return ratios;
@@ -212,10 +212,10 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	}
 
 	public boolean addQuantifiedPeptide(QuantifiedPeptideInterface peptide) {
-		if (peptide.getPtms() == null || peptide.getPtms().isEmpty()) {
+		if (peptide.getPTMsInPeptide() == null || peptide.getPTMsInPeptide().isEmpty()) {
 			return peptideSet.add(peptide);
 		} else {
-			for (final PositionInPeptide positionInPeptide : peptide.getPtms()) {
+			for (final PositionInPeptide positionInPeptide : peptide.getPTMsInPeptide()) {
 				if (positionInPeptideByPeptide.containsKey(peptide)) {
 					positionInPeptideByPeptide.get(peptide).add(positionInPeptide);
 				} else {

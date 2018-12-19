@@ -31,8 +31,8 @@ import edu.scripps.yates.pcq.params.PropertiesReader;
 import edu.scripps.yates.pcq.util.AnalysisInputType;
 import edu.scripps.yates.pcq.util.ExperimentFiles;
 import edu.scripps.yates.utilities.appversion.AppVersion;
-import edu.scripps.yates.utilities.model.enums.AmountType;
 import edu.scripps.yates.utilities.proteomicsmodel.Amount;
+import edu.scripps.yates.utilities.proteomicsmodel.enums.AmountType;
 import gnu.trove.map.hash.THashMap;
 
 /**

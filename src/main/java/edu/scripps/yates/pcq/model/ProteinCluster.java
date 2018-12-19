@@ -620,7 +620,7 @@ public class ProteinCluster {
 				// - it could have more than one quantified aminoacid in its
 				// sequence
 				final List<PTMInProtein> ptmsInProteinFromPeptide1 = filterPTMsOfInterest(
-						peptide1.getPTMInProtein(uplr, PCQUtils.proteinSequences));
+						peptide1.getPTMsInProtein(uplr, PCQUtils.proteinSequences));
 				for (int j = i + 1; j < peptides.size(); j++) {
 					final QuantifiedPeptideInterface peptide2 = peptides.get(j);
 					// get the keys from the peptide.
@@ -632,7 +632,7 @@ public class ProteinCluster {
 					// sequence
 
 					final List<PTMInProtein> ptmsInProteinFromPeptide2 = filterPTMsOfInterest(
-							peptide2.getPTMInProtein(uplr, PCQUtils.proteinSequences));
+							peptide2.getPTMsInProtein(uplr, PCQUtils.proteinSequences));
 
 					// iterate over all the keys
 
@@ -714,7 +714,7 @@ public class ProteinCluster {
 			// create a peptide node for each position in the peptide
 			final QuantifiedPeptideInterface peptide = peptides.iterator().next();
 			final List<PTMInProtein> positionsInProtein = filterPTMsOfInterest(
-					peptide.getPTMInProtein(uplr, PCQUtils.proteinSequences));
+					peptide.getPTMsInProtein(uplr, PCQUtils.proteinSequences));
 
 			final String key = QuantUtils.getPositionsInProteinsKey(
 					QuantUtils.getAsPositionInProtein(positionsInProtein), useProteinGeneName, useProteinID, uplr,
