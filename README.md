@@ -8,6 +8,7 @@
  - If you want to apply a proper statistical aggregation of ratios ([SanXot](https://www.ncbi.nlm.nih.gov/pubmed/24512137)).
  - Even having a non-quant experiment, if you have a lot of redundancy (peptides shared by lots of proteins).
  - If you are analyzing samples from multiple organisms, you can use PCQ to reduction redundancy and use the peptide alignment option to connect and compare ortholog proteins.
+ - You can now use PCQ to analyze quantitative data at site level, that is, PTM quantitative data or surface accesibility data. In this way, all the ratios assigned to a particular site in a protein will be collapsed and analyzed together.
 
 ## What does PCQ exactly do:
  - Can work with quant data (any, even isobaric isotopologues) or just spectral counts.
@@ -16,6 +17,7 @@
  - Using quantitative information:
     - Analyzes protein pairs (protein nodes sharing a peptide node) to detect interesting inconsistencies.
     - It can optionally aggregate ratios using SanXot* algorithm (handles source of errors properly, from individual ratio measurements in a PSM to a peptide node and having technical and/or biological replicates, using a weight average of the ratios). It calculates a quantitative FDR.
+ - When used with quantified sites, such as PTMs as phosphorilations or surface accesibility measurements, PCQ helps you to aggregate (average) the ratios obtained in different peptide sequences but containing the same site of interest (the same phosphorilation site of a protein, for example).
 
 
 ## Detailed instructions:  
