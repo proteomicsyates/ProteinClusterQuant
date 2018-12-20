@@ -18,7 +18,7 @@
     - Analyzes protein pairs (protein nodes sharing a peptide node) to detect interesting inconsistencies.
     - It can optionally aggregate ratios using SanXot* algorithm (handles source of errors properly, from individual ratio measurements in a PSM to a peptide node and having technical and/or biological replicates, using a weight average of the ratios). It calculates a quantitative FDR.
  - When used with quantified sites, such as PTMs as phosphorilations or surface accesibility measurements, PCQ helps you to aggregate (average) the ratios obtained in different peptide sequences but containing the same site of interest (the same phosphorilation site of a protein, for example).
-
+ - In contains a sub-module in order to compare quantified surface accessibility sites from multiple samples. [surface_accessibility](go to Comparison of surface accessibility in multiple samples).
 
 ## Detailed instructions:  
 For a detailed description of the software, input files, intput parameters and outputs go to our **[wiki page](https://github.com/proteomicsyates/ProteinClusterQuant/wiki)**.
