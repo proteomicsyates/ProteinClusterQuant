@@ -339,6 +339,14 @@ public class QuantSiteOutputComparator {
 		return sampleNamesByFiles.get(file);
 	}
 
+	/**
+	 * Then, for each quantified site, I build a matrix 10x10, where I store a
+	 * t-test result comparing the ratios of that site in each pairwise sample
+	 * comparison.
+	 * 
+	 * @param quantSiteSet
+	 * @throws IOException
+	 */
 	private void writePairWisePValueMatrixes(QuantifiedSiteSet quantSiteSet) throws IOException {
 		final int numSamples = quantSiteSet.getNumExperiments();
 
