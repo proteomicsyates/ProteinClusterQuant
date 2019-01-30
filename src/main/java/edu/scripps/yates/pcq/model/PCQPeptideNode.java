@@ -94,8 +94,7 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	}
 
 	/**
-	 * @param confidenceValue
-	 *            the confidenceValue to set
+	 * @param confidenceValue the confidenceValue to set
 	 */
 	public void setConfidenceValue(double confidenceValue) {
 		this.confidenceValue = confidenceValue;
@@ -115,7 +114,13 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 			final Set<QuantifiedProteinInterface> quantifiedProteins = getQuantifiedProteins();
 			for (final QuantifiedProteinInterface protein : quantifiedProteins) {
 				final Set<String> taxonomies = protein.getTaxonomies();
-				set.addAll(taxonomies);
+				for (final String tax : taxonomies) {
+					if (tax == null) {
+						continue;
+					}
+					set.add(tax);
+				}
+
 			}
 		}
 		return set;
@@ -315,10 +320,10 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 	}
 
 	/**
-	 * For a given peptide, gets the {@link PositionInPeptide} for which this
-	 * node was created.<br>
-	 * Note that this only is used for experiments in which isCollapsedBySites()
-	 * is TRUE.
+	 * For a given peptide, gets the {@link PositionInPeptide} for which this node
+	 * was created.<br>
+	 * Note that this only is used for experiments in which isCollapsedBySites() is
+	 * TRUE.
 	 * 
 	 * @param peptide
 	 * @return

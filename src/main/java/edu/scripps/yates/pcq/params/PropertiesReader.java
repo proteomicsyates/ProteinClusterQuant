@@ -309,10 +309,10 @@ public class PropertiesReader {
 		params.setUniprotVersion(uniprotVersion);
 
 		// output prefix
-		final String outputPrefix = properties.getProperty("outputPrefix", true);
+		final String outputPrefix = properties.getProperty("outputPrefix", "");
 		params.setOutputPrefix(outputPrefix);
 		// output suffix
-		final String outputSuffix = properties.getProperty("outputSuffix", true);
+		final String outputSuffix = properties.getProperty("outputSuffix", "");
 		params.setOutputSuffix(outputSuffix);
 		// input file folder
 		final String inputFilePathProperty = properties.getProperty("inputFilePath", System.getProperty("user.dir"));

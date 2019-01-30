@@ -147,7 +147,8 @@ public class PCQUtils {
 					final QuantifiedPeptideInterface pep2 = peptideList.get(j);
 					final NWResult alignment = NWAlign.needlemanWunsch(pep1.getSequence(), pep2.getSequence(), -11, -1);
 					maxAlignmentScore = maxAlignmentScore < alignment.getFinalAlignmentScore()
-							? alignment.getFinalAlignmentScore() : maxAlignmentScore;
+							? alignment.getFinalAlignmentScore()
+							: maxAlignmentScore;
 					maxSeqIdentity = maxSeqIdentity < alignment.getSequenceIdentity() ? alignment.getSequenceIdentity()
 							: maxSeqIdentity;
 					maxConsecutiveIdenticalAlignment = maxConsecutiveIdenticalAlignment < alignment
@@ -199,11 +200,9 @@ public class PCQUtils {
 						alignmentLogFile.flush();
 
 						/*
-						 * // prints p1 and pep2
-						 * System.out.print(quantifiedProtein.getAccession() +
-						 * "\t"); System.out.print(pep2.getSequence() + "\t");
-						 * System.out.print("1" + "\t"); System.out.print("0" +
-						 * "\t"); log.info("1");
+						 * // prints p1 and pep2 System.out.print(quantifiedProtein.getAccession() +
+						 * "\t"); System.out.print(pep2.getSequence() + "\t"); System.out.print("1" +
+						 * "\t"); System.out.print("0" + "\t"); log.info("1");
 						 */
 
 						// }
@@ -250,7 +249,9 @@ public class PCQUtils {
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs,
 			Boolean lookForProteoforms, boolean useFasta, Set<String> peptideInclusionList, boolean forceCreation)
 			throws FileNotFoundException {
-
+		if (fileNames == null || fileNames.length == 0) {
+			return null;
+		}
 		final List<Map<QuantCondition, QuantificationLabel>> list = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
 		for (int i = 0; i < fileNames.length; i++) {
 			list.add(labelsByConditions);
@@ -268,7 +269,9 @@ public class PCQUtils {
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs,
 			Boolean lookForProteoforms, Set<String> peptideInclusionList, boolean useFasta, boolean forceCreation)
 			throws FileNotFoundException {
-
+		if (fileNames == null || fileNames.length == 0) {
+			return null;
+		}
 		final List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 		// Set parser (6 files) to peptides
 		for (final String fileName : fileNames) {
@@ -318,7 +321,9 @@ public class PCQUtils {
 			String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB, String peptideFilterRegexp,
 			boolean lookForProteoforms, boolean useFasta, Set<String> peptideInclusionList, boolean forceCreation)
 			throws FileNotFoundException {
-
+		if (fileNames == null || fileNames.length == 0) {
+			return null;
+		}
 		// Set parser (6 files) to peptides
 		final Map<String, RemoteSSHFileReference> xmlFiles = new THashMap<String, RemoteSSHFileReference>();
 		for (final String fileName : fileNames) {
@@ -371,7 +376,9 @@ public class PCQUtils {
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs,
 			Boolean lookForProteoforms, Set<String> peptideInclusionList, boolean useFasta, boolean forceCreation)
 			throws FileNotFoundException {
-
+		if (fileNames == null || fileNames.length == 0) {
+			return null;
+		}
 		// Set parser (6 files) to peptides
 		final List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -430,6 +437,9 @@ public class PCQUtils {
 			String decoyRegexp, boolean ignoreNotFoundPeptidesInDB, boolean distinguishModifiedPeptides,
 			String peptideFilterRegexp, char[] quantifiedAAs, Boolean lookForProteoforms,
 			Set<String> peptideInclusionList, boolean useFasta, boolean forceCreation) throws FileNotFoundException {
+		if (fileNames == null || fileNames.length == 0) {
+			return null;
+		}
 		// Set parser (6 files) to peptides
 		final List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -541,7 +551,9 @@ public class PCQUtils {
 			QuantificationLabel denominatorLabel, File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp,
 			boolean ignoreNotFoundPeptidesInDB, boolean distinguishModifiedPeptides, String peptideFilterRegexp,
 			char[] quantifiedAAs, boolean forceCreation) throws FileNotFoundException {
-		// Set parser (6 files) to peptides
+		if (fileNames == null || fileNames.length == 0) {
+			return null;
+		} // Set parser (6 files) to peptides
 		final List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
 		for (final String fileName : fileNames) {
@@ -606,6 +618,9 @@ public class PCQUtils {
 			boolean ignoreNotFoundPeptidesInDB, boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep,
 			boolean skipSingletons, boolean distinguishModifiedPeptides, String peptideFilterRegexp,
 			char[] quantifiedAAs, boolean forceCreation) throws FileNotFoundException {
+		if (fileNames == null || fileNames.length == 0) {
+			return null;
+		}
 		// Set parser (6 files) to peptides
 		final List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -657,6 +672,9 @@ public class PCQUtils {
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			String peptideFilterRegexp, boolean lookForProteoforms, boolean forceCreation)
 			throws FileNotFoundException {
+		if (fileNames == null || fileNames.length == 0) {
+			return null;
+		}
 		// Set parser (6 files) to peptides
 		final Map<String, RemoteSSHFileReference> xmlFiles = new THashMap<String, RemoteSSHFileReference>();
 
@@ -697,6 +715,9 @@ public class PCQUtils {
 			String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs, boolean useFasta,
 			boolean forceCreation) throws FileNotFoundException {
+		if (fileNames == null || fileNames.length == 0) {
+			return null;
+		}
 		// Set parser (6 files) to peptides
 		final List<RemoteSSHFileReference> xmlFiles = new ArrayList<RemoteSSHFileReference>();
 
@@ -902,8 +923,8 @@ public class PCQUtils {
 	}
 
 	/**
-	 * Get the shared peptides between protein1 and protein2. Each peptide will
-	 * be mapped to the proteins that are mapped.
+	 * Get the shared peptides between protein1 and protein2. Each peptide will be
+	 * mapped to the proteins that are mapped.
 	 *
 	 * @param proteinNode1
 	 * @param proteinNode2
@@ -959,8 +980,8 @@ public class PCQUtils {
 	}
 
 	/**
-	 * Get the shared peptides between protein1 and protein2. Each peptide will
-	 * be mapped to the proteins that are mapped.
+	 * Get the shared peptides between protein1 and protein2. Each peptide will be
+	 * mapped to the proteins that are mapped.
 	 *
 	 * @param proteinNode1
 	 * @param proteinNode2
@@ -1006,17 +1027,16 @@ public class PCQUtils {
 	}
 
 	/**
-	 * Get the shared peptides between proteinNode1 and proteinNode2. It is
-	 * returned in a Map, in which each entry is a set of peptideNodes that
-	 * share the same proteinNodes.<br>
-	 * For example, one set will be the peptideNodes shared ONLY by proteinNode1
-	 * and proteinNode2. Other set would be the peptideNodes shared by
-	 * proteinNode1, proteinNode2 and a third proteinNode3. Consequently,
-	 * another set would be the peptideNodes shared by proteinNode1,
-	 * proteinNode2, proteinNode3 and a fourth proteinNode4, for example. And so
-	 * on.<br>
-	 * For each peptideNode set the key of the map will be the protein
-	 * accessions where they belong sorted alphabetically.
+	 * Get the shared peptides between proteinNode1 and proteinNode2. It is returned
+	 * in a Map, in which each entry is a set of peptideNodes that share the same
+	 * proteinNodes.<br>
+	 * For example, one set will be the peptideNodes shared ONLY by proteinNode1 and
+	 * proteinNode2. Other set would be the peptideNodes shared by proteinNode1,
+	 * proteinNode2 and a third proteinNode3. Consequently, another set would be the
+	 * peptideNodes shared by proteinNode1, proteinNode2, proteinNode3 and a fourth
+	 * proteinNode4, for example. And so on.<br>
+	 * For each peptideNode set the key of the map will be the protein accessions
+	 * where they belong sorted alphabetically.
 	 *
 	 * @param proteinNode1
 	 * @param proteinNode2
@@ -1092,8 +1112,8 @@ public class PCQUtils {
 
 	/**
 	 * Gets all the log2Values of the consensus ratios of the individual
-	 * {@link QuantifiedPeptideInterface} of the uniques {@link PCQPeptideNode}s
-	 * of proteinNode1 with respect to proteinNode2
+	 * {@link QuantifiedPeptideInterface} of the uniques {@link PCQPeptideNode}s of
+	 * proteinNode1 with respect to proteinNode2
 	 *
 	 * @param proteinNode1
 	 * @param proteinNode2
@@ -1161,8 +1181,8 @@ public class PCQUtils {
 	}
 
 	/**
-	 * Checks to see if the list has both ratios and infinities in it. Returns
-	 * true if mixed. Returns false if only one kind.
+	 * Checks to see if the list has both ratios and infinities in it. Returns true
+	 * if mixed. Returns false if only one kind.
 	 *
 	 * @param ratios
 	 * @return
@@ -1189,8 +1209,8 @@ public class PCQUtils {
 	}
 
 	/**
-	 * Gets a list of all the infinities from the original list of ratios. If
-	 * the ratio is null, it is ignored.
+	 * Gets a list of all the infinities from the original list of ratios. If the
+	 * ratio is null, it is ignored.
 	 *
 	 * @param ratios
 	 * @return
@@ -1230,8 +1250,8 @@ public class PCQUtils {
 	 * Checks to see if all the INF passed through are the same
 	 *
 	 * @param ratios
-	 * @return Double, returns INF if all are INF, -INF if all are -INF, and
-	 *         null if not the same.
+	 * @return Double, returns INF if all are INF, -INF if all are -INF, and null if
+	 *         not the same.
 	 */
 	public static Double areAllINFValuesSame(List<Double> ratios) {
 		int posCount = 0;
@@ -1261,8 +1281,8 @@ public class PCQUtils {
 	 * Checks to see if all the INF passed through are the same
 	 *
 	 * @param ratios
-	 * @return Double, returns INF if all are INF, -INF if all are -INF, and
-	 *         null if not the same.
+	 * @return Double, returns INF if all are INF, -INF if all are -INF, and null if
+	 *         not the same.
 	 */
 	public static Double areAllINFValuesSame(TDoubleArrayList ratios) {
 		int posCount = 0;
@@ -1292,8 +1312,8 @@ public class PCQUtils {
 	 * Checks to see if all the INF passed through are the same
 	 *
 	 * @param ratios
-	 * @return Double, returns INF if all are INF, -INF if all are -INF, and
-	 *         null if not the same.
+	 * @return Double, returns INF if all are INF, -INF if all are -INF, and null if
+	 *         not the same.
 	 */
 	public static Double areAllINFSame(List<IonCountRatio> ratios, QuantCondition cond1, QuantCondition cond2) {
 		int posCount = 0;
@@ -1416,8 +1436,7 @@ public class PCQUtils {
 	}
 
 	/**
-	 * Get a separated value list of protein keys after sorting them
-	 * alphabetically
+	 * Get a separated value list of protein keys after sorting them alphabetically
 	 *
 	 * @param proteins
 	 * @return
@@ -1458,8 +1477,8 @@ public class PCQUtils {
 	}
 
 	/**
-	 * Get a CVS list of peptide sequences after sorting them alphabetically by
-	 * the sequence
+	 * Get a CVS list of peptide sequences after sorting them alphabetically by the
+	 * sequence
 	 *
 	 * @param peptides
 	 * @return
@@ -1476,8 +1495,8 @@ public class PCQUtils {
 	}
 
 	/**
-	 * Get a CVS list of peptide sequences after sorting them alphabetically by
-	 * the sequence
+	 * Get a CVS list of peptide sequences after sorting them alphabetically by the
+	 * sequence
 	 *
 	 * @param peptideNodes
 	 * @return
@@ -1519,8 +1538,8 @@ public class PCQUtils {
 	}
 
 	/**
-	 * Formats a number, comparing it fo Infinities and printing POS_INF or
-	 * NEG_INF, and comparing to Nan, printing DNQ (detected, not quantified)
+	 * Formats a number, comparing it fo Infinities and printing POS_INF or NEG_INF,
+	 * and comparing to Nan, printing DNQ (detected, not quantified)
 	 *
 	 * @param num
 	 * @return
@@ -1541,8 +1560,7 @@ public class PCQUtils {
 	}
 
 	/**
-	 * Get peptide nodes licked to the protein node that only are linked to that
-	 * one
+	 * Get peptide nodes licked to the protein node that only are linked to that one
 	 *
 	 * @param proteinNode
 	 * @return
@@ -1999,8 +2017,8 @@ public class PCQUtils {
 	}
 
 	/**
-	 * Gets the ratio value from a {@link QuantRatio}. In case of having some
-	 * null value, it will return Double.NaN.
+	 * Gets the ratio value from a {@link QuantRatio}. In case of having some null
+	 * value, it will return Double.NaN.
 	 *
 	 * @param ratio
 	 * @param cond1
@@ -2044,11 +2062,11 @@ public class PCQUtils {
 	 *
 	 * @param proteinNode1
 	 * @param proteinNode2
-	 * @param uniquePepOnly
-	 *            if true, only the peptide nodes that are really unique to
-	 *            proteinNode1 are reported. If false, it will return also the
-	 *            peptide nodes that are unique to proteinNode1 with respect to
-	 *            proteinNode2 but may be shared with a third protein
+	 * @param uniquePepOnly if true, only the peptide nodes that are really unique
+	 *                      to proteinNode1 are reported. If false, it will return
+	 *                      also the peptide nodes that are unique to proteinNode1
+	 *                      with respect to proteinNode2 but may be shared with a
+	 *                      third protein
 	 * @param skipDiscarded
 	 * @return
 	 */
@@ -2147,8 +2165,7 @@ public class PCQUtils {
 	}
 
 	/**
-	 * If all ratios are infinity with the same value, it will return
-	 * infinity.<br>
+	 * If all ratios are infinity with the same value, it will return infinity.<br>
 	 * If not all ratios are infinity, but there are some, it will return the
 	 * average of the non infinities only if useMayorityRule is false.<br>
 	 * If all ratios are Nan, it will return Nan.
@@ -2156,24 +2173,27 @@ public class PCQUtils {
 	 * @param ratios
 	 * @param cond1
 	 * @param cond2
-	 * @param useMayorityRule
-	 *            if this parameter is true, in an scenario with a combination
-	 *            of non infinity and infinity values, it will return the
-	 *            average of the most frequent ones, for example:<br>
-	 *            <ul>
-	 *            <li>If useMayorityRule=TRUE and we have +INF, +INF, +INF,
-	 *            +2.5, +1.5, then the return value will be +INF.</li>
-	 *            <li>If useMayorityRule=FALSE and we have +INF, +INF, +INF,
-	 *            +2.5, +1.5, then the return value will be +2.0.</li>
-	 *            <li>If useMayorityRule=TRUE and we have +INF, +INF, +INF,
-	 *            +2.5, +1.5, +4.0 then the return value will be +4.0.</li>
-	 *            <li>If useMayorityRule=FALSE and we have +INF, +INF, +INF,
-	 *            +2.5, then the return value will be +2.5.</li>
-	 *            </ul>
+	 * @param useMayorityRule if this parameter is true, in an scenario with a
+	 *                        combination of non infinity and infinity values, it
+	 *                        will return the average of the most frequent ones, for
+	 *                        example:<br>
+	 *                        <ul>
+	 *                        <li>If useMayorityRule=TRUE and we have +INF, +INF,
+	 *                        +INF, +2.5, +1.5, then the return value will be
+	 *                        +INF.</li>
+	 *                        <li>If useMayorityRule=FALSE and we have +INF, +INF,
+	 *                        +INF, +2.5, +1.5, then the return value will be
+	 *                        +2.0.</li>
+	 *                        <li>If useMayorityRule=TRUE and we have +INF, +INF,
+	 *                        +INF, +2.5, +1.5, +4.0 then the return value will be
+	 *                        +4.0.</li>
+	 *                        <li>If useMayorityRule=FALSE and we have +INF, +INF,
+	 *                        +INF, +2.5, then the return value will be +2.5.</li>
+	 *                        </ul>
 	 * 
-	 * @return it returns a pair with the first element with the returning
-	 *         average value and the second with the number of items used to
-	 *         calculate ratios
+	 * @return it returns a pair with the first element with the returning average
+	 *         value and the second with the number of items used to calculate
+	 *         ratios
 	 */
 	public static Pair<Double, Integer> averageOfRatiosTakingIntoAccountInfinitiesAndNans(Collection<QuantRatio> ratios,
 			QuantCondition cond1, QuantCondition cond2, boolean useMayorityRule) {
@@ -2430,17 +2450,16 @@ public class PCQUtils {
 	 * Gets the representative log2 ratio value for the classifications of the
 	 * protein pairs, which is:<br>
 	 * - in case of being isobaric isotopologues (analysisInputType=
-	 * {@link AnalysisInputType}=CENSUS_CHRO) and SanXot is enabled, the average
-	 * of the peptideNode Ri ratios coming from SanXot<br>
+	 * {@link AnalysisInputType}=CENSUS_CHRO) and SanXot is enabled, the average of
+	 * the peptideNode Ri ratios coming from SanXot<br>
 	 * - in case of being isobaric isotopologues and SanXot is not enabled,
-	 * depending on the parameter isobaricRatioType, it will be the average of
-	 * the peptideNode average Rc or Ri ratios of the individual peptides in the
-	 * node <br>
-	 * - in case of other quantification techniques, if SanXot is enabled, it is
-	 * the average of the SanXot ratios of the peptide nodes coming from SanXot.
+	 * depending on the parameter isobaricRatioType, it will be the average of the
+	 * peptideNode average Rc or Ri ratios of the individual peptides in the node
 	 * <br>
-	 * - in case of other quantification techniques and SanXot is not enabled,
-	 * it is the average of the PSM ratios.<br>
+	 * - in case of other quantification techniques, if SanXot is enabled, it is the
+	 * average of the SanXot ratios of the peptide nodes coming from SanXot. <br>
+	 * - in case of other quantification techniques and SanXot is not enabled, it is
+	 * the average of the PSM ratios.<br>
 	 *
 	 *
 	 * @param peptideNodes
@@ -2639,10 +2658,9 @@ public class PCQUtils {
 	}
 
 	/**
-	 * The peptide node MUST have been created as a site specific peptide node.
-	 * <br>
-	 * It retrieves an average of all the non-infinity isobaric ratios per
-	 * peptide that are valid for the site that is quantified.
+	 * The peptide node MUST have been created as a site specific peptide node. <br>
+	 * It retrieves an average of all the non-infinity isobaric ratios per peptide
+	 * that are valid for the site that is quantified.
 	 * 
 	 * @param peptideNode
 	 * @param cond1
@@ -2699,10 +2717,9 @@ public class PCQUtils {
 	}
 
 	/**
-	 * The peptide node MUST have been created as a site specific peptide node.
-	 * <br>
-	 * It retrieves an average of all the non-infinity isobaric ratios per
-	 * peptide that are valid for the site that is quantified.
+	 * The peptide node MUST have been created as a site specific peptide node. <br>
+	 * It retrieves an average of all the non-infinity isobaric ratios per peptide
+	 * that are valid for the site that is quantified.
 	 * 
 	 * @param peptideNode
 	 * @param cond1
@@ -2745,17 +2762,17 @@ public class PCQUtils {
 	}
 
 	/**
-	 * Gets the individual log2 ratio values for the classification1
-	 * (statistical outlier test) of the protein pairs, which is:<br>
+	 * Gets the individual log2 ratio values for the classification1 (statistical
+	 * outlier test) of the protein pairs, which is:<br>
 	 * - in case of being isobaric isotopologues (analysisInputType=
-	 * {@link AnalysisInputType}=CENSUS_CHRO) and SanXot is enabled, the
-	 * individual Ri ratios of the PSMs<br>
+	 * {@link AnalysisInputType}=CENSUS_CHRO) and SanXot is enabled, the individual
+	 * Ri ratios of the PSMs<br>
 	 * - in case of being isobaric isotopolofues and SanXot is not enabled, the
 	 * individual Rc ratios of the individual peptides in the node<br>
-	 * - in case of other quantification techniques, if SanXot is enabled, it is
-	 * the individual psm ratios.<br>
-	 * - in case of other quantification techniques and SanXot is not enabled,
-	 * it is also the individual psm ratios.<br>
+	 * - in case of other quantification techniques, if SanXot is enabled, it is the
+	 * individual psm ratios.<br>
+	 * - in case of other quantification techniques and SanXot is not enabled, it is
+	 * also the individual psm ratios.<br>
 	 *
 	 *
 	 * @param peptideNodes
@@ -2832,8 +2849,8 @@ public class PCQUtils {
 	 * @param cond2
 	 * @param replicateName
 	 * @return null if not isobaric peptides are in the node. a
-	 *         {@link IonCountRatio} with Nan value if no ion counts are
-	 *         present. an {@link IonCountRatio} otherwise.
+	 *         {@link IonCountRatio} with Nan value if no ion counts are present. an
+	 *         {@link IonCountRatio} otherwise.
 	 */
 	public static IonCountRatio getNormalizedIonCountRatioForPeptideNode(PCQPeptideNode peptideNode,
 			QuantCondition cond1, QuantCondition cond2, String replicateName) {
@@ -2908,8 +2925,8 @@ public class PCQUtils {
 
 	/**
 	 * Returns the proteinPTMKey of a protein having a peptide with a PTM.<br>
-	 * If a protein P12345 has the peptide ABCDE(+80)FGHI starting at position
-	 * 20, the protein key would be P12345_+80(24).
+	 * If a protein P12345 has the peptide ABCDE(+80)FGHI starting at position 20,
+	 * the protein key would be P12345_+80(24).
 	 *
 	 * @param protein
 	 * @param peptide
@@ -2961,6 +2978,10 @@ public class PCQUtils {
 		final StringBuilder sb = new StringBuilder();
 		final List<String> list = new ArrayList<String>();
 		list.addAll(taxonomies);
+		System.out.println();
+		for (final String string : list) {
+			System.out.println(string);
+		}
 		Collections.sort(list);
 		for (final String taxonomy : list) {
 			if (!"".equals(sb.toString())) {
@@ -3071,8 +3092,8 @@ public class PCQUtils {
 	/**
 	 * this method returns the name of the ratio that is used depending on the
 	 * analysis type.<br>
-	 * This function would be the one to be called to get the ratios from PSMs
-	 * and peptides, by calling to
+	 * This function would be the one to be called to get the ratios from PSMs and
+	 * peptides, by calling to
 	 * QuantUtils.getRatiosByName(getRatioNameByAnalysisType())
 	 * 
 	 * @return
@@ -3104,8 +3125,8 @@ public class PCQUtils {
 	}
 
 	/**
-	 * Having a protein sequence with some PTMs and a peptide sequence that has
-	 * no PTMs, returns true if the peptide covers some of these protein PTMs
+	 * Having a protein sequence with some PTMs and a peptide sequence that has no
+	 * PTMs, returns true if the peptide covers some of these protein PTMs
 	 * 
 	 * @param proteinACC
 	 * @param nonModifiedPeptide
@@ -3140,8 +3161,7 @@ public class PCQUtils {
 
 	/**
 	 * Having a protein with PTMs, it returns true if there is not any
-	 * incompatibility between the ptms of the peptide and the ptms of the
-	 * protein.
+	 * incompatibility between the ptms of the peptide and the ptms of the protein.
 	 * 
 	 * @param accession
 	 * @param ptmsInProtein
