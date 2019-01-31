@@ -67,8 +67,8 @@ public class ProteinCluster {
 	}
 
 	/**
-	 * By calling this function, the cluster will reorganize by collapsing the
-	 * nodes properly and calculating the ratios accordingly
+	 * By calling this function, the cluster will reorganize by collapsing the nodes
+	 * properly and calculating the ratios accordingly
 	 * 
 	 * @param annotatedProteins
 	 * @param proteoFormFastaReader
@@ -234,9 +234,9 @@ public class ProteinCluster {
 	}
 
 	/**
-	 * Iterates all peptides in the cluster over all others and creates a node
-	 * for all peptides that have the same key, which, in this case is the
-	 * position of the quantifiedAA in the protein.
+	 * Iterates all peptides in the cluster over all others and creates a node for
+	 * all peptides that have the same key, which, in this case is the position of
+	 * the quantifiedAA in the protein.
 	 * 
 	 * @param quantifiedAAs
 	 */
@@ -584,9 +584,9 @@ public class ProteinCluster {
 	}
 
 	/**
-	 * Iterates all peptides in the cluster over all others and creates a node
-	 * for all peptides that have the same key, which, in this case is the
-	 * position of the quantifiedAA in the protein.
+	 * Iterates all peptides in the cluster over all others and creates a node for
+	 * all peptides that have the same key, which, in this case is the position of
+	 * the quantifiedAA in the protein.
 	 * 
 	 * @param quantifiedAAs
 	 */
@@ -735,8 +735,8 @@ public class ProteinCluster {
 	}
 
 	/**
-	 * Selects the {@link PTMInProtein} objects that are among the ones stated
-	 * as quantified in the input parameter file
+	 * Selects the {@link PTMInProtein} objects that are among the ones stated as
+	 * quantified in the input parameter file
 	 * 
 	 * @param ptmsInProteins
 	 * @return
@@ -1029,8 +1029,8 @@ public class ProteinCluster {
 	}
 
 	/**
-	 * Get all protein pairs, the regular ones and the discarded ones
-	 * (containing a discarded protein node)
+	 * Get all protein pairs, the regular ones and the discarded ones (containing a
+	 * discarded protein node)
 	 *
 	 * @return
 	 */
