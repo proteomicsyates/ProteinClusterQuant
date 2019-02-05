@@ -94,6 +94,7 @@ import edu.scripps.yates.utilities.properties.PropertiesUtil;
 import edu.scripps.yates.utilities.proteomicsmodel.Score;
 import edu.scripps.yates.utilities.proteomicsmodel.enums.AggregationLevel;
 import edu.scripps.yates.utilities.proteomicsmodel.enums.CombinationType;
+import edu.scripps.yates.utilities.sequence.PTMInPeptide;
 import edu.scripps.yates.utilities.sequence.PTMInProtein;
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import edu.scripps.yates.utilities.sequence.PositionInProtein;
@@ -666,6 +667,9 @@ public class ProteinClusterQuant {
 				out.write("\t" + "QuantSitePositionInPeptide" + "\t" + "QuantSitePositionInProtein(s)" + "\t"
 						+ "Quant site");
 			} else if (params.isCollapseByPTMs()) {
+				out.write("\t" + "QuantPTMPositionInPeptide" + "\t" + "QuantPTMPositionInProtein(s)");
+			}
+			if (params.isPrintPTMPositionInProtein()) {
 				out.write("\t" + "PTMPositionInPeptide" + "\t" + "PTMPositionInProtein(s)");
 			}
 
@@ -726,7 +730,7 @@ public class ProteinClusterQuant {
 				} else {
 					out.write("\t\t");
 				}
-				if (params.isCollapseBySites() || params.isCollapseByPTMs()) {
+				if (params.isCollapseBySites() || params.isCollapseByPTMs() || params.isPrintPTMPositionInProtein()) {
 
 					/////////////////////////////
 					// out.write("\t" + peptideNode.getKey());
@@ -749,9 +753,16 @@ public class ProteinClusterQuant {
 						}
 					}
 					final StringBuilder quantifiedSitepositionInProtein = new StringBuilder();
-
+					final StringBuilder ptmPositionInPeptide = new StringBuilder();
 					for (final PositionInPeptide positionInPeptide : proteinKeysByPeptideKeys.keySet()) {
-
+						if (!"".equals(ptmPositionInPeptide.toString())) {
+							ptmPositionInPeptide.append(",");
+						}
+						if (positionInPeptide instanceof PTMInPeptide) {
+							ptmPositionInPeptide.append(((PTMInPeptide) positionInPeptide).toStringExtended());
+						} else {
+							ptmPositionInPeptide.append(positionInPeptide.toString());
+						}
 						if (quantifiedSitePositionInPeptide != null && !quantifiedSitePositionInPeptide.isEmpty()) {
 							if (QuantUtils.containsPosition(quantifiedSitePositionInPeptide,
 									positionInPeptide.getPosition())) {
@@ -771,29 +782,34 @@ public class ProteinClusterQuant {
 									uplr, params.getUniprotVersion()));
 						}
 					}
-
-					if (quantifiedSitePositionInPeptide == null || quantifiedSitePositionInPeptide.isEmpty()) {
-						out.write("\t");
-						if (params.isCollapseBySites()
-								&& !PCQUtils.containsAny(peptideNode.getItemsInNode().iterator().next().getSequence(),
-										params.getAaQuantified())) {
-							out.write("not found\tnot found");
-						} else if (params.isCollapseByPTMs()
-								&& peptideNode.getItemsInNode().iterator().next().getPTMsInPeptide().isEmpty()) {
-							out.write("not found\tnot found");
+					if (params.isCollapseBySites() || params.isCollapseByPTMs()) {
+						if (quantifiedSitePositionInPeptide == null || quantifiedSitePositionInPeptide.isEmpty()) {
+							out.write("\t");
+							if (params.isCollapseBySites() && !PCQUtils.containsAny(
+									peptideNode.getItemsInNode().iterator().next().getSequence(),
+									params.getAaQuantified())) {
+								out.write("not found\tnot found");
+							} else if ((params.isCollapseByPTMs())
+									&& peptideNode.getItemsInNode().iterator().next().getPTMsInPeptide().isEmpty()) {
+								out.write("not found\tnot found");
+							} else {
+								out.write("ambiguous\t" + quantifiedSitepositionInProtein.toString());
+							}
+							if (params.isCollapseBySites()) {
+								out.write("\t"
+										+ StringUtils.getSeparatedValueStringFromChars(params.getAaQuantified(), ","));
+							}
 						} else {
-							out.write("ambiguous\t" + quantifiedSitepositionInProtein.toString());
+							out.write("\t" + QuantUtils.printPositionsInPeptideInOrder(quantifiedSitePositionInPeptide)
+									+ "\t" + quantifiedSitepositionInProtein.toString());
+							if (params.isCollapseBySites()) {
+								out.write("\t" + quantRatio.getQuantifiedAA());
+							}
 						}
-						if (params.isCollapseBySites()) {
-							out.write(
-									"\t" + StringUtils.getSeparatedValueStringFromChars(params.getAaQuantified(), ","));
-						}
-					} else {
-						out.write("\t" + QuantUtils.printPositionsInPeptideInOrder(quantifiedSitePositionInPeptide)
-								+ "\t" + quantifiedSitepositionInProtein.toString());
-						if (params.isCollapseBySites()) {
-							out.write("\t" + quantRatio.getQuantifiedAA());
-						}
+					}
+					if (params.isPrintPTMPositionInProtein()) {
+						out.write(ptmPositionInPeptide.toString());
+						out.write("\t" + quantifiedSitepositionInProtein.toString());
 					}
 				}
 
@@ -979,10 +995,10 @@ public class ProteinClusterQuant {
 	 * Writes a file with a line per each peptide node, sorted by FDR.
 	 *
 	 * @param clusterSet
-	 * @param ratioStatsByPeptideNodeKey
-	 *            a map containing {@link SanxotQuantResult} by each
-	 *            peptideNodeKey. Note that it can be null, and therefore the
-	 *            output table will not have the FDR column
+	 * @param ratioStatsByPeptideNodeKey a map containing {@link SanxotQuantResult}
+	 *                                   by each peptideNodeKey. Note that it can be
+	 *                                   null, and therefore the output table will
+	 *                                   not have the FDR column
 	 * @throws IOException
 	 */
 	private void printFinalFile(Set<ProteinCluster> clusterSet,
@@ -1497,8 +1513,8 @@ public class ProteinClusterQuant {
 	}
 
 	/**
-	 * Make a custom sanxot analysis from peptide_rep to peptide_node_rep, that
-	 * is from peptides in each replicate to peptide nodes in each replicate.
+	 * Make a custom sanxot analysis from peptide_rep to peptide_node_rep, that is
+	 * from peptides in each replicate to peptide nodes in each replicate.
 	 *
 	 * @param peptideRepSanxotResult
 	 * @param clusterSet
@@ -1893,9 +1909,8 @@ public class ProteinClusterQuant {
 	}
 
 	/**
-	 * creates a set of {@link ProteinCluster} from the input peptides by
-	 * iterating over the peptides and walking over the proteins and peptides
-	 * connections
+	 * creates a set of {@link ProteinCluster} from the input peptides by iterating
+	 * over the peptides and walking over the proteins and peptides connections
 	 * 
 	 * @param peptideMap
 	 * @return
@@ -2087,9 +2102,9 @@ public class ProteinClusterQuant {
 	}
 
 	/**
-	 * For each protein assigned to the input peptides, gets the peptides with
-	 * PTMs and produce all possible modification states of the protein, and
-	 * assign them to the corresponding peptides.<br>
+	 * For each protein assigned to the input peptides, gets the peptides with PTMs
+	 * and produce all possible modification states of the protein, and assign them
+	 * to the corresponding peptides.<br>
 	 * This function is only run if 'isIgnorePTMs' parameter is false
 	 * 
 	 * @param pepMap

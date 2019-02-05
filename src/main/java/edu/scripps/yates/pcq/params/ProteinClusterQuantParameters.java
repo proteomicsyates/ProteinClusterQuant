@@ -112,6 +112,7 @@ public class ProteinClusterQuantParameters {
 	private int maxNumPTMsPerProtein = 4;
 	private boolean useMayorityRule = true;
 	private List<PTM> ptmsQuantified;
+	private boolean printPTMPositionInProtein;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -401,8 +402,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param ionsPerPeptideNodeThresholdOn
-	 *            the ionsPerPeptideThresholdOn to set
+	 * @param ionsPerPeptideNodeThresholdOn the ionsPerPeptideThresholdOn to set
 	 */
 	public void setIonsPerPeptideNodeThresholdOn(boolean ionsPerPeptideNodeThresholdOn) {
 		this.ionsPerPeptideNodeThresholdOn = ionsPerPeptideNodeThresholdOn;
@@ -416,8 +416,9 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param collapseIndistinguishablePeptides
-	 *            the collapseIndistinguishablePeptides to set
+	 * @param collapseIndistinguishablePeptides the
+	 *                                          collapseIndistinguishablePeptides to
+	 *                                          set
 	 */
 	public void setCollapseIndistinguishablePeptides(boolean collapseIndistinguishablePeptides) {
 		this.collapseIndistinguishablePeptides = collapseIndistinguishablePeptides;
@@ -428,8 +429,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param finalAlignmentScore
-	 *            the finalAlignmentScore to set
+	 * @param finalAlignmentScore the finalAlignmentScore to set
 	 */
 	public void setFinalAlignmentScore(int finalAlignmentScore) {
 		this.finalAlignmentScore = finalAlignmentScore;
@@ -440,8 +440,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param sequenceIdentity
-	 *            the sequenceIdentity to set
+	 * @param sequenceIdentity the sequenceIdentity to set
 	 */
 	public void setSequenceIdentity(double sequenceIdentity) {
 		this.sequenceIdentity = sequenceIdentity;
@@ -452,8 +451,8 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param minConsecutiveIdenticalAlignment
-	 *            the maxConsecutiveIdenticalAlignment to set
+	 * @param minConsecutiveIdenticalAlignment the maxConsecutiveIdenticalAlignment
+	 *                                         to set
 	 */
 	public void setMinConsecutiveIdenticalAlignment(int minConsecutiveIdenticalAlignment) {
 		this.minConsecutiveIdenticalAlignment = minConsecutiveIdenticalAlignment;
@@ -485,8 +484,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param proteinLabel
-	 *            the proteinLabel to set
+	 * @param proteinLabel the proteinLabel to set
 	 */
 	public void setProteinLabel(ProteinNodeLabel proteinLabel) {
 		this.proteinLabel = proteinLabel;
@@ -500,8 +498,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param proteinNodeShape
-	 *            the proteinNodeShape to set
+	 * @param proteinNodeShape the proteinNodeShape to set
 	 */
 	public void setProteinNodeShape(Shape proteinNodeShape) {
 		this.proteinNodeShape = proteinNodeShape;
@@ -515,8 +512,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param peptideNodeShape
-	 *            the peptideNodeShape to set
+	 * @param peptideNodeShape the peptideNodeShape to set
 	 */
 	public void setPeptideNodeShape(Shape peptideNodeShape) {
 		this.peptideNodeShape = peptideNodeShape;
@@ -530,8 +526,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param proteinNodeWidth
-	 *            the proteinNodeWidth to set
+	 * @param proteinNodeWidth the proteinNodeWidth to set
 	 */
 	public void setProteinNodeWidth(int proteinNodeWidth) {
 		this.proteinNodeWidth = proteinNodeWidth;
@@ -545,8 +540,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param proteinNodeHeight
-	 *            the proteinNodeHeight to set
+	 * @param proteinNodeHeight the proteinNodeHeight to set
 	 */
 	public void setProteinNodeHeight(int proteinNodeHeight) {
 		this.proteinNodeHeight = proteinNodeHeight;
@@ -560,8 +554,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param peptideNodeWidth
-	 *            the peptideNodeWidth to set
+	 * @param peptideNodeWidth the peptideNodeWidth to set
 	 */
 	public void setPeptideNodeWidth(int peptideNodeWidth) {
 		this.peptideNodeWidth = peptideNodeWidth;
@@ -575,8 +568,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param peptideNodeHeight
-	 *            the peptideNodeHeight to set
+	 * @param peptideNodeHeight the peptideNodeHeight to set
 	 */
 	public void setPeptideNodeHeight(int peptideNodeHeight) {
 		this.peptideNodeHeight = peptideNodeHeight;
@@ -590,8 +582,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param minimumRatioForColor
-	 *            the minimumRatioForColor to set
+	 * @param minimumRatioForColor the minimumRatioForColor to set
 	 */
 	public void setMinimumRatioForColor(double minimumRatioForColor) {
 		this.minimumRatioForColor = minimumRatioForColor;
@@ -605,8 +596,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param maximumRatioForColor
-	 *            the maximumRatioForColor to set
+	 * @param maximumRatioForColor the maximumRatioForColor to set
 	 */
 	public void setMaximumRatioForColor(double maximumRatioForColor) {
 		this.maximumRatioForColor = maximumRatioForColor;
@@ -620,8 +610,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param showCasesInEdges
-	 *            the showCasesInEdges to set
+	 * @param showCasesInEdges the showCasesInEdges to set
 	 */
 	public void setShowCasesInEdges(boolean showCasesInEdges) {
 		this.showCasesInEdges = showCasesInEdges;
@@ -635,8 +624,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param colorRatioMax
-	 *            the colorRatioMax to set
+	 * @param colorRatioMax the colorRatioMax to set
 	 */
 	public void setColorRatioMax(Color colorRatioMax) {
 		this.colorRatioMax = colorRatioMax;
@@ -650,8 +638,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param colorRatioMin
-	 *            the colorRatioMin to set
+	 * @param colorRatioMin the colorRatioMin to set
 	 */
 	public void setColorRatioMin(Color colorRatioMin) {
 		this.colorRatioMin = colorRatioMin;
@@ -665,8 +652,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param remarkSignificantPeptides
-	 *            the remarkSignificantPeptides to set
+	 * @param remarkSignificantPeptides the remarkSignificantPeptides to set
 	 */
 	public void setRemarkSignificantPeptides(boolean remarkSignificantPeptides) {
 		this.remarkSignificantPeptides = remarkSignificantPeptides;
@@ -680,8 +666,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param mongoDBURI
-	 *            the mongoDBURI to set
+	 * @param mongoDBURI the mongoDBURI to set
 	 */
 	public void setMongoDBURI(String mongoDBURI) {
 		if (mongoDBURI != null)
@@ -696,8 +681,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param mongoProtDBName
-	 *            the mongoProtDBName to set
+	 * @param mongoProtDBName the mongoProtDBName to set
 	 */
 	public void setMongoProtDBName(String mongoProtDBName) {
 		if (mongoProtDBName != null)
@@ -712,8 +696,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param mongoSeqDBName
-	 *            the mongoSeqDBName to set
+	 * @param mongoSeqDBName the mongoSeqDBName to set
 	 */
 	public void setMongoSeqDBName(String mongoSeqDBName) {
 		if (mongoSeqDBName != null)
@@ -728,8 +711,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param mongoMassDBName
-	 *            the mongoMassDBName to set
+	 * @param mongoMassDBName the mongoMassDBName to set
 	 */
 	public void setMongoMassDBName(String mongoMassDBName) {
 		if (mongoMassDBName != null)
@@ -741,8 +723,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param ignoreNotFoundPeptidesInDB
-	 *            the ignoreNotFoundPeptidesInDB to set
+	 * @param ignoreNotFoundPeptidesInDB the ignoreNotFoundPeptidesInDB to set
 	 */
 	public void setIgnoreNotFoundPeptidesInDB(boolean ignoreNotFoundPeptidesInDB) {
 		this.ignoreNotFoundPeptidesInDB = ignoreNotFoundPeptidesInDB;
@@ -807,8 +788,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param inputType
-	 *            the inputType to set
+	 * @param inputType the inputType to set
 	 */
 	public void setAnalysisInputType(AnalysisInputType inputType) {
 		analysisInputType = inputType;
@@ -843,8 +823,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param psmsPerPeptideNodeThresholdOn
-	 *            the psmsPerPeptideThresholdOn to set
+	 * @param psmsPerPeptideNodeThresholdOn the psmsPerPeptideThresholdOn to set
 	 */
 	public void setPsmsPerPeptideNodeThresholdOn(boolean psmsPerPeptideNodeThresholdOn) {
 		this.psmsPerPeptideNodeThresholdOn = psmsPerPeptideNodeThresholdOn;
@@ -858,8 +837,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param psmsPerPeptideNodeThresholdOn
-	 *            the psmsPerPeptideThresholdOn to set
+	 * @param psmsPerPeptideNodeThresholdOn the psmsPerPeptideThresholdOn to set
 	 */
 	public void setReplicatesPerPeptideNodeThresholdOn(boolean replicatesPerPeptideNodeThresholdOn) {
 		this.replicatesPerPeptideNodeThresholdOn = replicatesPerPeptideNodeThresholdOn;
@@ -873,8 +851,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param psmsPerPeptideNodeThreshold
-	 *            the psmsPerPeptideThreshold to set
+	 * @param psmsPerPeptideNodeThreshold the psmsPerPeptideThreshold to set
 	 */
 	public void setPsmsPerPeptideNodeThreshold(int psmsPerPeptideNodeThreshold) {
 		this.psmsPerPeptideNodeThreshold = psmsPerPeptideNodeThreshold;
@@ -888,8 +865,9 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param replicatesPerPeptideNodeThreshold
-	 *            the replicatesPerPeptideNodeThreshold to set
+	 * @param replicatesPerPeptideNodeThreshold the
+	 *                                          replicatesPerPeptideNodeThreshold to
+	 *                                          set
 	 */
 	public void setReplicatesPerPeptideNodeThreshold(int replicatesPerPeptideNodeThreshold) {
 		this.replicatesPerPeptideNodeThreshold = replicatesPerPeptideNodeThreshold;
@@ -900,8 +878,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param performRatioIntegration
-	 *            the performRatioIntegration to set
+	 * @param performRatioIntegration the performRatioIntegration to set
 	 */
 	public void setPerformRatioIntegration(boolean performRatioIntegration) {
 		this.performRatioIntegration = performRatioIntegration;
@@ -915,8 +892,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param significantFDRThreshold
-	 *            the significantFDRThreshold to set
+	 * @param significantFDRThreshold the significantFDRThreshold to set
 	 */
 	public void setSignificantFDRThreshold(Double significantFDRThreshold) {
 		this.significantFDRThreshold = significantFDRThreshold;
@@ -927,8 +903,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param uniprotVersion
-	 *            the uniprotVersion to set
+	 * @param uniprotVersion the uniprotVersion to set
 	 */
 	public void setUniprotVersion(String uniprotVersion) {
 		if (uniprotVersion != null)
@@ -943,8 +918,9 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param onlyOneSpectrumPerChromatographicPeakAndPerSaltStep
-	 *            the onlyOneSpectrumPerChromatographicPeakAndPerSaltStep to set
+	 * @param onlyOneSpectrumPerChromatographicPeakAndPerSaltStep the
+	 *                                                            onlyOneSpectrumPerChromatographicPeakAndPerSaltStep
+	 *                                                            to set
 	 */
 	public void setOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(
 			boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep) {
@@ -956,8 +932,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param skipSingletons
-	 *            the skipSingletons to set
+	 * @param skipSingletons the skipSingletons to set
 	 */
 	public void setSkipSingletons(boolean skipSingletons) {
 		this.skipSingletons = skipSingletons;
@@ -980,8 +955,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param separator
-	 *            the separator to set
+	 * @param separator the separator to set
 	 */
 	public void setSeparator(String separator) {
 		if (separator != null)
@@ -993,8 +967,9 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param applyClassificationsByProteinPair
-	 *            the applyClassificationsByProteinPair to set
+	 * @param applyClassificationsByProteinPair the
+	 *                                          applyClassificationsByProteinPair to
+	 *                                          set
 	 */
 	public void setApplyClassificationsByProteinPair(boolean applyClassificationsByProteinPair) {
 		this.applyClassificationsByProteinPair = applyClassificationsByProteinPair;
@@ -1010,8 +985,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param analysisRun
-	 *            the isAnalysisRun to set
+	 * @param analysisRun the isAnalysisRun to set
 	 */
 	public void setAnalysisRun(boolean analysisRun) {
 		this.analysisRun = analysisRun;
@@ -1022,8 +996,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param comparisonRun
-	 *            the comparisonRun to set
+	 * @param comparisonRun the comparisonRun to set
 	 */
 	private void setComparisonRun(boolean comparisonRun) {
 		this.comparisonRun = comparisonRun;
@@ -1034,8 +1007,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param comparisonInput
-	 *            the comparisonInput to set
+	 * @param comparisonInput the comparisonInput to set
 	 */
 	public void setComparisonInput(ComparisonInput comparisonInput) {
 		this.comparisonInput = comparisonInput;
@@ -1060,8 +1032,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param removeFilteredNodes
-	 *            the removeFilteredNodes to set
+	 * @param removeFilteredNodes the removeFilteredNodes to set
 	 */
 	public void setRemoveFilteredNodes(boolean removeFilteredNodes) {
 		this.removeFilteredNodes = removeFilteredNodes;
@@ -1072,8 +1043,9 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param statisticalTestForProteinPairApplied
-	 *            the statisticalTestForProteinPairApplied to set
+	 * @param statisticalTestForProteinPairApplied the
+	 *                                             statisticalTestForProteinPairApplied
+	 *                                             to set
 	 */
 	public void setStatisticalTestForProteinPairApplied(boolean statisticalTestForProteinPairApplied) {
 		this.statisticalTestForProteinPairApplied = statisticalTestForProteinPairApplied;
@@ -1087,8 +1059,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param ignorePTMs
-	 *            the ignorePTMs to set
+	 * @param ignorePTMs the ignorePTMs to set
 	 */
 	public void setIgnorePTMs(boolean ignorePTMs) {
 		this.ignorePTMs = ignorePTMs;
@@ -1115,8 +1086,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param semiCleavage
-	 *            the semiCleavage to set
+	 * @param semiCleavage the semiCleavage to set
 	 */
 	public void setSemiCleavage(boolean semiCleavage) {
 		this.semiCleavage = semiCleavage;
@@ -1127,8 +1097,7 @@ public class ProteinClusterQuantParameters {
 	}
 
 	/**
-	 * @param peptideFilterRegexp
-	 *            the peptideFilterRegexp to set
+	 * @param peptideFilterRegexp the peptideFilterRegexp to set
 	 */
 	public void setPeptideFilterRegexp(String peptideFilterRegexp) {
 		this.peptideFilterRegexp = peptideFilterRegexp;
@@ -1251,6 +1220,14 @@ public class ProteinClusterQuantParameters {
 				ptmsQuantified.add(ptm);
 			}
 		}
+	}
+
+	public boolean isPrintPTMPositionInProtein() {
+		return printPTMPositionInProtein;
+	}
+
+	public void setPrintPTMPositionInProtein(boolean printPTMPositionInProtein) {
+		this.printPTMPositionInProtein = printPTMPositionInProtein;
 	}
 
 }

@@ -2978,10 +2978,6 @@ public class PCQUtils {
 		final StringBuilder sb = new StringBuilder();
 		final List<String> list = new ArrayList<String>();
 		list.addAll(taxonomies);
-		System.out.println();
-		for (final String string : list) {
-			System.out.println(string);
-		}
 		Collections.sort(list);
 		for (final String taxonomy : list) {
 			if (!"".equals(sb.toString())) {

@@ -574,6 +574,11 @@ public class PropertiesReader {
 		final boolean ignoreACCFormat = !Boolean.valueOf(properties.getProperty("recognizeACCFormat", "true"));
 		params.setIgnoreACCFormat(ignoreACCFormat);
 
+		// print PTM position in protein column
+		final boolean printPTMPositionInProtein = Boolean
+				.valueOf(properties.getProperty("printPTMPositionInProtein", "true"));
+		params.setPrintPTMPositionInProtein(printPTMPositionInProtein);
+
 		// check errors
 		checkErrorsInParameters(params);
 	}

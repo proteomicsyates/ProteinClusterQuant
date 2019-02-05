@@ -148,8 +148,8 @@ public class XgmmlExporter {
 	}
 
 	/**
-	 * Scale all colors of the peptide nodes according to input parameters
-	 * settings. See parameters: minimumRatioForColor, maximumRatioForColor,
+	 * Scale all colors of the peptide nodes according to input parameters settings.
+	 * See parameters: minimumRatioForColor, maximumRatioForColor,
 	 *
 	 * @param graph
 	 */
@@ -476,9 +476,6 @@ public class XgmmlExporter {
 
 			for (final PCQPeptideNode uniquePeptideNode_U1 : peptidesNodesU1) {
 				final String nodeID = uniquePeptideNode_U1.getKey();
-				if (nodeID.equals("Q14203")) {
-					log.info(nodeID);
-				}
 				// System.out.println(uniquePeptideNode_U1);
 				if (!visitedPeptideKeys.containsKey(nodeID)) {
 
@@ -536,9 +533,6 @@ public class XgmmlExporter {
 			for (final PCQPeptideNode sharedPeptideNode_S12 : peptideNodesS12) {
 				final String sharedSequenceString_S12 = sharedPeptideNode_S12.getKey();
 
-				if (sharedSequenceString_S12.equals("Q14203")) {
-					log.info(sharedSequenceString_S12);
-				}
 				if (!visitedPeptideKeys.containsKey(sharedSequenceString_S12)) {
 					final String nodeID = sharedPeptideNode_S12.getKey();
 					final String label = formatNumber(
@@ -823,8 +817,8 @@ public class XgmmlExporter {
 	/**
 	 * Gets the tooltip that is shown when a peptide node is hovered by the
 	 * mouse.<br>
-	 * It is a list of the peptide sequences, together with the number of PSMs
-	 * and ions counts per each one.<br>
+	 * It is a list of the peptide sequences, together with the number of PSMs and
+	 * ions counts per each one.<br>
 	 * It also includes the consensus ratio value and associated statistics.
 	 *
 	 * @param prefix
@@ -1018,8 +1012,8 @@ public class XgmmlExporter {
 	/**
 	 * Gets the tooltip that is shown when a peptide node is hovered by the
 	 * mouse.<br>
-	 * It is a list of the peptide sequences, together with the number of PSMs
-	 * and ions counts pero each one.
+	 * It is a list of the peptide sequences, together with the number of PSMs and
+	 * ions counts pero each one.
 	 *
 	 * @param label
 	 *
@@ -1138,8 +1132,8 @@ public class XgmmlExporter {
 	}
 
 	/**
-	 * Get the label for a protein node, depending on the 'getProteinLabel()'
-	 * from the input parameters
+	 * Get the label for a protein node, depending on the 'getProteinLabel()' from
+	 * the input parameters
 	 *
 	 * @param proteinNode
 	 * @return
@@ -1519,8 +1513,7 @@ public class XgmmlExporter {
 	}
 
 	/**
-	 * Get protein name from uniprot entry, that is the Uniprot ID, like
-	 * ALDOA_HUMAN
+	 * Get protein name from uniprot entry, that is the Uniprot ID, like ALDOA_HUMAN
 	 *
 	 * @param acc
 	 * @return
@@ -1823,8 +1816,7 @@ public class XgmmlExporter {
 	}
 
 	/**
-	 * @param annotatedProteins
-	 *            the annotatedProteins to set
+	 * @param annotatedProteins the annotatedProteins to set
 	 */
 	public void setAnnotatedProteins(Map<String, Entry> annotatedProteins) {
 		this.annotatedProteins = annotatedProteins;
