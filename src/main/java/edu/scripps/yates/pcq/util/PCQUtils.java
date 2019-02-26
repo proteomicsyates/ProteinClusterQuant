@@ -2659,8 +2659,8 @@ public class PCQUtils {
 
 	/**
 	 * The peptide node MUST have been created as a site specific peptide node. <br>
-	 * It retrieves an average of all the non-infinity isobaric ratios per peptide
-	 * that are valid for the site that is quantified.
+	 * It retrieves an average of all the non-infinity ratios per peptide that are
+	 * valid for the site that is quantified.
 	 * 
 	 * @param peptideNode
 	 * @param cond1
