@@ -315,11 +315,7 @@ public class ProteinCluster {
 				for (int j = i + 1; j < peptides.size(); j++) {
 					final QuantifiedPeptideInterface peptide2 = peptides.get(j);
 					final String sequence2 = peptide2.getSequence();
-					if (sequence1.equals("AKDIGFIKLD")) {
-						if (sequence2.equals("AKDIGFIKLD")) {
-							log.info(sequence2);
-						}
-					}
+
 					// discard if it doesn't contain any quantified aa
 					if (getParams().isRemoveFilteredNodes() && !PCQUtils.containsAny(sequence2, quantifiedAAs)) {
 						if (!peptideSequencesDiscarded.contains(sequence2)) {
@@ -476,6 +472,7 @@ public class ProteinCluster {
 								useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
 						final String key2 = QuantUtils.getPositionsInProteinsKey(proteinKeysFromPeptide2,
 								useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
+
 						// now I compare the two list of keys
 						// if they are equal, that means, if they share
 						// the
