@@ -2187,7 +2187,7 @@ public class ProteinClusterQuant {
 					// protein group
 					proteinPTM.setProteinGroup(protein.getProteinGroup());
 					// taxonomy
-					if (!protein.getTaxonomies().isEmpty()) {
+					if (protein.getTaxonomies() != null && !protein.getTaxonomies().isEmpty()) {
 						proteinPTM.addTaxonomy(protein.getTaxonomies().iterator().next());
 					}
 					// set discarded

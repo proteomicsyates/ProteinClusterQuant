@@ -273,7 +273,7 @@ public class ProteinCluster {
 						DiscardedPeptidesSet.getInstance().add(peptide1, DISCARD_REASON.PEPTIDE_WITH_NO_QUANT_SITE,
 								"quant site(s): " + quantifiedAAsString);
 						peptideSequencesDiscarded.add(sequence1);
-						log.info(sequence1 + " discarded for not having one quantitation sites from '"
+						log.warn(sequence1 + " discarded for not having one quantitation sites from '"
 								+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
 					}
 					individualQuantifiedPeptideSet.remove(peptide1);
@@ -287,7 +287,7 @@ public class ProteinCluster {
 						peptideSequencesDiscarded.add(sequence1);
 						DiscardedPeptidesSet.getInstance().add(peptide1, DISCARD_REASON.AMBIGOUS_QUANT,
 								"quant site(s): " + quantifiedAAsString);
-						log.info(sequence1 + " discarded for having ambiguous quantitation sites from "
+						log.warn(sequence1 + " discarded for having ambiguous quantitation sites from "
 								+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
 					}
 					individualQuantifiedPeptideSet.remove(peptide1);
@@ -303,14 +303,20 @@ public class ProteinCluster {
 				final Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide1Keys = peptide1
 						.getProteinKeysByPeptideKeysForQuantifiedAAs(quantifiedAAs, uplr, PCQUtils.proteinSequences);
 				if (proteinKeysByPeptide1Keys.isEmpty()) {
-					// peptides without a site mapped to a protein are discarded
-					if (!peptideSequencesDiscarded.contains(sequence1)) {
-						peptideSequencesDiscarded.add(sequence1);
-						DiscardedPeptidesSet.getInstance().add(peptide1, DISCARD_REASON.PEPTIDE_WITH_NO_PROTEIN);
-						log.warn("Peptide '" + sequence1 + "' cannot be mapped to any protein sequence");
+
+					if (getParams().isRemoveFilteredNodes() || getParams().isCollapseBySites()) {
+						// peptides without a site mapped to a protein are discarded
+						if (!peptideSequencesDiscarded.contains(sequence1)) {
+							peptideSequencesDiscarded.add(sequence1);
+							DiscardedPeptidesSet.getInstance().add(peptide1, DISCARD_REASON.PEPTIDE_WITH_NO_PROTEIN);
+							log.warn("Peptide '" + sequence1
+									+ "' cannot be mapped to any protein sequence and it will be ignored");
+						}
+						individualQuantifiedPeptideSet.remove(peptide1);
+						continue;
+					} else {
+						log.warn("Peptide '" + peptide1.getSequence() + "' cannot be mapped to any protein sequence");
 					}
-					individualQuantifiedPeptideSet.remove(peptide1);
-					continue;
 				}
 				for (int j = i + 1; j < peptides.size(); j++) {
 					final QuantifiedPeptideInterface peptide2 = peptides.get(j);
@@ -323,7 +329,7 @@ public class ProteinCluster {
 									"quant site(s): " + quantifiedAAsString);
 
 							peptideSequencesDiscarded.add(sequence2);
-							log.info(sequence2 + " discarded for not having one quantitation sites from '"
+							log.warn(sequence2 + " discarded for not having one quantitation sites from '"
 									+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
 						}
 						individualQuantifiedPeptideSet.remove(peptide2);
@@ -338,7 +344,7 @@ public class ProteinCluster {
 							DiscardedPeptidesSet.getInstance().add(peptide2, DISCARD_REASON.AMBIGOUS_QUANT,
 									"quant site(s): " + quantifiedAAsString);
 							peptideSequencesDiscarded.add(sequence2);
-							log.info(sequence2 + " discarded for having ambiguous quantitation sites from '"
+							log.warn(sequence2 + " discarded for having ambiguous quantitation sites from '"
 									+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
 						}
 						individualQuantifiedPeptideSet.remove(peptide2);
@@ -355,16 +361,24 @@ public class ProteinCluster {
 					final Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptide2Keys = peptide2
 							.getProteinKeysByPeptideKeysForQuantifiedAAs(quantifiedAAs, uplr,
 									PCQUtils.proteinSequences);
-					if (getParams().isRemoveFilteredNodes() && proteinKeysByPeptide2Keys.isEmpty()) {
-						if (!peptideSequencesDiscarded.contains(sequence2)) {
-							DiscardedPeptidesSet.getInstance().add(peptide2, DISCARD_REASON.PEPTIDE_WITH_NO_PROTEIN);
-							peptideSequencesDiscarded.add(sequence2);
-							// peptides without a site mapped to a protein are
-							// discarded
-							log.warn("Peptide '" + sequence2 + "' cannot be mapped to any protein sequence");
+					if (proteinKeysByPeptide2Keys.isEmpty()) {
+						if (getParams().isRemoveFilteredNodes() || getParams().isCollapseBySites()) {
+							if (!peptideSequencesDiscarded.contains(sequence2)) {
+								DiscardedPeptidesSet.getInstance().add(peptide2,
+										DISCARD_REASON.PEPTIDE_WITH_NO_PROTEIN);
+								peptideSequencesDiscarded.add(sequence2);
+								// peptides without a site mapped to a protein are
+								// discarded
+								log.warn("Peptide '" + sequence2
+										+ "' cannot be mapped to any protein sequence and it will be ignored");
+							}
+							individualQuantifiedPeptideSet.remove(peptide2);
+							continue;
+						} else {
+							log.warn("Peptide '" + peptide2.getSequence()
+									+ "' cannot be mapped to any protein sequence");
+
 						}
-						individualQuantifiedPeptideSet.remove(peptide2);
-						continue;
 					}
 					// if we have isobaric isotopologues, we could have several
 					// ratios in a single peptide with multiple quantified
@@ -411,10 +425,12 @@ public class ProteinCluster {
 									// add the two peptides to the peptide node
 									peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide1);
 									peptideNode.addQuantifiedPeptide(peptide2, positionInPeptide2);
-									// add to the set of nodes
-									peptideNodes.add(peptideNode);
-									// add to the map
-									peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+									if (!peptideNode.getItemsInNode().isEmpty()) {
+										// add to the set of nodes
+										peptideNodes.add(peptideNode);
+										// add to the map
+										peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+									}
 
 								} else {
 									// they dont share any key create a peptide
@@ -433,9 +449,11 @@ public class ProteinCluster {
 									peptideNodesByPeptides.put(peptide1, peptideNode);
 									// add the two peptides to the peptide node
 									peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide1);
-									peptideNodes.add(peptideNode);
-									peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+									if (!peptideNode.getItemsInNode().isEmpty()) {
 
+										peptideNodes.add(peptideNode);
+										peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+									}
 									// protein node for protein2
 									PCQPeptideNode peptideNode2 = null;
 									if (peptideNodesByPeptideNodeKey.containsKey(key2)) {
@@ -448,8 +466,11 @@ public class ProteinCluster {
 									peptideNodesByPeptides.put(peptide2, peptideNode2);
 
 									peptideNode2.addQuantifiedPeptide(peptide2, positionInPeptide2);
-									peptideNodes.add(peptideNode2);
-									peptideNodesByPeptideNodeKey.put(key2, peptideNode2);
+									if (!peptideNode2.getItemsInNode().isEmpty()) {
+
+										peptideNodes.add(peptideNode2);
+										peptideNodesByPeptideNodeKey.put(key2, peptideNode2);
+									}
 								}
 							}
 						}
@@ -490,8 +511,14 @@ public class ProteinCluster {
 								peptideNode = peptideNodesByPeptideNodeKey.get(key1);
 							} else {
 								peptideNode = new PCQPeptideNode(this, key1);
+								if (proteinKeysByPeptide1Keys.isEmpty()) {
+									log.info("asdf");
+								}
 								for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide1Keys.keySet()) {
 									peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide);
+								}
+								if (proteinKeysByPeptide2Keys.isEmpty()) {
+									log.info("asdf");
 								}
 								for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
 									peptideNode.addQuantifiedPeptide(peptide2, positionInPeptide);
@@ -506,10 +533,13 @@ public class ProteinCluster {
 							for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
 								peptideNode.addQuantifiedPeptide(peptide2, positionInPeptide);
 							}
-							// add to the set of nodes
-							peptideNodes.add(peptideNode);
-							// add to the map
-							peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+							if (!peptideNode.getItemsInNode().isEmpty()) {
+
+								// add to the set of nodes
+								peptideNodes.add(peptideNode);
+								// add to the map
+								peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+							}
 
 						} else {
 							// they dont share any key create a peptide node for
@@ -528,9 +558,11 @@ public class ProteinCluster {
 							for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide1Keys.keySet()) {
 								peptideNode.addQuantifiedPeptide(peptide1, positionInPeptide);
 							}
-							peptideNodes.add(peptideNode);
-							peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+							if (!peptideNode.getItemsInNode().isEmpty()) {
 
+								peptideNodes.add(peptideNode);
+								peptideNodesByPeptideNodeKey.put(key1, peptideNode);
+							}
 							// protein node for protein2
 							PCQPeptideNode peptideNode2 = null;
 							if (peptideNodesByPeptideNodeKey.containsKey(key2)) {
@@ -546,8 +578,11 @@ public class ProteinCluster {
 							for (final PositionInPeptide positionInPeptide : proteinKeysByPeptide2Keys.keySet()) {
 								peptideNode2.addQuantifiedPeptide(peptide2, positionInPeptide);
 							}
-							peptideNodes.add(peptideNode2);
-							peptideNodesByPeptideNodeKey.put(key2, peptideNode2);
+							if (!peptideNode2.getItemsInNode().isEmpty()) {
+
+								peptideNodes.add(peptideNode2);
+								peptideNodesByPeptideNodeKey.put(key2, peptideNode2);
+							}
 						}
 					}
 				}
@@ -573,8 +608,11 @@ public class ProteinCluster {
 							new Pair<QuantifiedPeptideInterface, PositionInPeptide>(peptide, positionInPeptide));
 				}
 				peptideNode.addQuantifiedPeptide(peptide, positionInPeptide);
-				peptideNodes.add(peptideNode);
-				peptideNodesByPeptideNodeKey.put(key, peptideNode);
+				if (!peptideNode.getItemsInNode().isEmpty()) {
+
+					peptideNodes.add(peptideNode);
+					peptideNodesByPeptideNodeKey.put(key, peptideNode);
+				}
 			}
 		}
 

@@ -2,11 +2,11 @@ package edu.scripps.yates.pcq.model;
 
 import java.util.Set;
 
-import edu.scripps.yates.census.read.model.interfaces.HasKey;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedItem;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPeptideInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
+import edu.scripps.yates.utilities.proteomicsmodel.HasKey;
 import gnu.trove.set.hash.THashSet;
 
 public abstract class AbstractNode<T extends QuantifiedItem> implements QuantifiedItem, HasKey {

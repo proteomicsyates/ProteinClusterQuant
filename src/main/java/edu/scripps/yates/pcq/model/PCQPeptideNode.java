@@ -57,6 +57,9 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 
 	public PCQPeptideNode(ProteinCluster proteinCluster, Collection<QuantifiedPeptideInterface> peptideCollection) {
 		peptideSet.addAll(peptideCollection);
+		if (peptideSet.isEmpty()) {
+			log.info("asdf");
+		}
 		this.proteinCluster = proteinCluster;
 	}
 
@@ -69,6 +72,9 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 			Pair<QuantifiedPeptideInterface, PositionInPeptide>... peptidesAndPositionInPeptides) {
 		for (final Pair<QuantifiedPeptideInterface, PositionInPeptide> pair : peptidesAndPositionInPeptides) {
 			addQuantifiedPeptide(pair.getFirstelement(), pair.getSecondElement());
+		}
+		if (getItemsInNode().isEmpty()) {
+			log.info("asdf");
 		}
 		this.proteinCluster = proteinCluster;
 		this.key = key;
@@ -114,13 +120,14 @@ public class PCQPeptideNode extends AbstractNode<QuantifiedPeptideInterface> {
 			final Set<QuantifiedProteinInterface> quantifiedProteins = getQuantifiedProteins();
 			for (final QuantifiedProteinInterface protein : quantifiedProteins) {
 				final Set<String> taxonomies = protein.getTaxonomies();
-				for (final String tax : taxonomies) {
-					if (tax == null) {
-						continue;
+				if (taxonomies != null) {
+					for (final String tax : taxonomies) {
+						if (tax == null) {
+							continue;
+						}
+						set.add(tax);
 					}
-					set.add(tax);
 				}
-
 			}
 		}
 		return set;

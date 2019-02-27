@@ -1823,9 +1823,11 @@ public class PCQUtils {
 		final List<String> ret = new ArrayList<String>();
 		for (final QuantifiedProteinInterface protein : proteinSet) {
 			final Set<String> taxonomies = protein.getTaxonomies();
-			for (final String taxonomy : taxonomies) {
-				if (taxonomy != null && !ret.contains(taxonomy)) {
-					ret.add(taxonomy);
+			if (taxonomies != null) {
+				for (final String taxonomy : taxonomies) {
+					if (taxonomy != null && !ret.contains(taxonomy)) {
+						ret.add(taxonomy);
+					}
 				}
 			}
 		}
