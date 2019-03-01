@@ -313,41 +313,71 @@ public class QuantSiteOutputComparator {
 	}
 
 	public void runRegularData() throws IOException {
-		QuantifiedSiteSet quantSites = null;
+		// first, get the total set of quantified sites
+		final Set<String> keySets = new THashSet<String>();
+		final Set<String> nonNanSites = new THashSet<String>();
+		final Map<File, QuantifiedSiteSet> quantSiteSetsByFile = new THashMap<File, QuantifiedSiteSet>();
 		for (final File file : inputFiles) {
-			final String sampleName = getSampleNameByFile(file);
-			if (quantSites == null) {
-				quantSites = readPCQOutputFile(file);
-				quantSites.addSampleName(sampleName);
-			} else {
-				final QuantifiedSiteSet quantSites2 = readPCQOutputFile(file);
-				final List<String> sampleNames = quantSites.getSampleNames();
-				quantSites = mergeQuantifiedSiteSets(quantSites, quantSites2);
-				for (final String sampleName2 : sampleNames) {
-					quantSites.addSampleName(sampleName2);
+			final QuantifiedSiteSet quantSitesTMP = readPCQOutputFile(file);
+			quantSiteSetsByFile.put(file, quantSitesTMP);
+			keySets.addAll(quantSitesTMP.getQuantifiedSitesByKey().keySet());
+			for (final QuantifiedSite quantSite : quantSitesTMP.getSortedByRatios()) {
+				if (!Double.isNaN(quantSite.getLog2Ratio(0))) {
+					nonNanSites.add(quantSite.getNodeKey());
 				}
-				quantSites.addSampleName(sampleName);
 			}
-
 		}
+		final QuantifiedSiteSet quantSites = new QuantifiedSiteSet();
+		log.info(nonNanSites.size() + "/" + keySets.size() + " quantified sites in " + inputFiles.size()
+				+ " experiments");
+		for (final String siteKey : keySets) {
 
-		writePairWisePValueMatrixes(quantSites);
+			for (final File file : inputFiles) {
+				final String sampleName = getSampleNameByFile(file);
+				quantSites.addSampleName(sampleName);
+
+				final QuantifiedSite quantifiedSiteTMP = quantSiteSetsByFile.get(file).getQuantifiedSitesByKey()
+						.get(siteKey);
+				final QuantifiedSite quantifiedSite = quantSites.getQuantifiedSitesByKey().get(siteKey);
+
+				if (quantifiedSite != null && quantifiedSiteTMP != null) {
+					// use the first for the result, adding the values of the second
+					quantifiedSite.addLog2Ratio(quantifiedSiteTMP.getLog2Ratio(0));
+					quantifiedSite.addNumMeasurements(quantifiedSiteTMP.getNumMeasurements(0));
+					quantifiedSite.addNumPeptides(quantifiedSiteTMP.getNumPeptides(0));
+					quantifiedSite.addNumPSMs(quantifiedSiteTMP.getNumPSMs(0));
+					quantifiedSite.addRatioStdev(quantifiedSiteTMP.getRatioStdev(0));
+					quantifiedSite.getPositionsInPeptide().addAll(quantifiedSiteTMP.getPositionsInPeptide());
+					if (quantifiedSite.getProteins() == null) {
+						quantifiedSite.setProteins(quantifiedSiteTMP.getProteins());
+						quantifiedSite.setGenes(quantifiedSiteTMP.getGenes());
+						quantifiedSite.setPositionsInPeptide(quantifiedSiteTMP.getPositionsInPeptide());
+						quantifiedSite.setSequence(quantifiedSiteTMP.getSequence());
+					}
+				} else if (quantifiedSite != null && quantifiedSiteTMP == null) {
+					quantifiedSite.addLog2Ratio(Double.NaN);
+					quantifiedSite.addNumMeasurements(0);
+					quantifiedSite.addNumPeptides(0);
+					quantifiedSite.addNumPSMs(0);
+					quantifiedSite.addRatioStdev(Double.NaN);
+				} else if (quantifiedSite == null && quantifiedSiteTMP != null) {
+					quantSites.add(quantifiedSiteTMP);
+				} else if (quantifiedSite == null && quantifiedSiteTMP == null) {
+					quantSites.add(new QuantifiedSite(siteKey));
+				}
+
+			}
+		}
+		calculateNumberOfDiscoveriesPerSite(quantSites);
 		writeRatioTableOutput(quantSites);
+		writePairWisePValueMatrixes(quantSites);
 	}
 
 	private static String getSampleNameByFile(File file) {
 		return sampleNamesByFiles.get(file);
 	}
 
-	/**
-	 * Then, for each quantified site, I build a matrix 10x10, where I store a
-	 * t-test result comparing the ratios of that site in each pairwise sample
-	 * comparison.
-	 * 
-	 * @param quantSiteSet
-	 * @throws IOException
-	 */
-	private void writePairWisePValueMatrixes(QuantifiedSiteSet quantSiteSet) throws IOException {
+	private void calculateNumberOfDiscoveriesPerSite(QuantifiedSiteSet quantSiteSet) {
 		final int numSamples = quantSiteSet.getNumExperiments();
 
 		ttestMatrixesByQuantSites = new THashMap<QuantifiedSite, TTestMatrix>();
@@ -434,8 +464,21 @@ public class QuantSiteOutputComparator {
 					+ " !!!");
 		} else {
 			log.info("Writting output files with " + numSitesWithMinimumDiscoveries
-					+ " quant sites with minimum number of discoveries...");
+					+ " quant sites with minimum number of discoveries (" + minNumberOfDiscoveries + ")...");
 		}
+	}
+
+	/**
+	 * Then, for each quantified site, I build a matrix 10x10, where I store a
+	 * t-test result comparing the ratios of that site in each pairwise sample
+	 * comparison.
+	 * 
+	 * @param quantSiteSet
+	 * @throws IOException
+	 */
+	private void writePairWisePValueMatrixes(QuantifiedSiteSet quantSiteSet) throws IOException {
+		final int numSamples = quantSiteSet.getNumExperiments();
+
 		final File matrixSummaryFile = getMatrixSummaryFile();
 		final File excelSummaryFile = getExcelMatrixSummaryFile();
 		// delete excel file if exists
@@ -1105,16 +1148,29 @@ public class QuantSiteOutputComparator {
 	private QuantifiedSiteSet mergeQuantifiedSiteSets(QuantifiedSiteSet quantSites1, QuantifiedSiteSet quantSites2) {
 		log.info("Merging two quantified site sets");
 		final QuantifiedSiteSet ret = new QuantifiedSiteSet();
-		final Set<String> keySet1 = quantSites1.getQuantifiedSitesByKey().keySet();
-		for (final String keySet : keySet1) {
+		final Set<String> keySets = new THashSet<String>();
+		keySets.addAll(quantSites1.getQuantifiedSitesByKey().keySet());
+		keySets.addAll(quantSites2.getQuantifiedSitesByKey().keySet());
+		for (final String keySet : keySets) {
 			if (quantSites2.getQuantifiedSitesByKey().contains(keySet)) {
-				final QuantifiedSite quantSite1 = quantSites1.getQuantifiedSitesByKey().get(keySet);
-				final QuantifiedSite quantSite2 = quantSites2.getQuantifiedSitesByKey().get(keySet);
-				if (Double.isNaN(quantSite1.getLog2Ratio(0))) {
-					if (Double.isNaN(quantSite2.getLog2Ratio(0))) {
-						continue;
-					}
-				}
+//				log.info("This site was already there");
+			} else {
+//				log.info("This site is new");
+			}
+			final QuantifiedSite quantSite1 = quantSites1.getQuantifiedSitesByKey().get(keySet);
+			final QuantifiedSite quantSite2 = quantSites2.getQuantifiedSitesByKey().get(keySet);
+			Double ratio1 = Double.NaN;
+			if (quantSite1 != null) {
+				ratio1 = quantSite1.getLog2Ratio(0);
+			}
+			Double ratio2 = Double.NaN;
+			if (quantSite2 != null) {
+				ratio2 = quantSite2.getLog2Ratio(0);
+			}
+			if (Double.isNaN(ratio1) && Double.isNaN(ratio2)) {
+//				continue;
+			}
+			if (quantSite1 != null && quantSite2 != null) {
 				// use the first for the result, adding the values of the second
 				quantSite1.addLog2Ratio(quantSite2.getLog2Ratio(0));
 				quantSite1.addNumMeasurements(quantSite2.getNumMeasurements(0));
@@ -1123,7 +1179,19 @@ public class QuantSiteOutputComparator {
 				quantSite1.addRatioStdev(quantSite2.getRatioStdev(0));
 				quantSite1.getPositionsInPeptide().addAll(quantSite2.getPositionsInPeptide());
 				ret.add(quantSite1);
+				continue;
 			}
+			if (quantSite1 != null && quantSite2 == null) {
+				ret.add(quantSite1);
+				continue;
+			}
+			if (quantSite2 != null && quantSite1 == null) {
+				ret.add(quantSite2);
+				continue;
+			}
+//			} else {
+//
+//			}
 		}
 		log.info("Result of merging is " + ret.getQuantifiedSitesByKey().size() + " quantified sites from "
 				+ quantSites1.getQuantifiedSitesByKey().size() + " + " + quantSites2.getQuantifiedSitesByKey().size());
@@ -1227,9 +1295,8 @@ public class QuantSiteOutputComparator {
 	 * 
 	 * @param quantifiedSite
 	 * 
-	 * @param full
-	 *            Print the full matrix if true. Otherwise only print top left 7
-	 *            x 7 submatrix.
+	 * @param full           Print the full matrix if true. Otherwise only print top
+	 *                       left 7 x 7 submatrix.
 	 */
 	private String printMatrix(TTestMatrix matrix, QuantifiedSite quantifiedSite, boolean printCorrectedPValues) {
 		final StringBuilder sb = new StringBuilder();
@@ -1294,9 +1361,8 @@ public class QuantSiteOutputComparator {
 	 * 
 	 * @param quantifiedSite
 	 * 
-	 * @param full
-	 *            Print the full matrix if true. Otherwise only print top left 7
-	 *            x 7 submatrix.
+	 * @param full           Print the full matrix if true. Otherwise only print top
+	 *                       left 7 x 7 submatrix.
 	 */
 	private String printMatrix(NLMatrix matrix, QuantifiedSite quantifiedSite) {
 		final StringBuilder sb = new StringBuilder();

@@ -37,30 +37,35 @@ public class QuantifiedSite {
 	public static final String QUANTPOSITIONSINPEPTIDE = "QuantSitePositionInPeptide";
 
 	private final String nodeKey;
-	private final String sequence;
+	private String sequence;
 	private final TDoubleArrayList log2Ratio = new TDoubleArrayList();
 	private final TDoubleArrayList ratioStdevs = new TDoubleArrayList();
 	private final TIntArrayList numPSMs = new TIntArrayList();
 	private final TIntArrayList numPeptides = new TIntArrayList();;
 	private final TIntArrayList numMeasurements = new TIntArrayList();;
-	private final Set<PositionInPeptide> positionsInPeptide = new THashSet<PositionInPeptide>();
-	private final String proteins;
-	private final String genes;
-	private final String positions;
+	private Set<PositionInPeptide> positionsInPeptide = new THashSet<PositionInPeptide>();
+	private String proteins;
+	private String genes;
 	private final List<PositionInProtein> positionInProteinList;
 	private TTestMatrix ttestMatrix;
+
+	public QuantifiedSite(String nodeKey) {
+		this.nodeKey = nodeKey;
+		positionInProteinList = PositionInProtein.parseStringToPositionInProtein(nodeKey, "-");
+		sequence = null;
+		log2Ratio.add(Double.NaN);
+		ratioStdevs.add(Double.NaN);
+		numPSMs.add(0);
+		numPeptides.add(0);
+		numMeasurements.add(0);
+		proteins = null;
+		genes = null;
+	}
 
 	public QuantifiedSite(String[] split, TObjectIntHashMap<String> indexesByHeaders) {
 		nodeKey = split[indexesByHeaders.get(NODE_KEY)];
 		positionInProteinList = PositionInProtein.parseStringToPositionInProtein(nodeKey, "-");
-		final StringBuilder sb = new StringBuilder();
-		for (final PositionInProtein positionInProtein : positionInProteinList) {
-			if (!"".equals(sb.toString())) {
-				sb.append("-");
-			}
-			sb.append(String.valueOf(positionInProtein.getAa()) + positionInProtein.getPosition());
-		}
-		positions = sb.toString();
+
 		sequence = split[indexesByHeaders.get(SEQUENCE)];
 		String numberString = split[indexesByHeaders.get(LOG2RATIO)];
 		if (numberString.startsWith("'")) {
@@ -181,7 +186,14 @@ public class QuantifiedSite {
 	}
 
 	public String getPositions() {
-		return positions;
+		final StringBuilder sb = new StringBuilder();
+		for (final PositionInProtein positionInProtein : positionInProteinList) {
+			if (!"".equals(sb.toString())) {
+				sb.append("-");
+			}
+			sb.append(String.valueOf(positionInProtein.getAa()) + positionInProtein.getPosition());
+		}
+		return sb.toString();
 	}
 
 	public List<PositionInProtein> getPositionInProteinList() {
@@ -194,5 +206,22 @@ public class QuantifiedSite {
 
 	public void setTtestMatrix(TTestMatrix ttestMatrix) {
 		this.ttestMatrix = ttestMatrix;
+	}
+
+	public void setProteins(String proteins2) {
+		this.proteins = proteins2;
+	}
+
+	public void setGenes(String genes2) {
+		this.genes = genes2;
+	}
+
+	public void setSequence(String sequence) {
+		this.sequence = sequence;
+	}
+
+	public void setPositionsInPeptide(List<PositionInPeptide> positionsInPeptide) {
+		this.positionsInPeptide = new THashSet<PositionInPeptide>();
+		positionsInPeptide.addAll(positionsInPeptide);
 	}
 }
