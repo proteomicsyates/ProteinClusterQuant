@@ -224,4 +224,8 @@ public class QuantifiedSite {
 		this.positionsInPeptide = new THashSet<PositionInPeptide>();
 		positionsInPeptide.addAll(positionsInPeptide);
 	}
+
+	public void setLog2Ratio(int i, double swappedRatio) {
+		this.log2Ratio.set(i, swappedRatio);
+	}
 }

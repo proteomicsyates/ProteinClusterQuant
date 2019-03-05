@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -206,8 +207,9 @@ public class TMTQuantSiteComparator {
 		// grab pcq outputs
 		final List<File> pcqOutputQuantPerSiteFileList = getPCQOutputQuantPerSiteFile(outputFolders);
 		// use them for quant site output
-		final QuantSiteOutputComparator comparator = new QuantSiteOutputComparator(pcqOutputQuantPerSiteFileList, rInf,
-				outputFileName, pValueCorrectionType, qValueThreshold, numberSigmas, minNumberOfDiscoveries, true);
+		final QuantSiteOutputComparator comparator = new QuantSiteOutputComparator(pcqOutputQuantPerSiteFileList,
+				Collections.emptySet(), rInf, outputFileName, pValueCorrectionType, qValueThreshold, numberSigmas,
+				minNumberOfDiscoveries, true);
 		comparator.setOutputFolder(paramFile.getParent());
 		comparator.run();
 

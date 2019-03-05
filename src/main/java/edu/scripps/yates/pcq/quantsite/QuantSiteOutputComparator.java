@@ -62,6 +62,8 @@ public class QuantSiteOutputComparator {
 	// default values
 	public static final PValueCorrectionType defaultPValueCorrectionMethod = PValueCorrectionType.BY;
 	public static final double defaultQValueThreshold = 0.05;
+	private static final String SWAP = "SWAP";
+
 	private static final String currentFolder = System.getProperty("user.dir");
 	private final List<File> inputFiles = new ArrayList<File>();
 	private final Double rInf;
@@ -77,11 +79,15 @@ public class QuantSiteOutputComparator {
 	private final boolean tmtData;
 	private String outputFolder;
 	private THashMap<QuantifiedSite, NLMatrix> matrixByQuantSitesForTMT;
+	private final Set<File> ratioSwaps = new THashSet<File>();
 
-	public QuantSiteOutputComparator(List<File> inputFiles, double rInf, String outputFileName,
+	public QuantSiteOutputComparator(List<File> inputFiles, Set<File> ratioSwap, double rInf, String outputFileName,
 			PValueCorrectionType pValueCorrectionType, double qValueThreshold, int numberSigmas,
 			int minNumberOfDiscoveries, boolean tmtData) {
 		this.inputFiles.addAll(inputFiles);
+		if (ratioSwap != null) {
+			this.ratioSwaps.addAll(ratioSwap);
+		}
 		this.rInf = rInf;
 		this.outputFileName = outputFileName;
 		if (FilenameUtils.getExtension(this.outputFileName).equals("")) {
@@ -104,7 +110,7 @@ public class QuantSiteOutputComparator {
 			final CommandLine cmd = parser.parse(options, args);
 
 			final List<File> inputFiles = new ArrayList<File>();
-
+			final Set<File> swapFiles = new THashSet<File>();
 			fileOfFiles = new File(cmd.getOptionValue("f"));
 			if (!fileOfFiles.exists()) {
 				fileOfFiles = new File(currentFolder + File.separator + cmd.getOptionValue("f"));
@@ -114,12 +120,19 @@ public class QuantSiteOutputComparator {
 			}
 			final List<String> lines = Files.readAllLines(Paths.get(fileOfFiles.toURI()));
 			for (final String line : lines) {
-				final String sampleName = line.split("\t")[0].trim();
-				final String fileFolder = line.split("\t")[1].trim();
+				final String[] split = line.split("\t");
+				final String sampleName = split[0].trim();
+				final String fileFolder = split[1].trim();
+
 				File folder = new File(fileFolder);
 				if (folder.isFile() && folder.exists()) {
 					inputFiles.add(folder);
 					sampleNamesByFiles.put(folder, sampleName);
+					if (split.length == 3) {
+						if (split[2].trim().equals(SWAP)) {
+							swapFiles.add(folder);
+						}
+					}
 					continue;
 				} else {
 					folder = new File(currentFolder + File.separator + fileFolder);
@@ -148,6 +161,11 @@ public class QuantSiteOutputComparator {
 				}
 				inputFiles.add(file);
 				sampleNamesByFiles.put(file, sampleName);
+				if (split.length == 3) {
+					if (split[2].trim().equals(SWAP)) {
+						swapFiles.add(file);
+					}
+				}
 				log.info("File added for sample '" + sampleName + "' : " + file.getAbsolutePath() + "'");
 			}
 
@@ -242,8 +260,8 @@ public class QuantSiteOutputComparator {
 				}
 			}
 
-			quantSiteComparator = new QuantSiteOutputComparator(inputFiles, rInf, outputFileName, pValueCorrectionType,
-					qValueThreshold, numberSigmas, minNumberOfDiscoveries, tmtData);
+			quantSiteComparator = new QuantSiteOutputComparator(inputFiles, swapFiles, rInf, outputFileName,
+					pValueCorrectionType, qValueThreshold, numberSigmas, minNumberOfDiscoveries, tmtData);
 
 		} catch (final Exception e) {
 			e.printStackTrace();
@@ -294,10 +312,10 @@ public class QuantSiteOutputComparator {
 		for (final File file : inputFiles) {
 			final String samplePairName = getSampleNameByFile(file);
 			if (quantSites == null) {
-				quantSites = readPCQOutputFile(file);
+				quantSites = readPCQOutputFile(file, this.ratioSwaps.contains(file));
 				quantSites.addSampleName(samplePairName);
 			} else {
-				final QuantifiedSiteSet quantSites2 = readPCQOutputFile(file);
+				final QuantifiedSiteSet quantSites2 = readPCQOutputFile(file, this.ratioSwaps.contains(file));
 				final List<String> sampleNames = quantSites.getSampleNames();
 				quantSites = mergeQuantifiedSiteSets(quantSites, quantSites2);
 				for (final String sampleName2 : sampleNames) {
@@ -318,7 +336,7 @@ public class QuantSiteOutputComparator {
 		final Set<String> nonNanSites = new THashSet<String>();
 		final Map<File, QuantifiedSiteSet> quantSiteSetsByFile = new THashMap<File, QuantifiedSiteSet>();
 		for (final File file : inputFiles) {
-			final QuantifiedSiteSet quantSitesTMP = readPCQOutputFile(file);
+			final QuantifiedSiteSet quantSitesTMP = readPCQOutputFile(file, ratioSwaps.contains(file));
 			quantSiteSetsByFile.put(file, quantSitesTMP);
 			keySets.addAll(quantSitesTMP.getQuantifiedSitesByKey().keySet());
 			for (final QuantifiedSite quantSite : quantSitesTMP.getSortedByRatios()) {
@@ -333,6 +351,10 @@ public class QuantSiteOutputComparator {
 		for (final String siteKey : keySets) {
 
 			for (final File file : inputFiles) {
+				boolean swapRatios = false;
+				if (this.ratioSwaps.contains(file)) {
+					swapRatios = true;
+				}
 				final String sampleName = getSampleNameByFile(file);
 				quantSites.addSampleName(sampleName);
 
@@ -342,7 +364,9 @@ public class QuantSiteOutputComparator {
 
 				if (quantifiedSite != null && quantifiedSiteTMP != null) {
 					// use the first for the result, adding the values of the second
-					quantifiedSite.addLog2Ratio(quantifiedSiteTMP.getLog2Ratio(0));
+					final Double log2Ratio = quantifiedSiteTMP.getLog2Ratio(0);
+
+					quantifiedSite.addLog2Ratio(log2Ratio);
 					quantifiedSite.addNumMeasurements(quantifiedSiteTMP.getNumMeasurements(0));
 					quantifiedSite.addNumPeptides(quantifiedSiteTMP.getNumPeptides(0));
 					quantifiedSite.addNumPSMs(quantifiedSiteTMP.getNumPSMs(0));
@@ -506,14 +530,15 @@ public class QuantSiteOutputComparator {
 		// sort by number of discoveries and by ratios
 		for (final QuantifiedSite quantifiedSite : quantSiteSet
 				.getSortedByNumDiscoveriesAndProteinsAndSites(numberOfDiscoveriesPerSite)) {
-			fw.write(quantifiedSite.getNodeKey() + "\n");
-			fw.write("Number of discoveries:\t" + numberOfDiscoveriesPerSite.get(quantifiedSite) + "\n");
-
-			final TTestMatrix matrixOfTTests = ttestMatrixesByQuantSites.get(quantifiedSite);
-			if (matrixOfTTests == null) {
-				continue;
-			}
 			if (numberOfDiscoveriesPerSite.get(quantifiedSite) >= minNumberOfDiscoveries) {
+				fw.write(quantifiedSite.getNodeKey() + "\n");
+				fw.write("Number of discoveries:\t" + numberOfDiscoveriesPerSite.get(quantifiedSite) + "\n");
+
+				final TTestMatrix matrixOfTTests = ttestMatrixesByQuantSites.get(quantifiedSite);
+				if (matrixOfTTests == null) {
+					continue;
+				}
+
 				atLeastOneMatrix = true;
 				fw.write(printMatrix(matrixOfTTests, quantifiedSite, true) + "\n");
 
@@ -540,9 +565,9 @@ public class QuantSiteOutputComparator {
 
 					// add the individual file to the Excel file
 
-					FileUtils.separatedValuesToXLSX(individualMatrixFile.getAbsolutePath(),
-							excelSummaryFile.getAbsolutePath(), "\t",
-							numDiscoveries + "_" + quantifiedSite.getNodeKey());
+//					FileUtils.separatedValuesToXLSX(individualMatrixFile.getAbsolutePath(),
+//							excelSummaryFile.getAbsolutePath(), "\t",
+//							numDiscoveries + "_" + quantifiedSite.getNodeKey());
 
 				}
 			}
@@ -553,7 +578,7 @@ public class QuantSiteOutputComparator {
 		fw.write("\n\n" + message + "\n");
 		System.out.println(printMatrix(sampleComparisonMatrix, null));
 		fw.write(printMatrix(sampleComparisonMatrix, null) + "\n");
-		fw.close();
+
 		if (atLeastOneMatrix) {
 			log.info("Output file written at: '" + matrixSummaryFile.getAbsolutePath() + "'");
 			log.info("Output file written at: '" + excelSummaryFile.getAbsolutePath() + "'");
@@ -566,14 +591,18 @@ public class QuantSiteOutputComparator {
 			final double[][] histogram = Histogram.histogram(nums.toArray(), nums.max());
 			int numSitesWithAtLeastOneDiscovery = 0;
 			for (int j = 0; j < histogram[2].length; j++) {
-				System.out.println("Number of sites with " + j + " discoveries " + histogram[2][j]);
+				final String m = "Number of sites with " + j + " discoveries " + histogram[2][j];
+				System.out.println(m);
+				fw.write(m + "\n");
 				if (j > 0) {
 					numSitesWithAtLeastOneDiscovery += histogram[2][j];
 				}
 			}
-			System.out.println("Number of sites with at least one discovery: " + numSitesWithAtLeastOneDiscovery);
+			final String l = "Number of sites with at least one discovery: " + numSitesWithAtLeastOneDiscovery;
+			System.out.println(l);
+			fw.write(l + "\n");
 		}
-
+		fw.close();
 	}
 
 	private int getNumSamplesFromSamplePairs(int numSamplesPairs) {
@@ -1201,8 +1230,10 @@ public class QuantSiteOutputComparator {
 
 	/**
 	 * Reads PCQ output file
+	 * 
+	 * @param b
 	 */
-	private QuantifiedSiteSet readPCQOutputFile(File inputFile) throws IOException {
+	private QuantifiedSiteSet readPCQOutputFile(File inputFile, boolean swapRatio) throws IOException {
 		int numLine = 1;
 		String line = null;
 		try {
@@ -1220,6 +1251,10 @@ public class QuantSiteOutputComparator {
 						}
 					} else {
 						final QuantifiedSite quantSite = new QuantifiedSite(split, indexesByHeaders);
+						if (swapRatio) {
+							final double swappedRatio = 1 / quantSite.getLog2Ratio(0);
+							quantSite.setLog2Ratio(0, swappedRatio);
+						}
 						ret.add(quantSite);
 					}
 				} finally {
