@@ -133,6 +133,9 @@ public class PCQBatchRunner {
 				+ File.separator + "QuantSiteOutputComparator_input_file.txt");
 		final FileWriter fw = new FileWriter(output, true);
 		final String peptideNodeTableFileLine = suffixLine + "\t" + peptideNodeTableFile.getAbsolutePath();
+		if (output.length() > 0l) {
+			fw.write("\n");
+		}
 		fw.write(peptideNodeTableFileLine);
 		fw.close();
 		log.info("Added to " + output.getAbsolutePath() + ": '" + peptideNodeTableFileLine + "'");
