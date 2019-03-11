@@ -32,9 +32,8 @@ public class ProteinClusterQuantProperties extends Properties {
 	}
 
 	/**
-	 * Gets a property by propertyKey. If mandatory=true, it will throw an
-	 * exception if not found. If mandatory=false, it will return null if not
-	 * found.
+	 * Gets a property by propertyKey. If mandatory=true, it will throw an exception
+	 * if not found. If mandatory=false, it will return null if not found.
 	 *
 	 * @param propertyKey
 	 * @param mandatory
@@ -49,6 +48,17 @@ public class ProteinClusterQuantProperties extends Properties {
 			ret = null;
 		}
 		return ret;
+	}
+
+	@Override
+	public synchronized boolean containsKey(Object key) {
+		if (super.containsKey(key)) {
+			if ("".equals(getProperty(key.toString()).trim())) {
+				return false;
+			}
+			return true;
+		}
+		return false;
 	}
 
 }

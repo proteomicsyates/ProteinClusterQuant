@@ -29,27 +29,29 @@ public class PropertiesReader {
 	private static final String PROPERTIES_FILE_NAME = "setup.properties";
 	private final static org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(PropertiesReader.class);
 
-	public static ProteinClusterQuantProperties readerProperties() throws IOException {
+	public static ProteinClusterQuantProperties readerProperties(boolean batchMode) throws IOException {
 		final ClassLoader cl = PropertiesReader.class.getClassLoader();
 		final InputStream inputStream = cl.getResourceAsStream(PROPERTIES_FILE_NAME);
-		return readProperties(inputStream);
+		return readProperties(inputStream, batchMode);
 	}
 
-	public static ProteinClusterQuantProperties readProperties(File setupPropertiesFile) throws IOException {
+	public static ProteinClusterQuantProperties readProperties(File setupPropertiesFile, boolean batchMode)
+			throws IOException {
 		if (setupPropertiesFile == null || !setupPropertiesFile.exists()) {
 			throw new IllegalArgumentException(
 					"parameters file '" + setupPropertiesFile.getAbsolutePath() + "' is null or doesn't exist");
 		}
 		try {
 			final InputStream inputStream = new FileInputStream(setupPropertiesFile);
-			final ProteinClusterQuantProperties prop = readProperties(inputStream);
+			final ProteinClusterQuantProperties prop = readProperties(inputStream, batchMode);
 			return prop;
 		} catch (final IOException e) {
 			throw e;
 		}
 	}
 
-	public static ProteinClusterQuantProperties readProperties(InputStream inputStream) throws IOException {
+	public static ProteinClusterQuantProperties readProperties(InputStream inputStream, boolean batchMode)
+			throws IOException {
 
 		if (inputStream == null) {
 			throw new IllegalArgumentException("input stream is null");
@@ -57,7 +59,7 @@ public class PropertiesReader {
 		try {
 			final ProteinClusterQuantProperties prop = new ProteinClusterQuantProperties();
 			prop.load(inputStream);
-			readParametersFromProperties(prop);
+			readParametersFromProperties(prop, batchMode);
 			return prop;
 		} catch (final IOException e) {
 			e.printStackTrace();
@@ -67,6 +69,11 @@ public class PropertiesReader {
 	}
 
 	private static void readParametersFromProperties(ProteinClusterQuantProperties properties) throws IOException {
+		readParametersFromProperties(properties, false);
+	}
+
+	private static void readParametersFromProperties(ProteinClusterQuantProperties properties, boolean batchMode)
+			throws IOException {
 		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 
 		if (properties.containsKey("inputType")) {
@@ -138,9 +145,24 @@ public class PropertiesReader {
 		final boolean labelSwap = Boolean.valueOf(properties.getProperty("labelSwap", "false"));
 		params.setLabelSwap(labelSwap);
 
-		// cutoff for significance
-		final double thresholdForSignificance = Double.valueOf(properties.getProperty("thresholdForSignificance", "2"));
-		params.setThresholdForSignificance(thresholdForSignificance);
+		if (applyClassificationsByProteinPair) {
+			final boolean statisticalTestForProteinPairApplied = Boolean
+					.valueOf(properties.getProperty("statisticalTestForProteinPairApplied", "false"));
+			params.setStatisticalTestForProteinPairApplied(statisticalTestForProteinPairApplied);
+			// cutoff for significance
+			final double thresholdForSignificance = Double
+					.valueOf(properties.getProperty("thresholdForSignificance", "2"));
+			params.setThresholdForSignificance(thresholdForSignificance);
+			// threshold for the iglewiczHoaglin Test. A result wquals or greater
+			// than that, would be considered as an outlier
+			final double iglewiczHoaglinTestThreshold = Double
+					.valueOf(properties.getProperty("iglewiczHoaglinTest", "3.5"));
+			params.setIglewiczHoaglinTestThreshold(iglewiczHoaglinTestThreshold);
+			// do we only count truly unique peptides as unique
+			final boolean uniquePepOnly = Boolean.valueOf(properties.getProperty("uniquePepOnly", "true"));
+			params.setUniquePepOnly(uniquePepOnly);
+		}
+
 		final boolean printOnlyFirstGene = Boolean.valueOf(properties.getProperty("printOnlyFirstGene", "true"));
 		params.setPrintOnlyFirstGene(printOnlyFirstGene);
 		// do we have threhsold for minimum ion counts per Peptide
@@ -167,11 +189,7 @@ public class PropertiesReader {
 		final int replicatesPerPeptideNodeThreshold = Integer
 				.valueOf(properties.getProperty("replicatesPerPeptideNodeThreshold", "0"));
 		params.setReplicatesPerPeptideNodeThreshold(replicatesPerPeptideNodeThreshold);
-		// threshold for the iglewiczHoaglin Test. A result wquals or greater
-		// than that, would be considered as an outlier
-		final double iglewiczHoaglinTestThreshold = Double
-				.valueOf(properties.getProperty("iglewiczHoaglinTest", "3.5"));
-		params.setIglewiczHoaglinTestThreshold(iglewiczHoaglinTestThreshold);
+
 		// are we collapsing the indisintuishable proteins
 		final boolean collapseIndistinguishableProteins = Boolean
 				.valueOf(properties.getProperty("collapseIndistinguishableProteins", "true"));
@@ -297,10 +315,6 @@ public class PropertiesReader {
 				.valueOf(properties.getProperty("useMajorityRulesForInfinities", "true"));
 		params.setUseMayorityRule(useMayorityRule);
 
-		// do we only count truly unique peptides as unique
-		final boolean uniquePepOnly = Boolean.valueOf(properties.getProperty("uniquePepOnly", "true"));
-		params.setUniquePepOnly(uniquePepOnly);
-
 		final File uniprotReleasesFolder = new File(
 				properties.getProperty("uniprotReleasesFolder", System.getProperty("user.dir")));
 		params.setUniprotReleasesFolder(uniprotReleasesFolder);
@@ -339,20 +353,8 @@ public class PropertiesReader {
 		// input files
 		if (properties.containsKey("inputFiles")) {
 			final String fileNamesString = properties.getProperty("inputFiles", false);
-			if (fileNamesString != null && fileNamesString.contains("|")) {
-				final String[] tmp = fileNamesString.split("\\|");
-				for (int i = 0; i < tmp.length; i++) {
-					final ExperimentFiles experimentFiles = parseExperimentFileNames(tmp[i].trim());
-					params.addQuantificationInputFileNames(experimentFiles);
-				}
-			} else {
-				if (fileNamesString != null && !"".equals(fileNamesString)) {
-					final ExperimentFiles experimentFiles = parseExperimentFileNames(fileNamesString);
-					params.addQuantificationInputFileNames(experimentFiles);
-				} else {
-					log.info("Parameter 'inputFiles' not found. PCQ will not process quantitative values.");
-				}
-			}
+			parseInputFiles(fileNamesString, params);
+
 		} else {
 			log.info("Parameter 'inputFiles' not found. PCQ will not process quantitative values.");
 		}
@@ -360,25 +362,17 @@ public class PropertiesReader {
 		// input files
 		final String fileNamesString = properties.getProperty("inputIDFiles", false);
 		if (fileNamesString != null) {
-			if (fileNamesString.contains("|")) {
-				final String[] tmp = fileNamesString.split("\\|");
-				for (int i = 0; i < tmp.length; i++) {
-					final ExperimentFiles experimentFiles = parseExperimentFileNames(tmp[i].trim());
-					params.addIdentificationInputFileNames(experimentFiles);
-				}
-			} else {
-				if (!"".equals(fileNamesString)) {
-					final ExperimentFiles experimentFiles = parseExperimentFileNames(fileNamesString);
-					params.addIdentificationInputFileNames(experimentFiles);
-				}
-			}
+			parseInputIDFiles(fileNamesString, params);
+
 		}
 		if (params.getInputQuantificationFileNames().isEmpty()) {
 			if (params.getIdentificationInputFileNamesArray().length > 0) {
 				log.info("Working only with identification data, not quantitation.");
 			} else {
-				throw new IllegalArgumentException(
-						"One of the two 'inputFiles' or 'inputIDFiles' should be present and no empty");
+				if (!batchMode) {
+					throw new IllegalArgumentException(
+							"One of the two 'inputFiles' or 'inputIDFiles' should be present and no empty");
+				}
 			}
 		}
 
@@ -428,27 +422,32 @@ public class PropertiesReader {
 		// {
 		// colorManager.setSharedNodeLabelColor(sharedNodeLabelColor);
 		// }
-		final String alignedPeptideEdgecolor = properties.getProperty("colorAlignedPeptidesEdge", "#00ff00");
-		if (alignedPeptideEdgecolor != null && !"".equals(alignedPeptideEdgecolor)) {
-			colorManager.setAlignedPeptidesEdgeColor(alignedPeptideEdgecolor);
+		if (makeAlignments) {
+			final String alignedPeptideEdgecolor = properties.getProperty("colorAlignedPeptidesEdge", "#00ff00");
+			if (alignedPeptideEdgecolor != null && !"".equals(alignedPeptideEdgecolor)) {
+				colorManager.setAlignedPeptidesEdgeColor(alignedPeptideEdgecolor);
+			}
 		}
 		params.setColorManager(colorManager);
 
 		final String decoyRegexp = properties.getProperty("discardDecoys", null);
 		params.setDecoyRegexp(decoyRegexp);
 
-		final String finalAlignmentScore = properties.getProperty("finalAlignmentScore", "30");
-		if (finalAlignmentScore != null)
-			params.setFinalAlignmentScore(Integer.valueOf(finalAlignmentScore));
-
-		final String sequenceIdentity = properties.getProperty("sequenceIdentity", "0.8");
-		if (sequenceIdentity != null)
-			params.setSequenceIdentity(Double.valueOf(sequenceIdentity));
-
-		final String minConsecutiveIdenticalAlignment = properties.getProperty("minConsecutiveIdenticalAlignment", "6");
-		if (minConsecutiveIdenticalAlignment != null)
-			params.setMinConsecutiveIdenticalAlignment(Integer.valueOf(minConsecutiveIdenticalAlignment));
-
+		if (makeAlignments) {
+			final String finalAlignmentScore = properties.getProperty("finalAlignmentScore", "30");
+			if (finalAlignmentScore != null) {
+				params.setFinalAlignmentScore(Integer.valueOf(finalAlignmentScore));
+			}
+			final String sequenceIdentity = properties.getProperty("sequenceIdentity", "0.8");
+			if (sequenceIdentity != null) {
+				params.setSequenceIdentity(Double.valueOf(sequenceIdentity));
+			}
+			final String minConsecutiveIdenticalAlignment = properties.getProperty("minConsecutiveIdenticalAlignment",
+					"6");
+			if (minConsecutiveIdenticalAlignment != null) {
+				params.setMinConsecutiveIdenticalAlignment(Integer.valueOf(minConsecutiveIdenticalAlignment));
+			}
+		}
 		final ProteinNodeLabel proteinLabel = ProteinNodeLabel.getFrom(properties.getProperty("proteinLabel", false));
 		if (proteinLabel != null) {
 			params.setProteinLabel(proteinLabel);
@@ -542,10 +541,6 @@ public class PropertiesReader {
 		final boolean removeFilteredNodes = Boolean.valueOf(properties.getProperty("removeFilteredNodes", "true"));
 		params.setRemoveFilteredNodes(removeFilteredNodes);
 
-		final boolean statisticalTestForProteinPairApplied = Boolean
-				.valueOf(properties.getProperty("statisticalTestForProteinPairApplied", "false"));
-		params.setStatisticalTestForProteinPairApplied(statisticalTestForProteinPairApplied);
-
 		final boolean ignorePTMs = Boolean.valueOf(properties.getProperty("ignorePTMs", "true"));
 		params.setIgnorePTMs(ignorePTMs);
 
@@ -581,6 +576,38 @@ public class PropertiesReader {
 
 		// check errors
 		checkErrorsInParameters(params);
+	}
+
+	public static void parseInputIDFiles(String fileNamesString, ProteinClusterQuantParameters params) {
+		if (fileNamesString.contains("|")) {
+			final String[] tmp = fileNamesString.split("\\|");
+			for (int i = 0; i < tmp.length; i++) {
+				final ExperimentFiles experimentFiles = parseExperimentFileNames(tmp[i].trim());
+				params.addIdentificationInputFileNames(experimentFiles);
+			}
+		} else {
+			if (!"".equals(fileNamesString)) {
+				final ExperimentFiles experimentFiles = parseExperimentFileNames(fileNamesString);
+				params.addIdentificationInputFileNames(experimentFiles);
+			}
+		}
+	}
+
+	public static void parseInputFiles(String fileNamesString, ProteinClusterQuantParameters params) {
+		if (fileNamesString != null && fileNamesString.contains("|")) {
+			final String[] tmp = fileNamesString.split("\\|");
+			for (int i = 0; i < tmp.length; i++) {
+				final ExperimentFiles experimentFiles = parseExperimentFileNames(tmp[i].trim());
+				params.addQuantificationInputFileNames(experimentFiles);
+			}
+		} else {
+			if (fileNamesString != null && !"".equals(fileNamesString)) {
+				final ExperimentFiles experimentFiles = parseExperimentFileNames(fileNamesString);
+				params.addQuantificationInputFileNames(experimentFiles);
+			} else {
+				log.info("Parameter 'inputFiles' not found. PCQ will not process quantitative values.");
+			}
+		}
 	}
 
 	private static List<String> parseTriplets(String tripletsString) {

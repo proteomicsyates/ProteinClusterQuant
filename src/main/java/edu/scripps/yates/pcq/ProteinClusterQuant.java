@@ -105,9 +105,9 @@ import gnu.trove.set.hash.THashSet;
 
 public class ProteinClusterQuant {
 	private final static Logger log = Logger.getLogger(ProteinClusterQuant.class);
-	private static final String SETUP_PROPERTIES = "setup.properties";
+	static final String SETUP_PROPERTIES = "setup.properties";
 	private static final String sep = "\t";
-	private static Options options;
+	static Options options;
 	private static AppVersion version;
 	private final QuantCondition cond1 = new QuantCondition("cond1");
 	private final QuantCondition cond2 = new QuantCondition("cond2");
@@ -126,7 +126,7 @@ public class ProteinClusterQuant {
 		params = ProteinClusterQuantParameters.getInstance();
 		params.clear();
 		this.setupPropertiesFile = setupPropertiesFile;
-		PropertiesReader.readProperties(setupPropertiesFile);
+		PropertiesReader.readProperties(setupPropertiesFile, false);
 
 		params.setAnalysisRun(analysisRun);
 		printWelcome();
@@ -139,13 +139,18 @@ public class ProteinClusterQuant {
 		printWelcome();
 	}
 
-	private static void setupCommandLineOptions() {
+	static void setupCommandLineOptions(boolean batchMode) {
 		// create Options object
 		options = new Options();
-		options.addOption("c", false,
-				"[OPTIONAL] If provided, a comparison analysis will be performed, instead of a quantitative analysis");
+		if (!batchMode) {
+			options.addOption("c", false,
+					"[OPTIONAL] If provided, a comparison analysis will be performed, instead of a quantitative analysis");
+		}
 		options.addOption("f", true, "[MANDATORY] Path to the parameters file");
-
+		if (batchMode) {
+			options.addOption("bf", true,
+					"[MANDATORY] Path to the batch file containing lines with inputFiles, inputIDFiles and outputSuffix params per PCQ run");
+		}
 	}
 
 	private void printWelcome() {
@@ -157,20 +162,23 @@ public class ProteinClusterQuant {
 		System.out.println(header + " ...");
 	}
 
-	private static void errorInParameters() {
+	static void errorInParameters(boolean batchMode) {
 		// automatically generate the help statement
 		final HelpFormatter formatter = new HelpFormatter();
-
-		formatter.printHelp("`java -jar PCQ.jar -f input_parameters_file [-c]", "\n\n\n", options,
-				"\n\nContact Salvador Martinez-Bartolome at salvador@scripps.edu for more help");
-
+		if (!batchMode) {
+			formatter.printHelp("`java -jar PCQ.jar -f input_parameters_file [-c]", "\n\n\n", options,
+					"\n\nContact Salvador Martinez-Bartolome at salvador@scripps.edu for more help");
+		} else {
+			formatter.printHelp("`java -jar PCQ.jar -f input_parameters_file -bf batch_file", "\n\n\n", options,
+					"\n\nContact Salvador Martinez-Bartolome at salvador@scripps.edu for more help");
+		}
 		System.exit(0);
 	}
 
 	public static void main(String args[]) throws IOException, ParseException {
 		final AppVersion version = ProteinClusterQuant.getVersion();
 		System.out.println("Running ProteinClusterQuant (PCQ) version " + version.toString());
-		setupCommandLineOptions();
+		setupCommandLineOptions(false);
 		final CommandLineParser parser = new BasicParser();
 		try {
 			final CommandLine cmd = parser.parse(options, args);
@@ -201,7 +209,7 @@ public class ProteinClusterQuant {
 			}
 		} catch (final Exception e) {
 			e.printStackTrace();
-			errorInParameters();
+			errorInParameters(false);
 		}
 		System.exit(0);
 	}
@@ -648,14 +656,11 @@ public class ProteinClusterQuant {
 
 		try {
 
-			final File outputFileFolder = params.getTemporalOutputFolder();
-			final String outputPrefix = params.getOutputPrefix();
-			final String outputSuffix = params.getOutputSuffix();
-			final String fileName = outputPrefix + "_peptideNodeTable_" + outputSuffix + ".txt";
+			final File file = getPeptideNodeTableFile();
 			final boolean useProteinGeneName = params.getProteinLabel() == ProteinNodeLabel.GENE;
 			final boolean useProteinID = params.getProteinLabel() == ProteinNodeLabel.ID;
-			log.info("Printing Peptide Node ratios at file : '" + fileName + "'");
-			out = new FileWriter(outputFileFolder.getAbsolutePath() + File.separator + fileName);
+			log.info("Printing Peptide Node ratios at file : '" + file.getAbsolutePath() + "'");
+			out = new FileWriter(file);
 
 			// header
 			out.write(QuantifiedSite.NODE_KEY + "\t" + "Raw file " + "\t" + "Unique" + "\t"
@@ -2895,5 +2900,13 @@ public class ProteinClusterQuant {
 
 	public void setCreateXGMMLFile(boolean createXGMMLFile) {
 		this.createXGMMLFile = createXGMMLFile;
+	}
+
+	public File getPeptideNodeTableFile() {
+		final File outputFileFolder = params.getTemporalOutputFolder();
+		final String outputPrefix = params.getOutputPrefix();
+		final String outputSuffix = params.getOutputSuffix();
+		final String fileName = outputPrefix + "_peptideNodeTable_" + outputSuffix + ".txt";
+		return new File(outputFileFolder + File.separator + fileName);
 	}
 }
