@@ -1358,6 +1358,9 @@ public class QuantSiteOutputComparator {
 			sb.append("\t");
 			for (int i = 0; i < numCols; i++) {
 				final Double log2Ratio = quantifiedSite.getLog2Ratio(i);
+				if (Double.isInfinite(log2Ratio)) {
+					sb.append("'");
+				}
 				sb.append(log2Ratio + "\t");
 			}
 		}
@@ -1366,6 +1369,9 @@ public class QuantSiteOutputComparator {
 			sb.append(getSampleNameByFile(inputFiles.get(i)) + "\t");
 			if (quantifiedSite != null) {
 				final Double log2Ratio = quantifiedSite.getLog2Ratio(i);
+				if (Double.isInfinite(log2Ratio)) {
+					sb.append("'");
+				}
 				sb.append(log2Ratio + "\t");
 			}
 
@@ -1431,7 +1437,11 @@ public class QuantSiteOutputComparator {
 				if (tmtData) {
 					sb.append("-" + "\t");
 				} else {
-					sb.append(quantifiedSite.getLog2Ratio(i) + "\t");
+					final Double log2Ratio = quantifiedSite.getLog2Ratio(i);
+					if (Double.isInfinite(log2Ratio)) {
+						sb.append("'");
+					}
+					sb.append(log2Ratio + "\t");
 				}
 			}
 		}
@@ -1446,7 +1456,11 @@ public class QuantSiteOutputComparator {
 				if (tmtData) {
 					sb.append("-" + "\t");
 				} else {
-					sb.append(quantifiedSite.getLog2Ratio(i) + "\t");
+					final Double log2Ratio = quantifiedSite.getLog2Ratio(i);
+					if (Double.isInfinite(log2Ratio)) {
+						sb.append("'");
+					}
+					sb.append(log2Ratio + "\t");
 				}
 			}
 
