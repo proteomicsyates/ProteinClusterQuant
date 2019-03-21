@@ -343,9 +343,17 @@ public class ProteinClusterQuantParameters {
 		inputQuantificationFiles.add(experimentFiles);
 	}
 
-	public void clear() {
+	public void clearInputQuantificationFiles() {
 		inputQuantificationFiles.clear();
+	}
+
+	public void clearInputIdentificationFiles() {
 		inputIdentificationFiles.clear();
+	}
+
+	public void clear() {
+		clearInputIdentificationFiles();
+		clearInputQuantificationFiles();
 		uniprotAnnotationColumns.clear();
 	}
 
