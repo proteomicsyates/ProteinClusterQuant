@@ -129,7 +129,7 @@ public class PCQBatchRunner {
 		params.setAnalysisRun(true);
 		pcq.setCreateXGMMLFile(generateXGMMLFiles2);
 		pcq.run();
-		final File peptideNodeTableFile = pcq.getPeptideNodeTableFile();
+		final File peptideNodeTableFile = pcq.getFinalPeptideNodeTableFile();
 		// append this full path to a file that can be used by PCQ comparator
 		final File output = new File(params.getOutputFileFolder().getParentFile().getParentFile().getAbsolutePath()
 				+ File.separator + "QuantSiteOutputComparator_input_file.txt");

@@ -2903,6 +2903,14 @@ public class ProteinClusterQuant {
 	}
 
 	public File getPeptideNodeTableFile() {
+		final File outputFileFolder = params.getTemporalOutputFolder();
+		final String outputPrefix = params.getOutputPrefix();
+		final String outputSuffix = params.getOutputSuffix();
+		final String fileName = outputPrefix + "_peptideNodeTable_" + outputSuffix + ".txt";
+		return new File(outputFileFolder + File.separator + fileName);
+	}
+
+	public File getFinalPeptideNodeTableFile() {
 		final File outputFileFolder = params.getOutputFileFolder();
 		final String outputPrefix = params.getOutputPrefix();
 		final String outputSuffix = params.getOutputSuffix();
