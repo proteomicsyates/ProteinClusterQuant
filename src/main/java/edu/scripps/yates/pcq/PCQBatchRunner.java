@@ -114,6 +114,8 @@ public class PCQBatchRunner {
 		// this sets the pcq parameters
 		PropertiesReader.readProperties(parameterFile, true);
 		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+		params.clearInputIdentificationFiles();
+		params.clearInputQuantificationFiles();
 		if (inputFilesLine != null) {
 			PropertiesReader.parseInputFiles(inputFilesLine, params);
 		}
