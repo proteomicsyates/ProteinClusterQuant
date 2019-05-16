@@ -388,6 +388,8 @@ public class QuantSiteOutputComparator {
 					quantSites.add(quantifiedSiteTMP);
 				} else if (quantifiedSite == null && quantifiedSiteTMP == null) {
 					quantSites.add(new QuantifiedSite(siteKey));
+				} else {
+					throw new IllegalArgumentException("Inconsistency!");
 				}
 
 			}
@@ -1345,17 +1347,29 @@ public class QuantSiteOutputComparator {
 			sb.append(quantifiedSite.getNodeKey() + "\t" + quantifiedSite.getPositions() + "\t"
 					+ quantifiedSite.getProteins() + "\t" + quantifiedSite.getGenes() + "\n");
 		}
-		sb.append("\t");
+		sb.append("Sample\t");
 		if (quantifiedSite != null) {
-			sb.append("\t");
+			sb.append("\t\t");
 		}
+
 		for (int i = 0; i < numCols; i++) {
 			sb.append(getSampleNameByFile(inputFiles.get(i)) + "\t");
 		}
 		sb.append("\n");
-		sb.append("\t");
+		// printNumberOfMeasurements:
+		sb.append("\tNum Measurements\t");
 		if (quantifiedSite != null) {
 			sb.append("\t");
+			for (int i = 0; i < numCols; i++) {
+				final int numMeasurements = quantifiedSite.getNumMeasurements(i);
+				sb.append(numMeasurements + "\t");
+			}
+		}
+		sb.append("\n");
+
+		sb.append("\t");
+		if (quantifiedSite != null) {
+			sb.append("\tLog2Ratio\t");
 			for (int i = 0; i < numCols; i++) {
 				final Double log2Ratio = quantifiedSite.getLog2Ratio(i);
 				if (Double.isInfinite(log2Ratio)) {
@@ -1368,6 +1382,8 @@ public class QuantSiteOutputComparator {
 		for (int i = 0; i < numRows; i++) {
 			sb.append(getSampleNameByFile(inputFiles.get(i)) + "\t");
 			if (quantifiedSite != null) {
+				final int numMeasurements = quantifiedSite.getNumMeasurements(i);
+				sb.append(numMeasurements + "\t");
 				final Double log2Ratio = quantifiedSite.getLog2Ratio(i);
 				if (Double.isInfinite(log2Ratio)) {
 					sb.append("'");
