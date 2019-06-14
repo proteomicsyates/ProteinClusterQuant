@@ -523,6 +523,7 @@ public class PCQUtils {
 
 			final boolean useUniprot = true;
 			final boolean usePhosphosite = false;
+			final File phosphoSiteDBFile = null;
 			final String phosphositeSpecies = null;
 			final int maxVariationsPerPeptide = 1;
 			final StringBuilder sufix = new StringBuilder(", useUniprot=").append(useUniprot)
@@ -537,8 +538,10 @@ public class PCQUtils {
 			}
 			((DBIndexSearchParamsImpl) defaultDBIndexParams).setFullIndexFileName(fastaIndexKey);
 			final UniprotProteinLocalRetriever uplr = getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder);
+
 			final DBIndexImpl dbIndex = new ProteoformDBIndexInterface(defaultDBIndexParams, useUniprot, usePhosphosite,
-					phosphositeSpecies, uplr, uniprotVersion, maxVariationsPerPeptide, peptideInclusionList);
+					phosphositeSpecies, phosphoSiteDBFile, uplr, uniprotVersion, maxVariationsPerPeptide,
+					peptideInclusionList);
 			indexByFastaIndexKey.put(fastaIndexKey, dbIndex);
 			return dbIndex;
 		}
