@@ -171,10 +171,12 @@ public class QuantSiteOutputComparator {
 
 			Double rInf = null;
 			try {
-				rInf = Double.valueOf(cmd.getOptionValue("RInf"));
-				if (rInf < 0) {
-					throw new Exception(
-							"Option 'RInf' must be a positive number. (Negative Infinities will be replaced by -RInf.)");
+				if (cmd.hasOption("RInf")) {
+					rInf = Double.valueOf(cmd.getOptionValue("RInf"));
+					if (rInf < 0) {
+						throw new Exception(
+								"Option 'RInf' must be a positive number. (Negative Infinities will be replaced by -RInf.)");
+					}
 				}
 			} catch (final NumberFormatException e) {
 				throw new Exception("Option 'RInf' must be numerical");
