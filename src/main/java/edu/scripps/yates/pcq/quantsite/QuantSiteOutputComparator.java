@@ -900,7 +900,11 @@ public class QuantSiteOutputComparator {
 	private String getOutputFolder() {
 		if (outputFolder == null) {
 			if (fileOfFiles != null) {
-				outputFolder = fileOfFiles.getParentFile().getAbsolutePath();
+				File parentFile = fileOfFiles.getParentFile();
+				if (parentFile == null) {
+					parentFile = new File(System.getProperty("user.dir"));
+				}
+				outputFolder = parentFile.getAbsolutePath();
 			} else {
 				outputFolder = inputFiles.get(0).getParentFile().getAbsolutePath();
 			}
