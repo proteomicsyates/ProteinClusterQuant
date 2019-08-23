@@ -86,7 +86,7 @@ public class QuantSiteOutputComparator {
 			int minNumberOfDiscoveries, boolean tmtData) {
 		this.inputFiles.addAll(inputFiles);
 		if (ratioSwap != null) {
-			this.ratioSwaps.addAll(ratioSwap);
+			ratioSwaps.addAll(ratioSwap);
 		}
 		this.rInf = rInf;
 		this.outputFileName = outputFileName;
@@ -312,10 +312,10 @@ public class QuantSiteOutputComparator {
 		for (final File file : inputFiles) {
 			final String samplePairName = getSampleNameByFile(file);
 			if (quantSites == null) {
-				quantSites = readPCQOutputFile(file, this.ratioSwaps.contains(file));
+				quantSites = readPCQOutputFile(file, ratioSwaps.contains(file));
 				quantSites.addSampleName(samplePairName);
 			} else {
-				final QuantifiedSiteSet quantSites2 = readPCQOutputFile(file, this.ratioSwaps.contains(file));
+				final QuantifiedSiteSet quantSites2 = readPCQOutputFile(file, ratioSwaps.contains(file));
 				final List<String> sampleNames = quantSites.getSampleNames();
 				quantSites = mergeQuantifiedSiteSets(quantSites, quantSites2);
 				for (final String sampleName2 : sampleNames) {
@@ -352,7 +352,7 @@ public class QuantSiteOutputComparator {
 
 			for (final File file : inputFiles) {
 				boolean swapRatios = false;
-				if (this.ratioSwaps.contains(file)) {
+				if (ratioSwaps.contains(file)) {
 					swapRatios = true;
 				}
 				final String sampleName = getSampleNameByFile(file);
@@ -361,7 +361,6 @@ public class QuantSiteOutputComparator {
 				final QuantifiedSite quantifiedSiteTMP = quantSiteSetsByFile.get(file).getQuantifiedSitesByKey()
 						.get(siteKey);
 				final QuantifiedSite quantifiedSite = quantSites.getQuantifiedSitesByKey().get(siteKey);
-
 				if (quantifiedSite != null && quantifiedSiteTMP != null) {
 					// use the first for the result, adding the values of the second
 					final Double log2Ratio = quantifiedSiteTMP.getLog2Ratio(0);
