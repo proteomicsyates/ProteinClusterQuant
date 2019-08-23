@@ -81,7 +81,7 @@ public class QuantSiteOutputComparator {
 	private THashMap<QuantifiedSite, NLMatrix> matrixByQuantSitesForTMT;
 	private final Set<File> ratioSwaps = new THashSet<File>();
 
-	public QuantSiteOutputComparator(List<File> inputFiles, Set<File> ratioSwap, double rInf, String outputFileName,
+	public QuantSiteOutputComparator(List<File> inputFiles, Set<File> ratioSwap, Double rInf, String outputFileName,
 			PValueCorrectionType pValueCorrectionType, double qValueThreshold, int numberSigmas,
 			int minNumberOfDiscoveries, boolean tmtData) {
 		this.inputFiles.addAll(inputFiles);
