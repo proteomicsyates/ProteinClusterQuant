@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -76,29 +77,41 @@ public class PCQBatchRunner {
 		int numLine = 0;
 		for (final String line : lines) {
 			numLine++;
-			if (line.contains("=")) {
-				final String[] split = line.split("=");
-				final String property = split[0].trim();
-				final String value = split[1].trim();
-				if (property.equals("inputFiles")) {
-					if (inputFilesLine != null) {
-						runPCQ(paramaterFile, inputFilesLine, inputIDFilesLine, suffixLine, generateXGMMLFiles);
-						// reset params
-						inputFilesLine = value;
-						inputIDFilesLine = null;
-						suffixLine = null;
-					} else {
-						inputFilesLine = value;
-					}
-				} else if (property.equals("inputIDFiles")) {
-					inputIDFilesLine = value;
-				} else if (property.equals("outputSuffix")) {
-					suffixLine = value;
-				} else {
-					log.info("line " + numLine + " ignored ('" + line + "')");
+			final List<String> sublines = new ArrayList<String>();
+			if (line.contains(";")) {
+				final String[] split = line.split(";");
+				for (final String subline : split) {
+					sublines.add(subline);
 				}
 			} else {
-				log.info("line " + numLine + " ignored ('" + line + "')");
+				sublines.add(line);
+			}
+			for (final String subline : sublines) {
+
+				if (subline.contains("=")) {
+					final String[] split = subline.split("=");
+					final String property = split[0].trim();
+					final String value = split[1].trim();
+					if (property.equals("inputFiles")) {
+						if (inputFilesLine != null) {
+							runPCQ(paramaterFile, inputFilesLine, inputIDFilesLine, suffixLine, generateXGMMLFiles);
+							// reset params
+							inputFilesLine = value;
+							inputIDFilesLine = null;
+							suffixLine = null;
+						} else {
+							inputFilesLine = value;
+						}
+					} else if (property.equals("inputIDFiles")) {
+						inputIDFilesLine = value;
+					} else if (property.equals("outputSuffix")) {
+						suffixLine = value;
+					} else {
+						log.info("line " + numLine + " ignored ('" + subline + "')");
+					}
+				} else {
+					log.info("line " + numLine + " ignored ('" + subline + "')");
+				}
 			}
 		}
 		if (inputFilesLine != null) {
