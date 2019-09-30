@@ -330,6 +330,7 @@ public class QuantSiteOutputComparator {
 
 		writePairWisePValueMatrixesForTMT(quantSites);
 		writeRatioTableOutput(quantSites);
+		writeTotalTableOutput(quantSites);
 	}
 
 	public void runRegularData() throws IOException {
@@ -899,6 +900,13 @@ public class QuantSiteOutputComparator {
 		return file;
 	}
 
+	private File getSummaryTableWithRatiosFile() {
+		final File file = new File(
+				getOutputFolder() + File.separator + FilenameUtils.getBaseName(outputFileName) + "_Total_Ratios.tsv");
+
+		return file;
+	}
+
 	private String getOutputFolder() {
 		if (outputFolder == null) {
 			if (fileOfFiles != null) {
@@ -1033,6 +1041,34 @@ public class QuantSiteOutputComparator {
 
 					}
 				}
+			}
+			fw.write("\n");
+		}
+		fw.close();
+		log.info("Output file written at: '" + outputFile.getAbsolutePath() + "'");
+
+	}
+
+	private void writeTotalTableOutput(QuantifiedSiteSet mergedQuantSites) throws IOException {
+
+		log.info("Writting total table output file...");
+		final File outputFile = getSummaryTableWithRatiosFile();
+		final FileWriter fw = new FileWriter(outputFile, false);
+		// header
+		fw.write(QuantifiedSite.NODE_KEY + "\t");
+		for (final String sampleName : mergedQuantSites.getSampleNames()) {
+			fw.write(sampleName + "\t");
+		}
+		fw.write("\n");
+
+		for (final QuantifiedSite quantifiedSite : mergedQuantSites
+				.getSortedByNumDiscoveriesAndProteinsAndSites(numberOfDiscoveriesPerSite)) {
+
+			fw.write(quantifiedSite.getNodeKey() + "\t");
+
+			for (int index = 0; index < mergedQuantSites.getNumExperiments(); index++) {
+				final Double log2Ratio = replaceInfiniteWithRInfParameter(quantifiedSite.getLog2Ratio(index), rInf);
+				fw.write(log2Ratio + "\t");
 			}
 			fw.write("\n");
 		}
