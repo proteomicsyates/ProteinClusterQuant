@@ -330,7 +330,7 @@ public class QuantSiteOutputComparator {
 
 		writePairWisePValueMatrixesForTMT(quantSites);
 		writeRatioTableOutput(quantSites);
-		writeTotalTableOutput(quantSites);
+
 	}
 
 	public void runRegularData() throws IOException {
@@ -399,6 +399,7 @@ public class QuantSiteOutputComparator {
 		calculateNumberOfDiscoveriesPerSite(quantSites);
 		writeRatioTableOutput(quantSites);
 		writePairWisePValueMatrixes(quantSites);
+		writeTotalTableOutput(quantSites);
 	}
 
 	private static String getSampleNameByFile(File file) {
