@@ -4,13 +4,15 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import gnu.trove.set.hash.THashSet;
 
 public class QuantifiedSiteSet extends THashSet<QuantifiedSite> {
+	private final static Logger log = Logger.getLogger(QuantifiedSiteSet.class);
 	private final THashMap<String, QuantifiedSite> quantifiedSitesByKey = new THashMap<String, QuantifiedSite>();
-	private final List<String> sampleNames = new ArrayList<String>();
 
 	@Override
 	public boolean add(QuantifiedSite quantSite) {
@@ -21,10 +23,6 @@ public class QuantifiedSiteSet extends THashSet<QuantifiedSite> {
 
 	public THashMap<String, QuantifiedSite> getQuantifiedSitesByKey() {
 		return quantifiedSitesByKey;
-	}
-
-	public void addSampleName(String sampleName) {
-		sampleNames.add(sampleName);
 	}
 
 	public int getNumExperiments() {
@@ -62,10 +60,6 @@ public class QuantifiedSiteSet extends THashSet<QuantifiedSite> {
 		return ret;
 	}
 
-	public List<String> getSampleNames() {
-		return sampleNames;
-	}
-
 	public List<QuantifiedSite> getSortedByNumDiscoveriesAndProteinsAndSites(
 			TObjectIntHashMap<QuantifiedSite> numberOfDiscoveriesPerSite) {
 		final List<QuantifiedSite> ret = new ArrayList<QuantifiedSite>();
@@ -91,5 +85,9 @@ public class QuantifiedSiteSet extends THashSet<QuantifiedSite> {
 
 		ret.sort(comparator);
 		return ret;
+	}
+
+	public List<String> getUniqueSampleNames() {
+		return this.iterator().next().getSampleNames();
 	}
 }

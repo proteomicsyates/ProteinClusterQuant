@@ -5,6 +5,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
+
 import edu.scripps.yates.utilities.sequence.PositionInPeptide;
 import edu.scripps.yates.utilities.sequence.PositionInProtein;
 import gnu.trove.list.array.TDoubleArrayList;
@@ -15,15 +17,15 @@ import gnu.trove.set.hash.THashSet;
 /**
  * It represents a quantified site in a protein (or proteins) in a series of
  * experiments (that is why log ratios and other features are lists).<br>
- * The quantification of the site could come from the aggregation of multiple
- * individual measurements and that is why it has features such as
- * numMeasurements, numPeptides and numPSMs
+ * The quantification of the site in each experiment could come from the
+ * aggregation of multiple individual measurements and that is why it has
+ * features such as numMeasurements, numPeptides and numPSMs
  * 
  * @author salvador
  *
  */
 public class QuantifiedSite {
-
+	private final static Logger log = Logger.getLogger(QuantifiedSite.class);
 	public static final String NODE_KEY = "Node key";
 	public static final String SEQUENCE = "Sequence";
 	public static final String LOG2RATIO = "Log2Ratio";
@@ -44,16 +46,22 @@ public class QuantifiedSite {
 	private final TIntArrayList numPeptides = new TIntArrayList();;
 	private final TIntArrayList numMeasurements = new TIntArrayList();;
 	private Set<PositionInPeptide> positionsInPeptide = new THashSet<PositionInPeptide>();
+	private final List<String> sampleNames = new ArrayList<String>();
 	private String proteins;
 	private String genes;
 	private final List<PositionInProtein> positionInProteinList;
 	private TTestMatrix ttestMatrix;
 
-	public QuantifiedSite(String nodeKey) {
+	/**
+	 * Create a {@link QuantifiedSite} adding a NaN ratio
+	 * 
+	 * @param nodeKey
+	 */
+	public QuantifiedSite(String nodeKey, String sampleName) {
 		this.nodeKey = nodeKey;
 		positionInProteinList = PositionInProtein.parseStringToPositionInProtein(nodeKey, "-");
 		sequence = null;
-		log2Ratio.add(Double.NaN);
+		addLog2Ratio(Double.NaN, sampleName);
 		ratioStdevs.add(Double.NaN);
 		numPSMs.add(0);
 		numPeptides.add(0);
@@ -62,7 +70,7 @@ public class QuantifiedSite {
 		genes = null;
 	}
 
-	public QuantifiedSite(String[] split, TObjectIntHashMap<String> indexesByHeaders) {
+	public QuantifiedSite(String[] split, TObjectIntHashMap<String> indexesByHeaders, String sampleName) {
 		nodeKey = split[indexesByHeaders.get(NODE_KEY)];
 		positionInProteinList = PositionInProtein.parseStringToPositionInProtein(nodeKey, "-");
 
@@ -73,9 +81,9 @@ public class QuantifiedSite {
 		}
 		if (!"".equals(numberString)) {
 			final Double num = Double.valueOf(numberString);
-			log2Ratio.add(num);
+			addLog2Ratio(num, sampleName);
 		} else {
-			log2Ratio.add(Double.NaN);
+			addLog2Ratio(Double.NaN, sampleName);
 		}
 
 		// stdev
@@ -157,8 +165,17 @@ public class QuantifiedSite {
 		return numPeptides.get(index);
 	}
 
-	public void addLog2Ratio(Double log2Ratio2) {
+	public void addSampleName(String sampleName) {
+		this.sampleNames.add(sampleName);
+	}
+
+	public List<String> getSampleNames() {
+		return this.sampleNames;
+	}
+
+	public void addLog2Ratio(Double log2Ratio2, String sampleName) {
 		log2Ratio.add(log2Ratio2);
+		this.sampleNames.add(sampleName);
 	}
 
 	public void addNumPSMs(int numPSMs2) {
@@ -227,5 +244,9 @@ public class QuantifiedSite {
 
 	public void setLog2Ratio(int i, double swappedRatio) {
 		this.log2Ratio.set(i, swappedRatio);
+	}
+
+	public String getSampleName(int index) {
+		return sampleNames.get(index);
 	}
 }

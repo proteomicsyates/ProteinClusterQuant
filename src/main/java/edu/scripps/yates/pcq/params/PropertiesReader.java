@@ -574,6 +574,11 @@ public class PropertiesReader {
 				.valueOf(properties.getProperty("printPTMPositionInProtein", "true"));
 		params.setPrintPTMPositionInProtein(printPTMPositionInProtein);
 
+		// print PTM position in protein column
+		final boolean writePSEAQuantInputFiles = Boolean
+				.valueOf(properties.getProperty("writePSEAQuantInputFiles", "true"));
+		params.setWritePSEAQuantInputFiles(writePSEAQuantInputFiles);
+
 		// check errors
 		checkErrorsInParameters(params);
 	}

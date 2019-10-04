@@ -24,6 +24,7 @@ public class PCQBatchRunner {
 	private final static Logger log = Logger.getLogger(PCQBatchRunner.class);
 	private final Map<String, File> pcqParametersFilesMap = new THashMap<String, File>();
 	private boolean generateXGMMLFiles = true;
+	private static final String PCQ_BATCH_RESULTING_LOG_FILE = "QuantSiteOutputComparator_input_file.txt";
 
 	public static void main(String[] args) {
 		final AppVersion version = ProteinClusterQuant.getVersion();
@@ -114,19 +115,57 @@ public class PCQBatchRunner {
 				}
 			}
 		}
+
 		if (inputFilesLine != null) {
 			runPCQ(paramaterFile, inputFilesLine, inputIDFilesLine, suffixLine, generateXGMMLFiles);
-
 		}
 	}
 
-	private static void runPCQ(File parameterFile, String inputFilesLine, String inputIDFilesLine, String suffixLine,
+	/**
+	 * Runs a PCQ run with base parameters from parameterFile and replacing
+	 * inputFiles (IDs and Quants) from parameters, as well as suffix.
+	 * 
+	 * @param parameterFile
+	 * @param inputFilesLine
+	 * @param inputIDFilesLine
+	 * @param suffixLine
+	 * @param generateXGMMLFiles2
+	 * @return a file ('QuantSiteOutputComparator_input_file.txt') in which the
+	 *         peptideNodeTable file path is appended for successive calls to this
+	 *         method. The file will be located at the parent folder of the
+	 *         outputFileFolder stated in the params file.
+	 * @throws IOException
+	 */
+	public static File runPCQ(File parameterFile, String inputFilesLine, String inputIDFilesLine, String suffixLine,
 			boolean generateXGMMLFiles2) throws IOException {
+		return runPCQ(parameterFile, inputFilesLine, inputIDFilesLine, suffixLine, generateXGMMLFiles2, null);
+	}
+
+	/**
+	 * Runs a PCQ run with base parameters from parameterFile and replacing
+	 * inputFiles (IDs and Quants) from parameters, as well as suffix.
+	 * 
+	 * @param parameterFile
+	 * @param inputFilesLine
+	 * @param inputIDFilesLine
+	 * @param suffixLine
+	 * @param generateXGMMLFiles2
+	 * @param outputFolder        if not null, it will override what is in param
+	 *                            file
+	 * @return a file ('QuantSiteOutputComparator_input_file.txt') in which the
+	 *         peptideNodeTable file path is appended for successive calls to this
+	 *         method. The file will be located at the parent folder of the
+	 *         outputFileFolder stated in the params file.
+	 * @throws IOException
+	 */
+	public static File runPCQ(File parameterFile, String inputFilesLine, String inputIDFilesLine, String suffixLine,
+			boolean generateXGMMLFiles2, File outputFolder) throws IOException {
 		log.info("Running PCQ with:\ninputFiles=" + inputFilesLine + "\ninputIDFiles=" + inputIDFilesLine
 				+ "\noutputSuffix=" + suffixLine + "\ngenerateXGMML=" + generateXGMMLFiles2);
 		// this sets the pcq parameters
 		PropertiesReader.readProperties(parameterFile, true);
 		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+		params.setForceCreationOfNewParser(false);
 		params.clearInputIdentificationFiles();
 		params.clearInputQuantificationFiles();
 		if (inputFilesLine != null) {
@@ -145,7 +184,7 @@ public class PCQBatchRunner {
 		final File peptideNodeTableFile = pcq.getFinalPeptideNodeTableFile();
 		// append this full path to a file that can be used by PCQ comparator
 		final File output = new File(params.getOutputFileFolder().getParentFile().getParentFile().getAbsolutePath()
-				+ File.separator + "QuantSiteOutputComparator_input_file.txt");
+				+ File.separator + PCQ_BATCH_RESULTING_LOG_FILE);
 		final FileWriter fw = new FileWriter(output, true);
 		final String peptideNodeTableFileLine = suffixLine + "\t" + peptideNodeTableFile.getAbsolutePath();
 		if (output.length() > 0l) {
@@ -154,6 +193,15 @@ public class PCQBatchRunner {
 		fw.write(peptideNodeTableFileLine);
 		fw.close();
 		log.info("Added to " + output.getAbsolutePath() + ": '" + peptideNodeTableFileLine + "'");
+		return output;
+	}
+
+	public static File getRunPCQResultingLogFile(File parameterFile) throws IOException {
+		PropertiesReader.readProperties(parameterFile, true);
+		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
+		final File output = new File(params.getOutputFileFolder().getParentFile().getParentFile().getAbsolutePath()
+				+ File.separator + PCQ_BATCH_RESULTING_LOG_FILE);
+		return output;
 	}
 
 	/**

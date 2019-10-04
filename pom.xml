@@ -12,6 +12,7 @@
 		<assembly.quantsitecomparator.dir>QuantSiteOutputComparator_v${project.version}</assembly.quantsitecomparator.dir>
 		<assembly.tmtquantsitecomparator.dir>TMTQuantSiteComparator_v${project.version}</assembly.tmtquantsitecomparator.dir>
 		<assembly.pcqbatchrunner.dir>PCQBatchRunner_v${project.version}</assembly.pcqbatchrunner.dir>
+		<assembly.quantsitecustomanalysis.dir>QuantSiteCustomAnalysis_v${project.version}</assembly.quantsitecustomanalysis.dir>
 	</properties>
 	<build>
 		<plugins>
@@ -380,6 +381,60 @@
 		               	  <manifest>
 		                     <addClasspath>true</addClasspath>
 		                     <mainClass>edu.scripps.yates.pcq.quantsite.tmt.TMTQuantSiteComparator</mainClass>
+		                     <classpathPrefix>lib/</classpathPrefix>
+		                     <useUniqueVersions>false</useUniqueVersions>
+		                  </manifest>
+		               </archive>
+                  </configuration>
+               </plugin>
+            </plugins>
+         </build>
+      </profile>
+      <profile>
+         <id>QuantSiteCustomAnalysis</id>
+<!--          <activation> -->
+<!--             <activeByDefault>true</activeByDefault> -->
+<!--          </activation> -->
+         <build>
+            <plugins>
+            	<plugin>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.3.2</version>
+				<configuration>
+					<archive>
+						<manifest>
+							<addClasspath>true</addClasspath>
+							<mainClass>edu.scripps.yates.pcq.quantsite.custom.QuantSiteCustomAnalysis</mainClass>
+							<classpathPrefix>lib</classpathPrefix>
+							<useUniqueVersions>false</useUniqueVersions>
+						</manifest>
+					</archive>
+					<outputDirectory>${project.build.directory}</outputDirectory>
+					<finalName>QuantSiteCustomAnalysis_${project.version}</finalName>
+				</configuration>
+			</plugin>
+               <plugin>
+                  <artifactId>maven-assembly-plugin</artifactId>
+                  <version>3.1.0</version>
+                  <executions>
+                     <execution>
+                        <id>assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                           <goal>single</goal>
+                        </goals>
+                     </execution>
+                  </executions>
+                  <configuration>
+                     <finalName>${assembly.quantsitecustomanalysis.dir}</finalName>
+                     <descriptors>
+                        <descriptor>${basedir}/src/main/resources/assembly.xml</descriptor>
+                     </descriptors>
+                     <appendAssemblyId>false</appendAssemblyId>
+                     <archive>
+		               	  <manifest>
+		                     <addClasspath>true</addClasspath>
+		                     <mainClass>edu.scripps.yates.pcq.quantsite.custom.QuantSiteCustomAnalysis</mainClass>
 		                     <classpathPrefix>lib/</classpathPrefix>
 		                     <useUniqueVersions>false</useUniqueVersions>
 		                  </manifest>

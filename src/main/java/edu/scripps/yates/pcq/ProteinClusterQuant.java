@@ -162,7 +162,7 @@ public class ProteinClusterQuant {
 		System.out.println(header + " ...");
 	}
 
-	static void errorInParameters(boolean batchMode) {
+	public static void errorInParameters(boolean batchMode) {
 		// automatically generate the help statement
 		final HelpFormatter formatter = new HelpFormatter();
 		if (!batchMode) {
@@ -282,7 +282,7 @@ public class ProteinClusterQuant {
 
 			// try to get an quantParser
 			final boolean useFasta = true;
-			quantParser = PCQUtils.getQuantParser(params, labelsByConditionsList, useFasta, peptideInclusionList, true);
+			quantParser = PCQUtils.getQuantParser(params, labelsByConditionsList, useFasta, peptideInclusionList);
 			// try to get an dtaSelectParser
 			idParser = PCQUtils.getDTASelectParser(params, useFasta, peptideInclusionList, true);
 			log.info("Reading input files...");
@@ -426,7 +426,9 @@ public class ProteinClusterQuant {
 			printPeptideNodesRatiosFile(clusterSet);
 
 			// print PSEA QUANT files
-			printPSEAQuantFiles(clusterSet);
+			if (params.writePSEAQuantInputFiles()) {
+				printPSEAQuantFiles(clusterSet);
+			}
 
 			// export to XGMML format
 			if (createXGMMLFile) {
@@ -493,8 +495,7 @@ public class ProteinClusterQuant {
 				params.getNumeratorLabel(), params.getDenominatorLabel());
 		// try to get an quantParser
 		final boolean useFasta = false;
-		final QuantParser quantParserTMP = PCQUtils.getQuantParser(params, labelsByConditionsList, useFasta, null,
-				true);
+		final QuantParser quantParserTMP = PCQUtils.getQuantParser(params, labelsByConditionsList, useFasta, null);
 		if (quantParserTMP != null) {
 			peptideInclusionList.addAll(quantParserTMP.getPeptideMap().values().parallelStream()
 					.map(peptide -> peptide.getSequence()).collect(Collectors.toSet()));
@@ -2263,7 +2264,8 @@ public class ProteinClusterQuant {
 
 		final Map<String, Entry> annotatedProteins = getAnnotatedProteins();
 
-		if (params.getQuantInputFileNamesArray() != null && params.getQuantInputFileNamesArray().length > 0
+		if (params.writePSEAQuantInputFiles() && params.getQuantInputFileNamesArray() != null
+				&& params.getQuantInputFileNamesArray().length > 0
 				&& !"".equals(params.getQuantInputFileNamesArray()[0])) {
 			log.info("Replicate names are empty. PSEA-Quant files will contain a column for each original RAW file");
 

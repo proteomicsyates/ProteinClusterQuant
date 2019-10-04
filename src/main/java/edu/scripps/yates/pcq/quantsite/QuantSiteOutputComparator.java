@@ -2,6 +2,7 @@ package edu.scripps.yates.pcq.quantsite;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
@@ -21,6 +22,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.fitting.GaussianCurveFitter;
 import org.apache.commons.math3.fitting.WeightedObservedPoints;
@@ -32,6 +34,7 @@ import edu.scripps.yates.pcq.compare.model.MyTTest;
 import edu.scripps.yates.pcq.compare.model.QuantifiedSite;
 import edu.scripps.yates.pcq.compare.model.QuantifiedSiteSet;
 import edu.scripps.yates.pcq.compare.model.TTestMatrix;
+import edu.scripps.yates.pcq.quantsite.groups.QuantSiteComparisonByGroups;
 import edu.scripps.yates.pcq.quantsite.tmt.TMTPairWisePCQInputParametersGenerator;
 import edu.scripps.yates.utilities.appversion.AppVersion;
 import edu.scripps.yates.utilities.files.FileUtils;
@@ -80,10 +83,14 @@ public class QuantSiteOutputComparator {
 	private String outputFolder;
 	private THashMap<QuantifiedSite, NLMatrix> matrixByQuantSitesForTMT;
 	private final Set<File> ratioSwaps = new THashSet<File>();
+	private final File groupComparisonsFile;
+	private final Boolean subsetSites;
+	private final boolean useMayorityRule;
 
 	public QuantSiteOutputComparator(List<File> inputFiles, Set<File> ratioSwap, Double rInf, String outputFileName,
 			PValueCorrectionType pValueCorrectionType, double qValueThreshold, int numberSigmas,
-			int minNumberOfDiscoveries, boolean tmtData) {
+			int minNumberOfDiscoveries, boolean tmtData, File groupComparisonsFile, Boolean subsetSites,
+			boolean useMayorityRuleForAveraging) {
 		this.inputFiles.addAll(inputFiles);
 		if (ratioSwap != null) {
 			ratioSwaps.addAll(ratioSwap);
@@ -98,6 +105,9 @@ public class QuantSiteOutputComparator {
 		pValueCorrectionMethod = pValueCorrectionType;
 		this.minNumberOfDiscoveries = minNumberOfDiscoveries;
 		this.tmtData = tmtData;
+		this.groupComparisonsFile = groupComparisonsFile;
+		this.subsetSites = subsetSites;
+		this.useMayorityRule = useMayorityRuleForAveraging;
 	}
 
 	public static void main(String[] args) {
@@ -252,20 +262,56 @@ public class QuantSiteOutputComparator {
 				log.info("ns (number_sigmas) parameter wasn't set. Using " + numberSigmas + " by default.");
 			}
 			// tmt
-			boolean tmtData = false;
+			Boolean tmtData = false;
 			if (cmd.hasOption("tmt")) {
-				try {
-					tmtData = Boolean.valueOf(cmd.getOptionValue("tmt"));
-				} catch (final NumberFormatException e) {
-					throw new Exception(
+
+				tmtData = BooleanUtils.toBooleanObject(cmd.getOptionValue("tmt"));
+				if (tmtData == null) {
+					throw new IllegalArgumentException(
 							"Option 'tmt' must be boolean value (true or false). If not provided it will be 'false'.");
+				}
+			}
+			File groupComparisonsFile = null;
+			if (cmd.hasOption("groupF")) {
+				try {
+					groupComparisonsFile = new File(cmd.getOptionValue("groupF"));
+					if (!groupComparisonsFile.exists()) {
+						groupComparisonsFile = new File(currentFolder + File.separator + cmd.getOptionValue("groupF"));
+						if (!groupComparisonsFile.exists()) {
+							throw new FileNotFoundException("Input file not found");
+						}
+					}
+				} catch (final FileNotFoundException e) {
+					final String errorMessage = "Invalid 'groupF' file path '" + cmd.getOptionValue("groupF")
+							+ "' was not found.";
+					throw new Exception(errorMessage);
+				}
+			}
+			Boolean subsetSites = false;
+			if (cmd.hasOption("sb")) {
+				subsetSites = BooleanUtils.toBooleanObject(cmd.getOptionValue("sb"));
+				if (subsetSites == null) {
+					throw new IllegalArgumentException("Option 'sb' must be boolean value (true or false).");
+				}
+			} else if (groupComparisonsFile != null) {
+				throw new Exception("Option 'sb' must be provided if option 'f2' is present.");
+			}
+
+			Boolean useMayorityRuleForAveraging = true;
+			if (cmd.hasOption("mri")) {
+				useMayorityRuleForAveraging = BooleanUtils.toBooleanObject(cmd.getOptionValue("mri"));
+				if (useMayorityRuleForAveraging == null) {
+					throw new IllegalArgumentException("Option 'mri' must be boolean value (true or false).");
 				}
 			}
 
 			quantSiteComparator = new QuantSiteOutputComparator(inputFiles, swapFiles, rInf, outputFileName,
-					pValueCorrectionType, qValueThreshold, numberSigmas, minNumberOfDiscoveries, tmtData);
+					pValueCorrectionType, qValueThreshold, numberSigmas, minNumberOfDiscoveries, tmtData,
+					groupComparisonsFile, subsetSites, useMayorityRuleForAveraging);
 
-		} catch (final Exception e) {
+		} catch (
+
+		final Exception e) {
 			e.printStackTrace();
 			errorInParameters();
 		}
@@ -306,31 +352,22 @@ public class QuantSiteOutputComparator {
 		} else {
 			runRegularData();
 		}
+		log.info("Results at: " + getOutputFolder());
 	}
 
 	public void runTMTData() throws IOException {
 		QuantifiedSiteSet quantSites = null;
 		// here each file is a comparison between 2 samples
 		for (final File file : inputFiles) {
-			final String samplePairName = getSampleNameByFile(file);
 			if (quantSites == null) {
 				quantSites = readPCQOutputFile(file, ratioSwaps.contains(file));
-				quantSites.addSampleName(samplePairName);
 			} else {
 				final QuantifiedSiteSet quantSites2 = readPCQOutputFile(file, ratioSwaps.contains(file));
-				final List<String> sampleNames = quantSites.getSampleNames();
 				quantSites = mergeQuantifiedSiteSets(quantSites, quantSites2);
-				for (final String sampleName2 : sampleNames) {
-					quantSites.addSampleName(sampleName2);
-				}
-				quantSites.addSampleName(samplePairName);
 			}
-
 		}
-
 		writePairWisePValueMatrixesForTMT(quantSites);
 		writeRatioTableOutput(quantSites);
-
 	}
 
 	public void runRegularData() throws IOException {
@@ -359,7 +396,6 @@ public class QuantSiteOutputComparator {
 					swapRatios = true;
 				}
 				final String sampleName = getSampleNameByFile(file);
-				quantSites.addSampleName(sampleName);
 
 				final QuantifiedSite quantifiedSiteTMP = quantSiteSetsByFile.get(file).getQuantifiedSitesByKey()
 						.get(siteKey);
@@ -368,7 +404,7 @@ public class QuantSiteOutputComparator {
 					// use the first for the result, adding the values of the second
 					final Double log2Ratio = quantifiedSiteTMP.getLog2Ratio(0);
 
-					quantifiedSite.addLog2Ratio(log2Ratio);
+					quantifiedSite.addLog2Ratio(log2Ratio, sampleName);
 					quantifiedSite.addNumMeasurements(quantifiedSiteTMP.getNumMeasurements(0));
 					quantifiedSite.addNumPeptides(quantifiedSiteTMP.getNumPeptides(0));
 					quantifiedSite.addNumPSMs(quantifiedSiteTMP.getNumPSMs(0));
@@ -381,7 +417,7 @@ public class QuantSiteOutputComparator {
 						quantifiedSite.setSequence(quantifiedSiteTMP.getSequence());
 					}
 				} else if (quantifiedSite != null && quantifiedSiteTMP == null) {
-					quantifiedSite.addLog2Ratio(Double.NaN);
+					quantifiedSite.addLog2Ratio(Double.NaN, sampleName);
 					quantifiedSite.addNumMeasurements(0);
 					quantifiedSite.addNumPeptides(0);
 					quantifiedSite.addNumPSMs(0);
@@ -389,17 +425,25 @@ public class QuantSiteOutputComparator {
 				} else if (quantifiedSite == null && quantifiedSiteTMP != null) {
 					quantSites.add(quantifiedSiteTMP);
 				} else if (quantifiedSite == null && quantifiedSiteTMP == null) {
-					quantSites.add(new QuantifiedSite(siteKey));
+					quantSites.add(new QuantifiedSite(siteKey, sampleName));
 				} else {
 					throw new IllegalArgumentException("Inconsistency!");
 				}
 
 			}
 		}
-		calculateNumberOfDiscoveriesPerSite(quantSites);
-		writeRatioTableOutput(quantSites);
-		writePairWisePValueMatrixes(quantSites);
-		writeTotalTableOutput(quantSites);
+		if (this.groupComparisonsFile == null) {
+			calculateNumberOfDiscoveriesPerSite(quantSites);
+			writeRatioTableOutput(quantSites);
+			writePairWisePValueMatrixes(quantSites);
+			writeTotalTableOutput(quantSites);
+		} else {
+
+			QuantSiteComparisonByGroups.performGroupComparisons(quantSites, groupComparisonsFile, subsetSites,
+					getGroupComparisonTableFile(), qValueThreshold, pValueCorrectionMethod,
+					getDistributionAverage(quantSites), getDistributionSigma(quantSites), this.numberSigmas,
+					this.useMayorityRule);
+		}
 	}
 
 	private static String getSampleNameByFile(File file) {
@@ -408,7 +452,7 @@ public class QuantSiteOutputComparator {
 
 	private void calculateNumberOfDiscoveriesPerSite(QuantifiedSiteSet quantSiteSet) {
 		final int numSamples = quantSiteSet.getNumExperiments();
-
+		log.info("Performing t-tests...");
 		ttestMatrixesByQuantSites = new THashMap<QuantifiedSite, TTestMatrix>();
 		for (final QuantifiedSite quantSite : quantSiteSet.getSortedByRatios()) {
 			final TTestMatrix matrix = new TTestMatrix(numSamples, numSamples);
@@ -423,6 +467,7 @@ public class QuantSiteOutputComparator {
 		}
 		// correct the pValues per pair of samples, that is
 		// sampleIndex1+sampleIndex2
+		log.info("Performing p-value corrections with method " + pValueCorrectionMethod.name() + "...");
 
 		// to keep the number of significant pvalues after the pvalue correction
 		numberOfDiscoveriesPerSite = new TObjectIntHashMap<QuantifiedSite>();
@@ -447,10 +492,10 @@ public class QuantSiteOutputComparator {
 						pValuesByQuantSite);
 				PValueCorrectionResult<QuantifiedSite> pAdjust = null;
 				if (pValuesByQuantSite.size() > 0) {
-					log.info("Sample '" + getSampleNameByFile(inputFiles.get(sampleIndex1)) + "'"
+					log.debug("Sample '" + getSampleNameByFile(inputFiles.get(sampleIndex1)) + "'"
 							+ TMTPairWisePCQInputParametersGenerator.VS + "'"
 							+ getSampleNameByFile(inputFiles.get(sampleIndex2)) + "':");
-					log.info("Adjusting " + pValuesByQuantSite.size() + " p-values using method '"
+					log.debug("Adjusting " + pValuesByQuantSite.size() + " p-values using method '"
 							+ pValueCorrectionMethod.name() + "'");
 					pAdjust = PValueCorrection.pAdjust(pValueCollection, pValueCorrectionMethod);
 				} else {
@@ -629,7 +674,7 @@ public class QuantSiteOutputComparator {
 
 		//
 		for (int sampleIndexPair = 0; sampleIndexPair < numSamplesPairs; sampleIndexPair++) {
-			final String samplePairName = quantSites.getSampleNames().get(sampleIndexPair);
+			final String samplePairName = quantSites.getUniqueSampleNames().get(sampleIndexPair);
 
 			// for each sample pair (each sampleIndex), get all ratios to build
 			// the ratio distribution
@@ -908,7 +953,14 @@ public class QuantSiteOutputComparator {
 		return file;
 	}
 
-	private String getOutputFolder() {
+	private File getGroupComparisonTableFile() {
+		final File file = new File(getOutputFolder() + File.separator + FilenameUtils.getBaseName(outputFileName)
+				+ "_Group_Comparison.tsv");
+
+		return file;
+	}
+
+	public String getOutputFolder() {
 		if (outputFolder == null) {
 			if (fileOfFiles != null) {
 				File parentFile = fileOfFiles.getParentFile();
@@ -1057,7 +1109,7 @@ public class QuantSiteOutputComparator {
 		final FileWriter fw = new FileWriter(outputFile, false);
 		// header
 		fw.write(QuantifiedSite.NODE_KEY + "\t");
-		for (final String sampleName : mergedQuantSites.getSampleNames()) {
+		for (final String sampleName : mergedQuantSites.getUniqueSampleNames()) {
 			fw.write(sampleName + "\t");
 		}
 		fw.write("\n");
@@ -1245,7 +1297,7 @@ public class QuantSiteOutputComparator {
 			}
 			if (quantSite1 != null && quantSite2 != null) {
 				// use the first for the result, adding the values of the second
-				quantSite1.addLog2Ratio(quantSite2.getLog2Ratio(0));
+				quantSite1.addLog2Ratio(quantSite2.getLog2Ratio(0), quantSite2.getSampleName(0));
 				quantSite1.addNumMeasurements(quantSite2.getNumMeasurements(0));
 				quantSite1.addNumPeptides(quantSite2.getNumPeptides(0));
 				quantSite1.addNumPSMs(quantSite2.getNumPSMs(0));
@@ -1294,7 +1346,8 @@ public class QuantSiteOutputComparator {
 							indexesByHeaders.put(split[i], i);
 						}
 					} else {
-						final QuantifiedSite quantSite = new QuantifiedSite(split, indexesByHeaders);
+						final String sampleName = getSampleNameByFile(inputFile);
+						final QuantifiedSite quantSite = new QuantifiedSite(split, indexesByHeaders, sampleName);
 						if (swapRatio) {
 							final double swappedRatio = 1 / quantSite.getLog2Ratio(0);
 							quantSite.setLog2Ratio(0, swappedRatio);
@@ -1355,9 +1408,22 @@ public class QuantSiteOutputComparator {
 		opt7.setRequired(false);
 		options.addOption(opt7);
 		final Option opt8 = new Option("tmt", "tmt_data", true,
-				"[OPTIONAL] whether the data is TMT or not. In case of having TMT data, it will perform the analysis accordingly. Bu default this parameter is FALSE.");
+				"[OPTIONAL] (TRUE OR FALSE) whether the data is TMT or not. In case of having TMT data, it will perform the analysis accordingly. By default this parameter is FALSE.");
 		opt8.setRequired(false);
 		options.addOption(opt8);
+		final Option opt9 = new Option("groupF", "group_comparison_file", true,
+				"[OPTIONAL] Full path to a file containing tripplets as: general identifier (for tracking purposes), protein name(s) or protein site(s) (can be comma separated), and sample(s) identifier(s) (can be comma separated).");
+		opt9.setRequired(false);
+		options.addOption(opt9);
+		final Option opt10 = new Option("sb", "subset", true,
+				"[OPTIONAL] Boolean value. It will only analyze the protein(s) or protein site(s) defined in the second column of the input_file2. If 'groupF' or 'group_comparison_file' is not provided, this will be ignored. If 'groupF' or 'group_comparison_file' is provided, this parameter becomes MANDATORY.");
+		opt10.setRequired(false);
+		options.addOption(opt10);
+		final Option opt11 = new Option("mri", "useMajorityRulesForInfinities", true,
+				"[OPTIONAL] Boolean value. Whether to use the majority rule for averaging numbers in which some can be infinities. TRUE if not provided.");
+		opt11.setRequired(false);
+
+		options.addOption(opt11);
 	}
 
 	private static void errorInParameters() {

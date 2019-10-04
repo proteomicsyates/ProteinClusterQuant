@@ -75,6 +75,8 @@ import edu.scripps.yates.utilities.sequence.PositionInProtein;
 import edu.scripps.yates.utilities.sequence.ProteinSequenceUtils;
 import edu.scripps.yates.utilities.strings.StringUtils;
 import edu.scripps.yates.utilities.util.Pair;
+import gnu.trove.TDoubleCollection;
+import gnu.trove.list.TDoubleList;
 import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
@@ -362,7 +364,13 @@ public class PCQUtils {
 
 	private static String getFileNamesKey(String[] xmlFiles) {
 		final StringBuilder sb = new StringBuilder();
+		final List<String> list = new ArrayList<String>();
+
 		for (final String key : xmlFiles) {
+			list.add(key);
+		}
+		Collections.sort(list);
+		for (final String key : list) {
 			sb.append(key);
 		}
 		return sb.toString();
@@ -1901,14 +1909,14 @@ public class PCQUtils {
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
 			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList, boolean useFasta,
-			Set<String> peptideInclusionList, boolean forceCreation) throws FileNotFoundException {
+			Set<String> peptideInclusionList) throws FileNotFoundException {
 		return getQuantParser(params, labelsByConditionsList, params.getQuantInputFileNamesArray(), useFasta,
-				peptideInclusionList, forceCreation);
+				peptideInclusionList);
 	}
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
 			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList, final String[] inputFileNamesArray,
-			boolean useFasta, Set<String> peptideInclusionList, boolean forceCreation) throws FileNotFoundException {
+			boolean useFasta, Set<String> peptideInclusionList) throws FileNotFoundException {
 		log.debug("Getting input file parser");
 		if (params.getAnalysisInputType() == AnalysisInputType.CENSUS_CHRO) {
 			if (params.getMongoDBURI() != null && useFasta) {
@@ -1918,7 +1926,7 @@ public class PCQUtils {
 						params.getNumeratorLabel(), params.getDenominatorLabel(), params.getUniprotReleasesFolder(),
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
 						!params.isIgnorePTMs(), params.getPeptideFilterRegexp(), params.getAaQuantified(),
-						forceCreation);
+						params.isForceCreationOfNewParser());
 			} else {
 				return PCQUtils.getCensusChroParser(params.getFastaFile(), params.getInputFileFolder(),
 						inputFileNamesArray, labelsByConditionsList, params.getNumeratorLabel(),
@@ -1926,7 +1934,7 @@ public class PCQUtils {
 						params.isSemiCleavage(), params.getUniprotReleasesFolder(), params.getUniprotVersion(),
 						params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(), !params.isIgnorePTMs(),
 						params.getPeptideFilterRegexp(), params.getAaQuantified(), params.isLookForProteoforms(),
-						peptideInclusionList, useFasta, forceCreation);
+						peptideInclusionList, useFasta, params.isForceCreationOfNewParser());
 			}
 		} else if (params.getAnalysisInputType() == AnalysisInputType.CENSUS_OUT) {
 			if (params.getMongoDBURI() != null && useFasta) {
@@ -1937,7 +1945,7 @@ public class PCQUtils {
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
 						params.isOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(), params.isSkipSingletons(),
 						!params.isIgnorePTMs(), params.getPeptideFilterRegexp(), params.getAaQuantified(),
-						forceCreation);
+						params.isForceCreationOfNewParser());
 
 				return parser;
 			} else {
@@ -1948,7 +1956,8 @@ public class PCQUtils {
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
 						params.isOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(), params.isSkipSingletons(),
 						!params.isIgnorePTMs(), params.getPeptideFilterRegexp(), params.getAaQuantified(),
-						params.isLookForProteoforms(), peptideInclusionList, useFasta, forceCreation);
+						params.isLookForProteoforms(), peptideInclusionList, useFasta,
+						params.isForceCreationOfNewParser());
 
 				return parser;
 			}
@@ -1960,7 +1969,8 @@ public class PCQUtils {
 						params.getSeparator(), labelsByConditionsList, params.getNumeratorLabel(),
 						params.getDenominatorLabel(), params.getUniprotReleasesFolder(), params.getUniprotVersion(),
 						params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(), !params.isIgnorePTMs(),
-						params.getPeptideFilterRegexp(), params.getAaQuantified(), useFasta, forceCreation);
+						params.getPeptideFilterRegexp(), params.getAaQuantified(), useFasta,
+						params.isForceCreationOfNewParser());
 
 				return parser;
 			} else {
@@ -1970,7 +1980,8 @@ public class PCQUtils {
 						params.getMissedCleavages(), params.isSemiCleavage(), params.getUniprotReleasesFolder(),
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
 						!params.isIgnorePTMs(), params.getPeptideFilterRegexp(), params.getAaQuantified(),
-						params.isLookForProteoforms(), peptideInclusionList, useFasta, forceCreation);
+						params.isLookForProteoforms(), peptideInclusionList, useFasta,
+						params.isForceCreationOfNewParser());
 
 				return parser;
 			}
@@ -2011,14 +2022,13 @@ public class PCQUtils {
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
 			Map<QuantCondition, QuantificationLabel> labelsByConditions, String inputFileName, boolean usefasta,
-			Set<String> peptideInclusionList, boolean forceCreation) throws FileNotFoundException {
+			Set<String> peptideInclusionList) throws FileNotFoundException {
 		log.debug("Getting input file parser");
 		final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
 		labelsByConditionsList.add(labelsByConditions);
 		final String[] inputFileNamesArray = new String[1];
 		inputFileNamesArray[0] = inputFileName;
-		return getQuantParser(params, labelsByConditionsList, inputFileNamesArray, usefasta, peptideInclusionList,
-				forceCreation);
+		return getQuantParser(params, labelsByConditionsList, inputFileNamesArray, usefasta, peptideInclusionList);
 	}
 
 	/**
@@ -2202,12 +2212,47 @@ public class PCQUtils {
 	 */
 	public static Pair<Double, Integer> averageOfRatiosTakingIntoAccountInfinitiesAndNans(Collection<QuantRatio> ratios,
 			QuantCondition cond1, QuantCondition cond2, boolean useMayorityRule) {
-		final List<Double> ratioValues = new ArrayList<Double>();
+		final TDoubleList ratioValues = new TDoubleArrayList();
 		for (final QuantRatio ratio : ratios) {
 			if (ratio != null) {
 				ratioValues.add(ratio.getLog2Ratio(cond1, cond2));
 			}
 		}
+		return averageTakingIntoAccountInfinitiesAndNans(ratioValues, useMayorityRule);
+	}
+
+	/**
+	 * If all ratios are infinity with the same value, it will return infinity.<br>
+	 * If not all ratios are infinity, but there are some, it will return the
+	 * average of the non infinities only if useMayorityRule is false.<br>
+	 * If all ratios are Nan, it will return Nan.
+	 *
+	 * @param ratios
+	 * @param useMayorityRule if this parameter is true, in an scenario with a
+	 *                        combination of non infinity and infinity values, it
+	 *                        will return the average of the most frequent ones, for
+	 *                        example:<br>
+	 *                        <ul>
+	 *                        <li>If useMayorityRule=TRUE and we have +INF, +INF,
+	 *                        +INF, +2.5, +1.5, then the return value will be
+	 *                        +INF.</li>
+	 *                        <li>If useMayorityRule=FALSE and we have +INF, +INF,
+	 *                        +INF, +2.5, +1.5, then the return value will be
+	 *                        +2.0.</li>
+	 *                        <li>If useMayorityRule=TRUE and we have +INF, +INF,
+	 *                        +INF, +2.5, +1.5, +4.0 then the return value will be
+	 *                        +4.0.</li>
+	 *                        <li>If useMayorityRule=FALSE and we have +INF, +INF,
+	 *                        +INF, +2.5, then the return value will be +2.5.</li>
+	 *                        </ul>
+	 * 
+	 * @return it returns a pair with the first element with the returning average
+	 *         value and the second with the number of items used to calculate
+	 *         ratios
+	 */
+	public static Pair<Double, Integer> averageTakingIntoAccountInfinitiesAndNans(TDoubleList ratioValues,
+			boolean useMayorityRule) {
+
 		if (ratioValues.isEmpty()) {
 			return null;
 		}
@@ -2226,8 +2271,8 @@ public class PCQUtils {
 			if (!useMayorityRule) {
 				// return an average of the non infinities
 				final TDoubleArrayList nonInfinityNonNanValues = new TDoubleArrayList();
-				for (final Double ratioValue : ratioValues) {
-					if (!ratioValue.isInfinite() && !ratioValue.isNaN()) {
+				for (final double ratioValue : ratioValues.toArray()) {
+					if (!Double.isInfinite(ratioValue) && !Double.isNaN(ratioValue)) {
 						nonInfinityNonNanValues.add(ratioValue);
 					}
 				}
@@ -2238,7 +2283,7 @@ public class PCQUtils {
 				// infinity or infinity
 				final TDoubleArrayList nonInfs = new TDoubleArrayList();
 				final TDoubleArrayList infs = new TDoubleArrayList();
-				for (final Double ratioValue : ratioValues) {
+				for (final double ratioValue : ratioValues.toArray()) {
 					if (Double.isFinite(ratioValue)) {
 						nonInfs.add(ratioValue);
 					} else if (Double.isInfinite(ratioValue)) {
@@ -2319,14 +2364,19 @@ public class PCQUtils {
 
 	public static Double stdevOfRatiosTakingIntoAccountInfinitiesAndNans(Collection<QuantRatio> ratios,
 			QuantCondition cond1, QuantCondition cond2, boolean useMayorityRule) {
-		final List<Double> ratioValues = new ArrayList<Double>();
+		final TDoubleList ratioValues = new TDoubleArrayList();
 		for (final QuantRatio ratio : ratios) {
 			if (ratio != null) {
 				ratioValues.add(ratio.getLog2Ratio(cond1, cond2));
 			}
 		}
+		return stdevTakingIntoAccountInfinitiesAndNans(ratioValues, useMayorityRule);
+	}
+
+	public static Double stdevTakingIntoAccountInfinitiesAndNans(TDoubleList ratioValues, boolean useMayorityRule) {
+
 		if (ratioValues.isEmpty()) {
-			return null;
+			return Double.NaN;
 		}
 		// check if there are all INFINITIES
 		final boolean areInfinities = areAll(Double.POSITIVE_INFINITY, ratioValues)
@@ -2343,8 +2393,8 @@ public class PCQUtils {
 			if (!useMayorityRule) {
 				// return an average of the non infinities
 				final TDoubleArrayList nonInfinityNonNanValues = new TDoubleArrayList();
-				for (final Double ratioValue : ratioValues) {
-					if (!ratioValue.isInfinite() && !ratioValue.isNaN()) {
+				for (final double ratioValue : ratioValues.toArray()) {
+					if (!Double.isInfinite(ratioValue) && !Double.isNaN(ratioValue)) {
 						nonInfinityNonNanValues.add(ratioValue);
 					}
 				}
@@ -2355,7 +2405,7 @@ public class PCQUtils {
 				// infinity or infinity
 				final TDoubleArrayList nonInfs = new TDoubleArrayList();
 				final TDoubleArrayList infs = new TDoubleArrayList();
-				for (final Double ratioValue : ratioValues) {
+				for (final double ratioValue : ratioValues.toArray()) {
 					if (Double.isFinite(ratioValue)) {
 						nonInfs.add(ratioValue);
 					} else if (Double.isInfinite(ratioValue)) {
@@ -2432,12 +2482,12 @@ public class PCQUtils {
 		}
 	}
 
-	private static boolean areAll(double value, Collection<Double> values) {
+	private static boolean areAll(double value, TDoubleCollection values) {
 		if (values.isEmpty()) {
 			return false;
 		}
-		for (final Double double1 : values) {
-			if (!double1.equals(value)) {
+		for (final double double1 : values.toArray()) {
+			if (Double.compare(double1, value) != 0) {
 				return false;
 			}
 		}

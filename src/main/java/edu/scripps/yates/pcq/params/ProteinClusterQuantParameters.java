@@ -113,6 +113,8 @@ public class ProteinClusterQuantParameters {
 	private boolean useMayorityRule = true;
 	private List<PTM> ptmsQuantified;
 	private boolean printPTMPositionInProtein;
+	private boolean writePSEAQuantInputFiles;
+	private boolean forceCreationOfNewParser = false;// by default
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -1238,4 +1240,19 @@ public class ProteinClusterQuantParameters {
 		this.printPTMPositionInProtein = printPTMPositionInProtein;
 	}
 
+	public boolean writePSEAQuantInputFiles() {
+		return writePSEAQuantInputFiles;
+	}
+
+	public void setWritePSEAQuantInputFiles(boolean writePSEAQuantInputFiles) {
+		this.writePSEAQuantInputFiles = writePSEAQuantInputFiles;
+	}
+
+	public boolean isForceCreationOfNewParser() {
+		return forceCreationOfNewParser;
+	}
+
+	public void setForceCreationOfNewParser(boolean forceCreationOfNewParser) {
+		this.forceCreationOfNewParser = forceCreationOfNewParser;
+	}
 }

@@ -92,7 +92,7 @@ public class SanxotRunner {
 			Map<QuantCondition, QuantificationLabel> labelsByConditions, Set<String> peptideInclusionList)
 			throws FileNotFoundException {
 		final QuantParser parser = PCQUtils.getQuantParser(ProteinClusterQuantParameters.getInstance(),
-				labelsByConditions, replicateFileName, true, peptideInclusionList, false);
+				labelsByConditions, replicateFileName, true, peptideInclusionList);
 		return parser;
 	}
 

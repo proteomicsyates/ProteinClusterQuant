@@ -16,6 +16,7 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.log4j.Logger;
 
 import edu.scripps.yates.pcq.PCQBatchRunner;
@@ -146,15 +147,14 @@ public class TMTQuantSiteComparator {
 				log.info("ns (number_sigmas) parameter wasn't set. Using " + numberSigmas + " by default.");
 			}
 
-			boolean generateXGMMLFiles = defaultCytParameterValue; // by default
+			Boolean generateXGMMLFiles = defaultCytParameterValue; // by default
 			if (cmd.hasOption("cyt")) {
-				try {
-					generateXGMMLFiles = Boolean.valueOf(cmd.getOptionValue("cyt"));
-					if (numberSigmas < 0) {
-						throw new Exception();
-					}
-					log.info("Generate Cytoscape network = " + generateXGMMLFiles);
-				} catch (final Exception e) {
+				generateXGMMLFiles = BooleanUtils.toBooleanObject(cmd.getOptionValue("cyt"));
+				if (numberSigmas < 0) {
+					throw new Exception();
+				}
+				log.info("Generate Cytoscape network = " + generateXGMMLFiles);
+				if (generateXGMMLFiles == null) {
 					final String errorMessage = "Invalid cyt value '" + cmd.getOptionValue("cyt")
 							+ "'. Use true or false.";
 					throw new Exception(errorMessage);
@@ -163,16 +163,15 @@ public class TMTQuantSiteComparator {
 				log.info("cyt parameter is not provided. Using " + generateXGMMLFiles + " by default.");
 			}
 
-			boolean ignoreNotFoundSignals = defaultIgnoreNotFoundSignals; // by
+			Boolean ignoreNotFoundSignals = defaultIgnoreNotFoundSignals; // by
 																			// default
 			if (cmd.hasOption("ig")) {
-				try {
-					ignoreNotFoundSignals = Boolean.valueOf(cmd.getOptionValue("ig"));
-					if (numberSigmas < 0) {
-						throw new Exception();
-					}
-					log.info("Ignore not found signals parameter = " + ignoreNotFoundSignals);
-				} catch (final Exception e) {
+				ignoreNotFoundSignals = BooleanUtils.toBooleanObject(cmd.getOptionValue("ig"));
+				if (numberSigmas < 0) {
+					throw new Exception();
+				}
+				log.info("Ignore not found signals parameter = " + ignoreNotFoundSignals);
+				if (ignoreNotFoundSignals == null) {
 					final String errorMessage = "Invalid ig value '" + cmd.getOptionValue("ig")
 							+ "'. Use true or false.";
 					throw new Exception(errorMessage);
@@ -209,7 +208,7 @@ public class TMTQuantSiteComparator {
 		// use them for quant site output
 		final QuantSiteOutputComparator comparator = new QuantSiteOutputComparator(pcqOutputQuantPerSiteFileList,
 				Collections.emptySet(), rInf, outputFileName, pValueCorrectionType, qValueThreshold, numberSigmas,
-				minNumberOfDiscoveries, true);
+				minNumberOfDiscoveries, true, null, null, true);
 		comparator.setOutputFolder(paramFile.getParent());
 		comparator.run();
 
