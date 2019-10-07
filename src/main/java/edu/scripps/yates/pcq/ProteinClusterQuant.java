@@ -1088,14 +1088,18 @@ public class ProteinClusterQuant {
 		return ret;
 	}
 
+	public static final String CLUSTER_ID_COLUMN_HEADER = "clusterID";
+	public static final String PEPTIDE_NODE_ID_COLUMN_HEADER = "peptideNodeID";
+	public static final String LOG2RATIO_COLUMN_HEADER = "log2Ratio";
+
 	private String getPeptideNodeHeaderLine() {
 		final StringBuilder sb = new StringBuilder();
 
 		// peptide Node ID
-		sb.append("peptideNodeID");
+		sb.append(PEPTIDE_NODE_ID_COLUMN_HEADER);
 		sb.append(sep);
 		// protein cluster ID
-		sb.append("clusterID");
+		sb.append(CLUSTER_ID_COLUMN_HEADER);
 		sb.append(sep);
 		// geneNameString
 		sb.append("genes");
@@ -1122,7 +1126,7 @@ public class ProteinClusterQuant {
 		sb.append("numReplicates");
 		sb.append(sep);
 		// log2 ratio
-		sb.append("log2Ratio");
+		sb.append(LOG2RATIO_COLUMN_HEADER);
 		sb.append(sep);
 		// ratio
 		sb.append("ratio");
