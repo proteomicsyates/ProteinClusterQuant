@@ -30,7 +30,9 @@ import edu.scripps.yates.utilities.maths.Maths;
 import edu.scripps.yates.utilities.maths.PValueCorrectionType;
 import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.THashMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.THashSet;
 import gnu.trove.set.hash.TIntHashSet;
@@ -105,19 +107,29 @@ public class QuantSiteCustomAnalysis {
 			randomizationsPerformed = Files.readAllLines(generalRandomizationOutputFile.toPath()).stream()
 					.map(l -> l.split("\t")[0]).collect(Collectors.toSet());
 		}
-		Set<String> comparisonsPerformed = new THashSet<String>();
+		final TObjectIntMap<String> comparisonsPerformed = new TObjectIntHashMap<String>();
 		if (generalOutputFile.exists()) {
-			comparisonsPerformed = Files.readAllLines(generalOutputFile.toPath()).stream().map(l -> l.split("\t")[0])
-					.collect(Collectors.toSet());
+			final List<String> readAllLines = Files.readAllLines(generalOutputFile.toPath());
+			for (final String l : readAllLines) {
+				final String[] split = l.split("\t");
+				final String outputFileName = split[0];
+				if (comparisonsPerformed.containsKey(outputFileName)) {
+					comparisonsPerformed.put(outputFileName, comparisonsPerformed.get(outputFileName) + 1);
+				} else {
+					comparisonsPerformed.put(outputFileName, 1);
+				}
+			}
+
 		}
 		for (final GroupComparison comparison : comparisons) {
 
 			final String mutantComparisonID = comparison.getComparisonID() + "_mutant";
 			final String comparisonID = comparison.getComparisonID();
 			final String outputFileName = comparisonID + " vs " + mutantComparisonID;
-			if (comparisonsPerformed.contains(outputFileName)) {
+			if (comparisonsPerformed.containsKey(outputFileName)) {
 				log.info(outputFileName + " was already done. Skipping it...");
-				if (!randomizationsPerformed.contains(outputFileName)) {
+				if (!randomizationsPerformed.contains(outputFileName)
+						&& comparisonsPerformed.get(outputFileName) >= 5) {
 					log.info("However, the randomization was not performed yet for " + outputFileName
 							+ " Performing it now...");
 					final double numRandomlySignificant = performRandomizationAnalysis(comparison,
