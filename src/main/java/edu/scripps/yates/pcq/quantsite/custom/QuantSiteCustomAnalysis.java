@@ -40,7 +40,7 @@ public class QuantSiteCustomAnalysis {
 	private static String path = "Z:\\share\\Salva\\data\\cbamberg\\Alzheimer\\60_samples_run_021019\\";
 	private final static String[] files = { "Batch_persite.properties", "Batch_input_NCI60replicates.txt",
 			"groupComparisonInputFile.txt", "CellLineID_to_LineNumber.txt" };
-	private static final int MAX_ITERATIONS = 1000;
+	private static final int MAX_ITERATIONS = 100;
 
 	public static void main(String[] args) {
 		final AppVersion version = ProteinClusterQuant.getVersion();
@@ -65,6 +65,10 @@ public class QuantSiteCustomAnalysis {
 			if (!cellLinesFile.exists()) {
 				throw new FileNotFoundException(cellLinesFile.getAbsolutePath() + " doesn't exist");
 			}
+			if (args.length < 2) {
+				throw new IllegalArgumentException(
+						"You missed the second argument TRUE/FALSE for performing or not randomization");
+			}
 			Boolean performRandomization = BooleanUtils.toBooleanObject(args[1]);
 			if (performRandomization == null || !performRandomization) {
 				performRandomization = false;
@@ -78,7 +82,7 @@ public class QuantSiteCustomAnalysis {
 			System.exit(0);
 		} catch (final Exception e) {
 			e.printStackTrace();
-			ProteinClusterQuant.errorInParameters(true);
+
 		}
 		System.err.println("Some error occurred.");
 		System.exit(-1);
@@ -94,9 +98,18 @@ public class QuantSiteCustomAnalysis {
 		Map<String, String> peptideNodeTableFilePathsByID = getPeptideNodeTableFilePathsByID(pcqComparatorFile);
 		final File generalOutputFile = new File(
 				batchFile.getParent() + File.separator + "60Samples_custom_analysis.tsv");
-		final Set<String> comparisonsPerformed = new THashSet<String>();
-		Files.readAllLines(generalOutputFile.toPath()).stream()
-				.forEach(line -> comparisonsPerformed.add(line.split("\t")[0]));
+		final File generalRandomizationOutputFile = new File(
+				batchFile.getParent() + File.separator + "60Samples_custom_analysis_random.tsv");
+		Set<String> randomizationsPerformed = new THashSet<String>();
+		if (generalRandomizationOutputFile.exists()) {
+			randomizationsPerformed = Files.readAllLines(generalRandomizationOutputFile.toPath()).stream()
+					.map(l -> l.split("\t")[0]).collect(Collectors.toSet());
+		}
+		Set<String> comparisonsPerformed = new THashSet<String>();
+		if (generalOutputFile.exists()) {
+			comparisonsPerformed = Files.readAllLines(generalOutputFile.toPath()).stream().map(l -> l.split("\t")[0])
+					.collect(Collectors.toSet());
+		}
 		for (final GroupComparison comparison : comparisons) {
 
 			final String mutantComparisonID = comparison.getComparisonID() + "_mutant";
@@ -104,6 +117,17 @@ public class QuantSiteCustomAnalysis {
 			final String outputFileName = comparisonID + " vs " + mutantComparisonID;
 			if (comparisonsPerformed.contains(outputFileName)) {
 				log.info(outputFileName + " was already done. Skipping it...");
+				if (!randomizationsPerformed.contains(outputFileName)) {
+					log.info("However, the randomization was not performed yet for " + outputFileName
+							+ " Performing it now...");
+					final double numRandomlySignificant = performRandomizationAnalysis(comparison,
+							inputDataFilesPerCellLine, paramaterFile, totalSampleList, pvalueCorrectionType,
+							qValueThreshold, numberSigmas, minNumberOfDiscoveries);
+					randomizationsPerformed.add(outputFileName);
+					final FileWriter fw = new FileWriter(generalRandomizationOutputFile, true);
+					fw.write(outputFileName + "\t" + numRandomlySignificant + "\n");
+					fw.close();
+				}
 				continue;
 			}
 			if (!peptideNodeTableFilePathsByID.containsKey(mutantComparisonID)) {
