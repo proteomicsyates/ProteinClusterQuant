@@ -540,16 +540,16 @@ public class PCQUtils {
 				sufix.append(", phosphositeSpecies=").append(phosphositeSpecies);
 			}
 			sufix.append(", maxVariationsPerPeptide=").append(maxVariationsPerPeptide);
-			final String fastaIndexKey = IndexUtil.createFullIndexFileName(defaultDBIndexParams, sufix.toString());
+			final String fastaIndexKey = IndexUtil.createFullIndexFileName(defaultDBIndexParams, sufix.toString(),
+					maxVariationsPerPeptide, usePhosphosite, uniprotVersion, usePhosphosite, phosphositeSpecies);
 			if (indexByFastaIndexKey.containsKey(fastaIndexKey)) {
 				return indexByFastaIndexKey.get(fastaIndexKey);
 			}
-			((DBIndexSearchParamsImpl) defaultDBIndexParams).setFullIndexFileName(fastaIndexKey);
 			final UniprotProteinLocalRetriever uplr = getUniprotProteinLocalRetrieverByFolder(uniprotReleasesFolder);
 
-			final DBIndexImpl dbIndex = new ProteoformDBIndexInterface(defaultDBIndexParams, useUniprot, usePhosphosite,
-					phosphositeSpecies, phosphoSiteDBFile, uplr, uniprotVersion, maxVariationsPerPeptide,
-					peptideInclusionList);
+			final DBIndexImpl dbIndex = new ProteoformDBIndexInterface(defaultDBIndexParams, sufix.toString(),
+					useUniprot, usePhosphosite, phosphositeSpecies, phosphoSiteDBFile, uplr, uniprotVersion,
+					maxVariationsPerPeptide, peptideInclusionList);
 			indexByFastaIndexKey.put(fastaIndexKey, dbIndex);
 			return dbIndex;
 		}
