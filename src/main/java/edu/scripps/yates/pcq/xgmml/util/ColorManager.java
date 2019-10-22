@@ -88,8 +88,7 @@ public class ColorManager {
 	}
 
 	/**
-	 * @param highlightColor
-	 *            the highlightColor to set
+	 * @param highlightColor the highlightColor to set
 	 */
 	public void setHighlightColor(Color highlightColor) {
 		if (highlightColor != null)
@@ -108,8 +107,7 @@ public class ColorManager {
 	}
 
 	/**
-	 * @param multiTaxonomyColor
-	 *            the multiTaxonomyColor to set
+	 * @param multiTaxonomyColor the multiTaxonomyColor to set
 	 */
 	public void setMultiTaxonomyColor(Color multiTaxonomyColor) {
 		this.multiTaxonomyColor = multiTaxonomyColor;
@@ -147,8 +145,7 @@ public class ColorManager {
 	}
 
 	/**
-	 * @param alignedPeptidesEdgeColor
-	 *            the alignedPeptidesEdgeColor to set
+	 * @param alignedPeptidesEdgeColor the alignedPeptidesEdgeColor to set
 	 */
 	public void setAlignedPeptidesEdgeColor(Color alignedPeptidesEdgeColor) {
 		this.alignedPeptidesEdgeColor = alignedPeptidesEdgeColor;
