@@ -615,7 +615,7 @@ public class PropertiesReader {
 		}
 	}
 
-	private static List<String> parseTriplets(String tripletsString) {
+	public static List<String> parseTriplets(String tripletsString) {
 		final List<String> ret = new ArrayList<String>();
 		final StringBuilder triplet = new StringBuilder();
 		boolean insideBrackets = false;
