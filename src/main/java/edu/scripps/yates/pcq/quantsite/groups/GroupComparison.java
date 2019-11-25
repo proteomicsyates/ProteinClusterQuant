@@ -24,6 +24,13 @@ import gnu.trove.map.hash.THashMap;
 import gnu.trove.map.hash.TObjectDoubleHashMap;
 import smile.math.Math;
 
+/**
+ * Class that represents a comparison between two sets/groups of sites, each one
+ * with multiple ratios
+ * 
+ * @author salvador
+ *
+ */
 public class GroupComparison {
 	private final static Logger log = Logger.getLogger(GroupComparison.class);
 	private final String comparisonID;
