@@ -24,7 +24,7 @@ public class ProteinClusterQuantProperties extends Properties {
 	public String getProperty(String key, String defaultValue) {
 		final String property = super.getProperty(key, defaultValue);
 		if (property == null || "".equals(property)) {
-			log.warn("Parameter '" + key + "' is not found. Using default value: '" + defaultValue + "'");
+			log.info("Parameter '" + key + "' is not found. Using default value: '" + defaultValue + "'");
 			return defaultValue;
 		} else {
 			return property.trim();
