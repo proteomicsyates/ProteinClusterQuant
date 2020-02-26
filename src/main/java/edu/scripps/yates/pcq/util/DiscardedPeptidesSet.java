@@ -11,7 +11,8 @@ public class DiscardedPeptidesSet extends ArrayList<DiscardedPeptide> {
 	private static final long serialVersionUID = -7836944653117423789L;
 
 	public static enum DISCARD_REASON {
-		AMBIGOUS_QUANT, CONTAINING_PTM, PEPTIDE_WITH_NO_PROTEIN, DISCARDED_BY_FILTER, PEPTIDE_WITH_NO_QUANT_SITE
+		AMBIGUOS_QUANT, CONTAINING_PTM, NOT_CONTAINING_PTM, PEPTIDE_WITH_NO_PROTEIN, DISCARDED_BY_FILTER,
+		PEPTIDE_WITH_NO_QUANT_SITE
 	};
 
 	private static DiscardedPeptidesSet instance;
