@@ -285,7 +285,7 @@ public class ProteinCluster {
 						&& PCQUtils.howManyContains(sequence1, quantifiedAAs) > 1) {
 					if (!peptideSequencesDiscarded.contains(sequence1)) {
 						peptideSequencesDiscarded.add(sequence1);
-						DiscardedPeptidesSet.getInstance().add(peptide1, DISCARD_REASON.AMBIGOUS_QUANT,
+						DiscardedPeptidesSet.getInstance().add(peptide1, DISCARD_REASON.AMBIGUOS_QUANT,
 								"quant site(s): " + quantifiedAAsString);
 						log.warn(sequence1 + " discarded for having ambiguous quantitation sites from "
 								+ StringUtils.getSeparatedValueStringFromChars(quantifiedAAs, ",") + "'");
@@ -341,7 +341,7 @@ public class ProteinCluster {
 					if (getParams().isRemoveFilteredNodes() && !(peptide2 instanceof IsobaricQuantifiedPeptide)
 							&& PCQUtils.howManyContains(sequence2, quantifiedAAs) > 1) {
 						if (!peptideSequencesDiscarded.contains(sequence2)) {
-							DiscardedPeptidesSet.getInstance().add(peptide2, DISCARD_REASON.AMBIGOUS_QUANT,
+							DiscardedPeptidesSet.getInstance().add(peptide2, DISCARD_REASON.AMBIGUOS_QUANT,
 									"quant site(s): " + quantifiedAAsString);
 							peptideSequencesDiscarded.add(sequence2);
 							log.warn(sequence2 + " discarded for having ambiguous quantitation sites from '"
@@ -656,6 +656,16 @@ public class ProteinCluster {
 				// sequence
 				final List<PTMInProtein> ptmsInProteinFromPeptide1 = filterPTMsOfInterest(
 						peptide1.getPTMsInProtein(uplr, PCQUtils.proteinSequences));
+
+				final String key1 = PCQUtils.getPTMPositionsInProteinsKey(ptmsInProteinFromPeptide1,
+						peptide1.getQuantifiedProteins().stream().map(p -> p.getAccession())
+								.collect(Collectors.toSet()),
+						useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
+				if ("".equals(key1)) {
+//					key1 = peptide1.getKey();
+					peptide1.setDiscarded(true);
+					continue;
+				}
 				for (int j = i + 1; j < peptides.size(); j++) {
 					final QuantifiedPeptideInterface peptide2 = peptides.get(j);
 					// get the keys from the peptide.
@@ -670,24 +680,22 @@ public class ProteinCluster {
 							peptide2.getPTMsInProtein(uplr, PCQUtils.proteinSequences));
 
 					// iterate over all the keys
-
-					final String key1 = QuantUtils.getPositionsInProteinsKey(
-							QuantUtils.getAsPositionInProtein(ptmsInProteinFromPeptide1),
-							peptide1.getQuantifiedProteins().stream().map(p -> p.getAccession())
-									.collect(Collectors.toSet()),
-							useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
-
-					final String key2 = QuantUtils.getPositionsInProteinsKey(
-							QuantUtils.getAsPositionInProtein(ptmsInProteinFromPeptide2),
+					final String key2 = PCQUtils.getPTMPositionsInProteinsKey(ptmsInProteinFromPeptide2,
 							peptide2.getQuantifiedProteins().stream().map(p -> p.getAccession())
 									.collect(Collectors.toSet()),
 							useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
+					if ("".equals(key2)) {
+//						key2 = peptide2.getKey();
+						peptide2.setDiscarded(true);
+						continue;
+					}
 
 					// now I compare the two list of keys
 					// if they are equal, that means, if they share the
 					// same sites of the same proteins
 					if (PCQUtils.areEquals(QuantUtils.getAsPositionInProtein(ptmsInProteinFromPeptide1),
-							QuantUtils.getAsPositionInProtein(ptmsInProteinFromPeptide2))) {
+							QuantUtils.getAsPositionInProtein(ptmsInProteinFromPeptide2)) && //
+							key1.equals(key2)) {
 
 						// key1 and key2 should be the same
 
@@ -748,12 +756,17 @@ public class ProteinCluster {
 			// only one peptide
 			// create a peptide node for each position in the peptide
 			final QuantifiedPeptideInterface peptide = peptides.iterator().next();
-			final List<PTMInProtein> positionsInProtein = filterPTMsOfInterest(
+			final List<PTMInProtein> ptmsInProtein = filterPTMsOfInterest(
 					peptide.getPTMsInProtein(uplr, PCQUtils.proteinSequences));
 
-			final String key = QuantUtils.getPositionsInProteinsKey(
-					QuantUtils.getAsPositionInProtein(positionsInProtein), useProteinGeneName, useProteinID, uplr,
-					getParams().getUniprotVersion());
+			final String key = PCQUtils.getPTMPositionsInProteinsKey(ptmsInProtein,
+					peptide.getQuantifiedProteins().stream().map(p -> p.getAccession()).collect(Collectors.toSet()),
+					useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
+			if ("".equals(key)) {
+//				key = peptide.getKey();
+				peptide.setDiscarded(true);
+				return;
+			}
 			PCQPeptideNode peptideNode = null;
 			if (peptideNodesByPeptideNodeKey.containsKey(key)) {
 				peptideNode = peptideNodesByPeptideNodeKey.get(key);
