@@ -26,6 +26,7 @@ import edu.scripps.yates.pcq.xgmml.util.ColorManager;
 import edu.scripps.yates.pcq.xgmml.util.ProteinNodeLabel;
 import edu.scripps.yates.pcq.xgmml.util.Shape;
 import edu.scripps.yates.pcq.xgmml.util.UniprotAnnotationColumn;
+import edu.scripps.yates.utilities.proteomicsmodel.utils.ModelUtils;
 import gnu.trove.map.hash.THashMap;
 
 public class ProteinClusterQuantParameters {
@@ -115,6 +116,7 @@ public class ProteinClusterQuantParameters {
 	private boolean printPTMPositionInProtein;
 	private boolean writePSEAQuantInputFiles;
 	private boolean forceCreationOfNewParser = false;// by default
+	private boolean createProteinPTMStates;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -1219,15 +1221,20 @@ public class ProteinClusterQuantParameters {
 		if (ptmQuantifiedParameter.contains(",")) {
 			final String[] split = ptmQuantifiedParameter.split(",");
 			for (final String string : split) {
-				final PTM ptm = PTM.parseString(string);
+				final PTM ptm = PTM.parseString(string, ModelUtils.getPtmFormatter());
 				if (ptm != null) {
 					ptmsQuantified.add(ptm);
+				} else {
+					throw new IllegalArgumentException(string + " in parameter 'collapsePeptidesByPTMs' is malformed");
 				}
 			}
 		} else {
-			final PTM ptm = PTM.parseString(ptmQuantifiedParameter);
+			final PTM ptm = PTM.parseString(ptmQuantifiedParameter, ModelUtils.getPtmFormatter());
 			if (ptm != null) {
 				ptmsQuantified.add(ptm);
+			} else {
+				throw new IllegalArgumentException(
+						ptmQuantifiedParameter + " in parameter 'collapsePeptidesByPTMs' is malformed");
 			}
 		}
 	}
@@ -1254,5 +1261,13 @@ public class ProteinClusterQuantParameters {
 
 	public void setForceCreationOfNewParser(boolean forceCreationOfNewParser) {
 		this.forceCreationOfNewParser = forceCreationOfNewParser;
+	}
+
+	public boolean isCreateProteinPTMStates() {
+		return createProteinPTMStates;
+	}
+
+	public void setCreateProteinPTMStates(boolean createProteinPTMStates) {
+		this.createProteinPTMStates = createProteinPTMStates;
 	}
 }
