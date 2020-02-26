@@ -56,15 +56,11 @@ public class PropertiesReader {
 		if (inputStream == null) {
 			throw new IllegalArgumentException("input stream is null");
 		}
-		try {
-			final ProteinClusterQuantProperties prop = new ProteinClusterQuantProperties();
-			prop.load(inputStream);
-			readParametersFromProperties(prop, batchMode);
-			return prop;
-		} catch (final IOException e) {
-			e.printStackTrace();
-			throw e;
-		}
+
+		final ProteinClusterQuantProperties prop = new ProteinClusterQuantProperties();
+		prop.load(inputStream);
+		readParametersFromProperties(prop, batchMode);
+		return prop;
 
 	}
 
@@ -229,6 +225,24 @@ public class PropertiesReader {
 			throw new IllegalArgumentException(
 					"collapsePeptidesBySites and collapsePeptidesByPTMs cannot be used at the same time");
 		}
+
+		if (properties.containsKey("createProteinPTMStates")) {
+
+			final boolean createProteinPTMStates = Boolean
+					.valueOf(properties.getProperty("createProteinPTMStates", "false"));
+			if (createProteinPTMStates && !params.isCollapseByPTMs()) {
+				log.warn(
+						"Found createProteinPTMStates=TRUE, but collapseByPTMs is not found or is FALSE, therefore, it will be ignored.");
+				params.setCreateProteinPTMStates(false);
+			} else {
+				params.setCreateProteinPTMStates(createProteinPTMStates);
+			}
+		} else {
+			if (params.isCollapseByPTMs()) {
+				log.warn("createProteinPTMStates not found. Setting to default value FALSE");
+			}
+		}
+
 		if (properties.containsKey("maxNumPTMsPerProtein")) {
 			if (params.isCollapseByPTMs()) {
 				final String maxNumPTMsPerProteinString = properties.getProperty("maxNumPTMsPerProtein");
@@ -306,6 +320,7 @@ public class PropertiesReader {
 			// validate the regexp
 			try {
 				Pattern.compile(peptideFilterRegexp);
+				params.setPeptideFilterRegexp(peptideFilterRegexp);
 			} catch (final PatternSyntaxException e) {
 				e.printStackTrace();
 				throw e;
@@ -448,9 +463,14 @@ public class PropertiesReader {
 				params.setMinConsecutiveIdenticalAlignment(Integer.valueOf(minConsecutiveIdenticalAlignment));
 			}
 		}
-		final ProteinNodeLabel proteinLabel = ProteinNodeLabel.getFrom(properties.getProperty("proteinLabel", false));
-		if (proteinLabel != null) {
-			params.setProteinLabel(proteinLabel);
+		if (properties.containsKey("proteinLabel")) {
+			final ProteinNodeLabel proteinLabel = ProteinNodeLabel
+					.getFrom(properties.getProperty("proteinLabel", false));
+			if (proteinLabel != null) {
+				params.setProteinLabel(proteinLabel);
+			} else {
+				params.setProteinLabel(ProteinNodeLabel.ACC);
+			}
 		} else {
 			params.setProteinLabel(ProteinNodeLabel.ACC);
 		}
@@ -541,8 +561,13 @@ public class PropertiesReader {
 		final boolean removeFilteredNodes = Boolean.valueOf(properties.getProperty("removeFilteredNodes", "true"));
 		params.setRemoveFilteredNodes(removeFilteredNodes);
 
-		final boolean ignorePTMs = Boolean.valueOf(properties.getProperty("ignorePTMs", "true"));
-		params.setIgnorePTMs(ignorePTMs);
+		if (properties.containsKey("ignorePTMs")) {
+			final boolean ignorePTMs = Boolean.valueOf(properties.getProperty("ignorePTMs", "true"));
+			params.setIgnorePTMs(ignorePTMs);
+		} else {
+			log.info("ignorePTMs param not found. Setting default value TRUE");
+			params.setIgnorePTMs(true);
+		}
 
 		final boolean semiCleavage = Boolean.valueOf(properties.getProperty("semiCleavage", "false"));
 		params.setSemiCleavage(semiCleavage);
