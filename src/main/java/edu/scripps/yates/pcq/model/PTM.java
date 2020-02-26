@@ -1,8 +1,12 @@
 package edu.scripps.yates.pcq.model;
 
+import java.text.DecimalFormat;
+
 import org.apache.log4j.Logger;
 
 import edu.scripps.yates.utilities.masses.AssignMass;
+import edu.scripps.yates.utilities.proteomicsmodel.utils.ModelUtils;
+import edu.scripps.yates.utilities.sequence.PTMInPeptide;
 import edu.scripps.yates.utilities.sequence.PTMInProtein;
 
 public class PTM {
@@ -68,6 +72,13 @@ public class PTM {
 		return false;
 	}
 
+	public boolean isEquivalent(PTMInPeptide ptm) {
+		if (isAAValid(ptm.getAa()) && isMassShiftValid(ptm.getDeltaMass())) {
+			return true;
+		}
+		return false;
+	}
+
 	private boolean isMassShiftValid(Double deltaMass) {
 		if (massShift == null) {
 			return true;
@@ -105,12 +116,15 @@ public class PTM {
 	 * @param string
 	 * @return
 	 */
-	public static PTM parseString(String string) {
+	public static PTM parseString(String string, DecimalFormat df) {
 		try {
 			string = string.trim();
 			if (!"".equals(string)) {
 				if (string.contains("@")) {
-					final double massShift = Double.valueOf(string.substring(0, string.indexOf("@")));
+					double massShift = Double.valueOf(string.substring(0, string.indexOf("@")));
+					// use the decimal formater in oder to keep the number of decimals.
+					// important when comparing PTMs
+					massShift = Double.valueOf(df.format(massShift));
 					final String aasString = string.substring(string.indexOf("@") + 1);
 					final char[] aas = new char[aasString.length()];
 					int i = 0;
@@ -155,13 +169,13 @@ public class PTM {
 	}
 
 	public static void main(String[] args) {
-		PTM ptm = PTM.parseString("+34.5@K");
+		PTM ptm = PTM.parseString("+34.5@K", ModelUtils.getPtmFormatter());
 		System.out.println(ptm);
-		ptm = PTM.parseString("+79.96@PST");
+		ptm = PTM.parseString("+79.96@PST", ModelUtils.getPtmFormatter());
 		System.out.println(ptm);
-		ptm = PTM.parseString("K");
+		ptm = PTM.parseString("K", ModelUtils.getPtmFormatter());
 		System.out.println(ptm);
-		ptm = PTM.parseString("+79.96");
+		ptm = PTM.parseString("+79.96", ModelUtils.getPtmFormatter());
 		System.out.println(ptm);
 	}
 }
