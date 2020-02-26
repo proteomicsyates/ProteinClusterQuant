@@ -57,6 +57,7 @@ import edu.scripps.yates.pcq.xgmml.util.AlignmentSet;
 import edu.scripps.yates.proteoform_dbindex.ProteoformDBIndexInterface;
 import edu.scripps.yates.utilities.alignment.nwalign.NWAlign;
 import edu.scripps.yates.utilities.alignment.nwalign.NWResult;
+import edu.scripps.yates.utilities.annotations.uniprot.UniprotEntryUtil;
 import edu.scripps.yates.utilities.annotations.uniprot.xml.Entry;
 import edu.scripps.yates.utilities.annotations.uniprot.xml.GeneNameType;
 import edu.scripps.yates.utilities.annotations.uniprot.xml.GeneType;
@@ -67,6 +68,7 @@ import edu.scripps.yates.utilities.maths.Maths;
 import edu.scripps.yates.utilities.progresscounter.ProgressCounter;
 import edu.scripps.yates.utilities.progresscounter.ProgressPrintingType;
 import edu.scripps.yates.utilities.proteomicsmodel.enums.AggregationLevel;
+import edu.scripps.yates.utilities.proteomicsmodel.utils.ModelUtils;
 import edu.scripps.yates.utilities.remote.RemoteSSHFileReference;
 import edu.scripps.yates.utilities.sequence.PTMInPeptide;
 import edu.scripps.yates.utilities.sequence.PTMInProtein;
@@ -3279,4 +3281,78 @@ public class PCQUtils {
 		return true;
 	}
 
+	/**
+	 * Get a string such as: P12345#12#P23456#456 from, in this example, two
+	 * proteins with position 12 and 456 respectively
+	 * 
+	 * @param positionsInProtein
+	 * @return
+	 */
+	public static String getPTMPositionsInProteinsKey(List<PTMInProtein> ptmsInProtein, Set<String> proteinACCs,
+			boolean useProteinGeneName, boolean useProteinID, UniprotProteinLocalRetriever uplr,
+			String uniprotVersion) {
+
+		if (ptmsInProtein == null || ptmsInProtein.isEmpty()) {
+			return "";
+		}
+
+		Collections.sort(ptmsInProtein, new Comparator<PTMInProtein>() {
+
+			@Override
+			public int compare(PTMInProtein o1, PTMInProtein o2) {
+				final int compareTo = o1.getProteinACC().compareTo(o2.getProteinACC());
+				if (compareTo == 0) {
+					final int compareTo2 = Integer.compare(o1.getPosition(), o2.getPosition());
+					if (compareTo2 == 0) {
+						return Double.compare(o1.getDeltaMass(), o2.getDeltaMass());
+					}
+				}
+				return compareTo;
+			}
+		});
+
+		final StringBuilder sb = new StringBuilder();
+		for (final PTMInProtein ptmInProtein : ptmsInProtein) {
+
+			if (!"".equals(sb.toString())) {
+				sb.append(QuantUtils.KEY_SEPARATOR);
+			}
+			String key = null;
+
+			if (useProteinGeneName || useProteinID) {
+				final Map<String, Entry> entries = uplr.getAnnotatedProtein(uniprotVersion,
+						ptmInProtein.getProteinACC());
+				if (entries.containsKey(ptmInProtein.getProteinACC())) {
+					if (useProteinGeneName) {
+						final List<Pair<String, String>> geneNames = UniprotEntryUtil
+								.getGeneName(entries.get(ptmInProtein.getProteinACC()), true, true);
+						if (!geneNames.isEmpty()) {
+							key = geneNames.get(0).getFirstelement();
+						}
+					} else if (useProteinID) {
+						final List<String> proteinNames = UniprotEntryUtil
+								.getNames(entries.get(ptmInProtein.getProteinACC()));
+						if (!proteinNames.isEmpty()) {
+							key = proteinNames.get(0);
+						}
+					}
+				}
+			}
+
+			if (key == null) {
+				key = ptmInProtein.getProteinACC();
+			}
+			sb.append(key + PositionInProtein.SEPARATOR);
+			if (ptmInProtein.getAa() != PositionInProtein.NULL_CHAR) {
+				sb.append(ptmInProtein.getAa());
+			}
+			if (ptmInProtein.getPosition() > 0) {
+				sb.append(ptmInProtein.getPosition());
+			}
+			sb.append("(" + ModelUtils.getPtmFormatter().format(ptmInProtein.getDeltaMass()) + ")");
+
+		}
+
+		return sb.toString();
+	}
 }
