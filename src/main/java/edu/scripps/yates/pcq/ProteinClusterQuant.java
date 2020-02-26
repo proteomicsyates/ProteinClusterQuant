@@ -64,6 +64,7 @@ import edu.scripps.yates.pcq.compare.model.QuantifiedSite;
 import edu.scripps.yates.pcq.filter.PCQFilter;
 import edu.scripps.yates.pcq.model.PCQPeptideNode;
 import edu.scripps.yates.pcq.model.PCQProteinNode;
+import edu.scripps.yates.pcq.model.PTM;
 import edu.scripps.yates.pcq.model.ProteinCluster;
 import edu.scripps.yates.pcq.model.ProteinPair;
 import edu.scripps.yates.pcq.params.PropertiesReader;
@@ -87,6 +88,7 @@ import edu.scripps.yates.utilities.appversion.AppVersion;
 import edu.scripps.yates.utilities.dates.DatesUtil;
 import edu.scripps.yates.utilities.fasta.Fasta;
 import edu.scripps.yates.utilities.fasta.FastaParser;
+import edu.scripps.yates.utilities.masses.AssignMass;
 import edu.scripps.yates.utilities.maths.Maths;
 import edu.scripps.yates.utilities.progresscounter.ProgressCounter;
 import edu.scripps.yates.utilities.progresscounter.ProgressPrintingType;
@@ -155,11 +157,13 @@ public class ProteinClusterQuant {
 
 	private void printWelcome() {
 		final String implementationVersion = getClass().getPackage().getImplementationVersion();
-		String header = "Running ProteinClusterQuant (PCQ) version " + getVersion().toString();
+		String header = "\n########################################\n" + "Running ProteinClusterQuant (PCQ) version "
+				+ getVersion().toString();
 		if (implementationVersion != null) {
 			header += " version " + implementationVersion;
 		}
-		System.out.println(header + " ...");
+		header += "...\n########################################";
+		System.out.println(header);
 	}
 
 	public static void errorInParameters(boolean batchMode) {
@@ -176,6 +180,9 @@ public class ProteinClusterQuant {
 	}
 
 	public static void main(String args[]) throws IOException, ParseException {
+		// so that in collapsePeptidesByPTMs doesnt crash
+		AssignMass.getInstance(true);
+
 		final AppVersion version = ProteinClusterQuant.getVersion();
 		System.out.println("Running ProteinClusterQuant (PCQ) version " + version.toString());
 		setupCommandLineOptions(false);
@@ -239,8 +246,10 @@ public class ProteinClusterQuant {
 			// ProteinCluster.createProteinNodes()
 			// also is done for performing ratio integrations by collapsing by
 			// sites or ptms
-			if (!params.isLookForProteoforms() || (params.isPerformRatioIntegration()
-					&& (params.isCollapseByPTMs() || params.isCollapseBySites()))) {
+			if (!params.isLookForProteoforms()
+					&& (params.isPerformRatioIntegration() && (params.isCollapseByPTMs() || params.isCollapseBySites())
+							|| (params.isCollapseByPTMs() || params.isCollapseBySites()))) {
+				log.info("PCQ needs the protein sequences in order to assign sites positions");
 				// grab all the protein sequences to then used them in the
 				// creation of peptides nodes, mapping peptides to this proteins
 				// we dont need to create the protein nodes from variants, since
@@ -254,16 +263,24 @@ public class ProteinClusterQuant {
 					loader.load(params.getFastaFile().getAbsolutePath());
 					Protein protein = null;
 					while ((protein = loader.nextProtein()) != null) {
-						final String fastaAccession = FastaParser.getACC(protein.getHeader().getRawHeader())
-								.getAccession();
+						String fastaAccession = FastaParser.getACC(protein.getHeader().getRawHeader()).getAccession();
+						if (!FastaParser.isUniProtACC(fastaAccession) && !FastaParser.isReverse(fastaAccession)
+								&& !FastaParser.isContaminant(fastaAccession)) {
+							fastaAccession = FastaParser.getSPorTRAccession(protein.getHeader().getRawHeader());
+						}
 						// if (inputProteinAccs.contains(fastaAccession)) {
 						PCQUtils.proteinSequences.put(fastaAccession, protein.getSequence().getSequence());
 						// }
 					}
-					log.info(PCQUtils.proteinSequences.size() + " protein sequences readed from FASTA file");
+					log.info(PCQUtils.proteinSequences.size() + " protein sequences read from FASTA file");
 				} else {
-					log.info("Retrieving protein sequences from Uniprot...");
+					log.info(
+							"Retrieving protein sequences from Uniprot. Proteins in input files should have Uniprot Accessions. Otherwise, you will have to provide the FASTA file...");
 					annotatedProteins = getAnnotatedProteins();
+					if (annotatedProteins.isEmpty()) {
+						throw new IllegalArgumentException(
+								"PCQ was not able to retrieve any protein sequence from Uniprot. Please, check that your input files contains Uniprot protein accessions or else, provide the FASTA file.");
+					}
 					for (final String acc : annotatedProteins.keySet()) {
 						final Entry uniprotEntry = annotatedProteins.get(acc);
 						final String proteinSequence = UniprotEntryUtil.getProteinSequence(uniprotEntry);
@@ -320,7 +337,7 @@ public class ProteinClusterQuant {
 			int numClusters = 0;
 			int i = 0;
 			while (i < 1) {
-				if (!params.isIgnorePTMs()) {
+				if (!params.isIgnorePTMs() && params.isCreateProteinPTMStates()) {
 					separatePTMProteinsAndPeptides(pepMap);
 				}
 				clusterSet = createClusters(pepMap);
@@ -731,10 +748,10 @@ public class ProteinClusterQuant {
 
 				// score of the ratio
 				if (quantRatio.getAssociatedConfidenceScore() != null) {
-					out.write("\t" + quantRatio.getAssociatedConfidenceScore().getScoreName() + "\t" + PCQUtils
+					out.write(quantRatio.getAssociatedConfidenceScore().getScoreName() + "\t" + PCQUtils
 							.escapeInfinity(Double.valueOf(quantRatio.getAssociatedConfidenceScore().getValue())));
 				} else {
-					out.write("\t\t");
+					out.write("\t");
 				}
 				if (params.isCollapseBySites() || params.isCollapseByPTMs() || params.isPrintPTMPositionInProtein()) {
 
@@ -795,9 +812,11 @@ public class ProteinClusterQuant {
 									peptideNode.getItemsInNode().iterator().next().getSequence(),
 									params.getAaQuantified())) {
 								out.write("not found\tnot found");
-							} else if ((params.isCollapseByPTMs())
-									&& peptideNode.getItemsInNode().iterator().next().getPTMsInPeptide().isEmpty()) {
-								out.write("not found\tnot found");
+							} else if (params.isCollapseByPTMs()) {
+								if (peptideNode.getItemsInNode().iterator().next().getPTMsInPeptide().isEmpty()) {
+									out.write("not found\tnot found");
+								}
+
 							} else {
 								out.write("ambiguous\t" + quantifiedSitepositionInProtein.toString());
 							}
@@ -1940,21 +1959,46 @@ public class ProteinClusterQuant {
 			if (!"".equals(printIfNecessary)) {
 				log.info(printIfNecessary + " peptides clustered");
 			}
+			if (peptide.getSequence().equals("TNVPWNSSW")
+					|| peptide.getFullSequence().equals("TNVPWN(203.079373)SSW")) {
+				log.info("asdf");
+			}
+			// discard if contains ptms and we want to ignore them
 			if (params.isIgnorePTMs() && peptide.containsPTMs()) {
 				DiscardedPeptidesSet.getInstance().add(peptide, DISCARD_REASON.CONTAINING_PTM);
 				log.info(peptide.getKey() + " discarded for containing a PTM");
 				continue;
 			}
-			// discard it if it is not conected to any protein
+			// discard it if it is not connected to any protein
 			if (peptide.getQuantifiedProteins().isEmpty()) {
 				DiscardedPeptidesSet.getInstance().add(peptide, DISCARD_REASON.PEPTIDE_WITH_NO_PROTEIN);
 
 				log.warn(peptide.getSequence() + " peptide ignored because it is not connected to any protein");
 				continue;
 			}
+			// discard it if we collapse by PTMs and it doesn't contain any PTMs from the
+			// ones quantified
+			if (params.isCollapseByPTMs()) {
+				final List<PTM> quantifiedPTMs = params.getPTMsQuantified();
+				final List<PTMInPeptide> ptmsInPeptide = peptide.getPTMsInPeptide();
+				boolean valid = false;
+				for (final PTMInPeptide ptmInPeptide : ptmsInPeptide) {
+					for (final PTM quantifiedPTM : quantifiedPTMs) {
+						if (quantifiedPTM.isEquivalent(ptmInPeptide)) {
+							valid = true;
+							break;
+						}
+					}
+				}
+				if (!valid) {
+					DiscardedPeptidesSet.getInstance().add(peptide, DISCARD_REASON.NOT_CONTAINING_PTM);
+
+					log.warn(peptide.getSequence() + " peptide ignored because it doesn't contain quantified PTMs");
+					continue;
+				}
+			}
 
 			final String fullSequence1 = peptide.getFullSequence();
-
 			ProteinCluster cluster = null;
 
 			// if peptide has a cluster associated
@@ -2021,11 +2065,35 @@ public class ProteinClusterQuant {
 			final Set<QuantifiedProteinInterface> proteinSet = peptide.getQuantifiedProteins();
 			for (final QuantifiedProteinInterface protein : proteinSet) {
 				proteinACCs.add(protein.getAccession());
+				if (protein.getAccession().equals("P04836")) {
+					log.info("asdf");
+				}
 				// put protein in cluster
 				cluster.addIndividualQuantifiedProtein(protein);
 
 				// peptide 2 <- protein
 				for (final QuantifiedPeptideInterface peptide2 : protein.getQuantifiedPeptides()) {
+
+					if (params.isCollapseByPTMs()) {
+						final List<PTM> quantifiedPTMs = params.getPTMsQuantified();
+						final List<PTMInPeptide> ptmsInPeptide = peptide2.getPTMsInPeptide();
+						boolean valid = false;
+						for (final PTMInPeptide ptmInPeptide : ptmsInPeptide) {
+							for (final PTM quantifiedPTM : quantifiedPTMs) {
+								if (quantifiedPTM.isEquivalent(ptmInPeptide)) {
+									valid = true;
+									break;
+								}
+							}
+						}
+						if (!valid) {
+							DiscardedPeptidesSet.getInstance().add(peptide2, DISCARD_REASON.NOT_CONTAINING_PTM);
+
+							log.warn(peptide.getSequence()
+									+ " peptide ignored because it doesn't contain quantified PTMs");
+							continue;
+						}
+					}
 					// checking to see if peptide 2 is already in a
 					// cluster
 					final String fullSequence2 = peptide2.getFullSequence();
