@@ -3282,15 +3282,14 @@ public class PCQUtils {
 	}
 
 	/**
-	 * Get a string such as: P12345#12#P23456#456 from, in this example, two
-	 * proteins with position 12 and 456 respectively
+	 * Get a string such as: P12345#12(+21.2)#P23456#456(+45.54) from, in this
+	 * example, two proteins with position 12 and 456 respectively
 	 * 
 	 * @param positionsInProtein
 	 * @return
 	 */
-	public static String getPTMPositionsInProteinsKey(List<PTMInProtein> ptmsInProtein, Set<String> proteinACCs,
-			boolean useProteinGeneName, boolean useProteinID, UniprotProteinLocalRetriever uplr,
-			String uniprotVersion) {
+	public static String getPTMPositionsInProteinsKey(List<PTMInProtein> ptmsInProtein, boolean useProteinGeneName,
+			boolean useProteinID, UniprotProteinLocalRetriever uplr, String uniprotVersion) {
 
 		if (ptmsInProtein == null || ptmsInProtein.isEmpty()) {
 			return "";
@@ -3311,48 +3310,215 @@ public class PCQUtils {
 			}
 		});
 
-		final StringBuilder sb = new StringBuilder();
+		// store by acc
+		final Map<String, List<PTMInProtein>> map = new THashMap<String, List<PTMInProtein>>();
+		final List<String> accs = new ArrayList<String>();
 		for (final PTMInProtein ptmInProtein : ptmsInProtein) {
+			if (!map.containsKey(ptmInProtein.getProteinACC())) {
+				map.put(ptmInProtein.getProteinACC(), new ArrayList<PTMInProtein>());
+				accs.add(ptmInProtein.getProteinACC());
+			}
+			map.get(ptmInProtein.getProteinACC()).add(ptmInProtein);
+		}
 
+		final StringBuilder sb = new StringBuilder();
+		for (final String acc : accs) {
+			final StringBuilder sb2 = new StringBuilder();
+			final List<PTMInProtein> ptmsInProtein2 = map.get(acc);
 			if (!"".equals(sb.toString())) {
 				sb.append(QuantUtils.KEY_SEPARATOR);
 			}
-			String key = null;
+			for (int i = 0; i < ptmsInProtein2.size(); i++) {
+				final PTMInProtein ptmInProtein = ptmsInProtein2.get(i);
 
-			if (useProteinGeneName || useProteinID) {
-				final Map<String, Entry> entries = uplr.getAnnotatedProtein(uniprotVersion,
-						ptmInProtein.getProteinACC());
-				if (entries.containsKey(ptmInProtein.getProteinACC())) {
-					if (useProteinGeneName) {
-						final List<Pair<String, String>> geneNames = UniprotEntryUtil
-								.getGeneName(entries.get(ptmInProtein.getProteinACC()), true, true);
-						if (!geneNames.isEmpty()) {
-							key = geneNames.get(0).getFirstelement();
-						}
-					} else if (useProteinID) {
-						final List<String> proteinNames = UniprotEntryUtil
-								.getNames(entries.get(ptmInProtein.getProteinACC()));
-						if (!proteinNames.isEmpty()) {
-							key = proteinNames.get(0);
+				String key = null;
+
+				if (useProteinGeneName || useProteinID) {
+					final Map<String, Entry> entries = uplr.getAnnotatedProtein(uniprotVersion,
+							ptmInProtein.getProteinACC());
+					if (entries.containsKey(ptmInProtein.getProteinACC())) {
+						if (useProteinGeneName) {
+							final List<Pair<String, String>> geneNames = UniprotEntryUtil
+									.getGeneName(entries.get(ptmInProtein.getProteinACC()), true, true);
+							if (!geneNames.isEmpty()) {
+								key = geneNames.get(0).getFirstelement();
+							}
+						} else if (useProteinID) {
+							final List<String> proteinNames = UniprotEntryUtil
+									.getNames(entries.get(ptmInProtein.getProteinACC()));
+							if (!proteinNames.isEmpty()) {
+								key = proteinNames.get(0);
+							}
 						}
 					}
 				}
-			}
 
-			if (key == null) {
-				key = ptmInProtein.getProteinACC();
-			}
-			sb.append(key + PositionInProtein.SEPARATOR);
-			if (ptmInProtein.getAa() != PositionInProtein.NULL_CHAR) {
-				sb.append(ptmInProtein.getAa());
-			}
-			if (ptmInProtein.getPosition() > 0) {
-				sb.append(ptmInProtein.getPosition());
-			}
-			sb.append("(" + ModelUtils.getPtmFormatter().format(ptmInProtein.getDeltaMass()) + ")");
+				if (key == null) {
+					key = ptmInProtein.getProteinACC();
+				}
+				if (i == 0) {
+					sb2.append(key);
+				}
+				sb2.append(PositionInProtein.SEPARATOR);
+				if (ptmInProtein.getAa() != PositionInProtein.NULL_CHAR) {
+					sb2.append(ptmInProtein.getAa());
+				}
+				if (ptmInProtein.getPosition() > 0) {
+					sb2.append(ptmInProtein.getPosition());
+				}
+				sb2.append("(" + ModelUtils.getPtmFormatter().format(ptmInProtein.getDeltaMass()) + ")");
 
+			}
+			sb.append(sb2.toString());
 		}
-
 		return sb.toString();
 	}
+
+	/**
+	 * Get a string such as: P12345#12(+21.2)#P23456#456(+45.54) from, in this
+	 * example, two proteins with position 12 and 456 respectively
+	 * 
+	 * @param positionsInProtein
+	 * @return
+	 */
+	public static String getPositionsInProteinsString(List<PositionInProtein> positionsInProtein,
+			boolean useProteinGeneName, boolean useProteinID, UniprotProteinLocalRetriever uplr,
+			String uniprotVersion) {
+
+		if (positionsInProtein == null || positionsInProtein.isEmpty()) {
+			return "";
+		}
+
+		Collections.sort(positionsInProtein, new Comparator<PositionInProtein>() {
+
+			@Override
+			public int compare(PositionInProtein o1, PositionInProtein o2) {
+				final int compareTo = o1.getProteinACC().compareTo(o2.getProteinACC());
+				if (compareTo == 0) {
+					final int compareTo2 = Integer.compare(o1.getPosition(), o2.getPosition());
+					return compareTo2;
+				}
+				return compareTo;
+			}
+		});
+
+		// store by acc
+		final Map<String, List<PositionInProtein>> map = new THashMap<String, List<PositionInProtein>>();
+		final List<String> accs = new ArrayList<String>();
+		for (final PositionInProtein positionInProtein : positionsInProtein) {
+			if (!map.containsKey(positionInProtein.getProteinACC())) {
+				map.put(positionInProtein.getProteinACC(), new ArrayList<PositionInProtein>());
+				accs.add(positionInProtein.getProteinACC());
+			}
+			map.get(positionInProtein.getProteinACC()).add(positionInProtein);
+		}
+
+		final StringBuilder sb = new StringBuilder();
+		final Set<String> ptms = new THashSet<String>(); // to avoid repetitions
+		for (final String acc : accs) {
+			final StringBuilder sb2 = new StringBuilder();
+			final List<PositionInProtein> positionsInProtein2 = map.get(acc);
+			if (!"".equals(sb.toString())) {
+				sb.append(QuantUtils.KEY_SEPARATOR);
+			}
+			for (int i = 0; i < positionsInProtein2.size(); i++) {
+				final PositionInProtein positionInProtein = positionsInProtein2.get(i);
+
+				String key = null;
+
+				if (useProteinGeneName || useProteinID) {
+					final Map<String, Entry> entries = uplr.getAnnotatedProtein(uniprotVersion,
+							positionInProtein.getProteinACC());
+					if (entries.containsKey(positionInProtein.getProteinACC())) {
+						if (useProteinGeneName) {
+							final List<Pair<String, String>> geneNames = UniprotEntryUtil
+									.getGeneName(entries.get(positionInProtein.getProteinACC()), true, true);
+							if (!geneNames.isEmpty()) {
+								key = geneNames.get(0).getFirstelement();
+							}
+						} else if (useProteinID) {
+							final List<String> proteinNames = UniprotEntryUtil
+									.getNames(entries.get(positionInProtein.getProteinACC()));
+							if (!proteinNames.isEmpty()) {
+								key = proteinNames.get(0);
+							}
+						}
+					}
+				}
+				// to avoid repetitions coming from positions in the protein that are the same
+				// but they were coming from different peptides
+				if (ptms.contains(String.valueOf(positionInProtein.getAa()) + positionInProtein.getPosition())) {
+					continue;
+				}
+				ptms.add(String.valueOf(positionInProtein.getAa()) + positionInProtein.getPosition());
+				if (key == null) {
+					key = positionInProtein.getProteinACC();
+				}
+				if (i == 0) {
+					sb2.append(key);
+				}
+				sb2.append(PositionInProtein.SEPARATOR);
+
+				if (positionInProtein.getAa() != PositionInProtein.NULL_CHAR) {
+					sb2.append(positionInProtein.getAa());
+				}
+				if (positionInProtein.getPosition() > 0) {
+					sb2.append(positionInProtein.getPosition());
+				}
+			}
+			sb.append(sb2.toString());
+		}
+		return sb.toString();
+	}
+
+	public static String getPTMPositionsInPeptideString(Set<PositionInPeptide> positionInPeptides) {
+
+		final List<PositionInPeptide> positionInPeptideList = new ArrayList<PositionInPeptide>();
+		positionInPeptideList.addAll(positionInPeptides);
+		// sort by sequence and then position
+		Collections.sort(positionInPeptideList, new Comparator<PositionInPeptide>() {
+
+			@Override
+			public int compare(PositionInPeptide o1, PositionInPeptide o2) {
+				final int c = o1.getProteinACC().compareTo(o2.getProteinACC());
+				if (c != 0) {
+					return c;
+				}
+				return Integer.compare(o1.getPosition(), o2.getPosition());
+			}
+		});
+
+		// create a map by peptide sequence
+		final Map<String, List<PositionInPeptide>> map = new THashMap<String, List<PositionInPeptide>>();
+		final List<String> seqs = new ArrayList<String>();
+		for (final PositionInPeptide positionInPeptide : positionInPeptideList) {
+			final String peptideSequence = positionInPeptide.getProteinACC();
+			if (!map.containsKey(peptideSequence)) {
+				map.put(peptideSequence, new ArrayList<PositionInPeptide>());
+				seqs.add(peptideSequence);
+			}
+			map.get(peptideSequence).add(positionInPeptide);
+		}
+		// iterate the map and write the peptide sequence (in this case is retrieved by
+		// getAccession()) only once per position.
+		final StringBuilder sb = new StringBuilder();
+		for (final String seq : seqs) {
+			if (!"".equals(sb.toString())) {
+				sb.append(",");
+			}
+			sb.append(seq);
+			final List<PositionInPeptide> list = map.get(seq);
+			for (final PositionInPeptide positionInPeptide : list) {
+				sb.append(PositionInPeptide.SEPARATOR + positionInPeptide.getAa() + positionInPeptide.getPosition());
+				if (positionInPeptide instanceof PTMInPeptide) {
+					final PTMInPeptide ptmInPeptide = (PTMInPeptide) positionInPeptide;
+					sb.append("(" + ptmInPeptide.getFormattedDeltaMass() + ")");
+				}
+
+			}
+
+		}
+		return sb.toString();
+	}
+
 }
