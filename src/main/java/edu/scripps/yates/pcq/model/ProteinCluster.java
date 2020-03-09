@@ -9,7 +9,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 
@@ -657,10 +656,8 @@ public class ProteinCluster {
 				final List<PTMInProtein> ptmsInProteinFromPeptide1 = filterPTMsOfInterest(
 						peptide1.getPTMsInProtein(uplr, PCQUtils.proteinSequences));
 
-				final String key1 = PCQUtils.getPTMPositionsInProteinsKey(ptmsInProteinFromPeptide1,
-						peptide1.getQuantifiedProteins().stream().map(p -> p.getAccession())
-								.collect(Collectors.toSet()),
-						useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
+				final String key1 = PCQUtils.getPTMPositionsInProteinsKey(ptmsInProteinFromPeptide1, useProteinGeneName,
+						useProteinID, uplr, getParams().getUniprotVersion());
 				if ("".equals(key1)) {
 //					key1 = peptide1.getKey();
 					peptide1.setDiscarded(true);
@@ -681,8 +678,6 @@ public class ProteinCluster {
 
 					// iterate over all the keys
 					final String key2 = PCQUtils.getPTMPositionsInProteinsKey(ptmsInProteinFromPeptide2,
-							peptide2.getQuantifiedProteins().stream().map(p -> p.getAccession())
-									.collect(Collectors.toSet()),
 							useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
 					if ("".equals(key2)) {
 //						key2 = peptide2.getKey();
@@ -759,9 +754,8 @@ public class ProteinCluster {
 			final List<PTMInProtein> ptmsInProtein = filterPTMsOfInterest(
 					peptide.getPTMsInProtein(uplr, PCQUtils.proteinSequences));
 
-			final String key = PCQUtils.getPTMPositionsInProteinsKey(ptmsInProtein,
-					peptide.getQuantifiedProteins().stream().map(p -> p.getAccession()).collect(Collectors.toSet()),
-					useProteinGeneName, useProteinID, uplr, getParams().getUniprotVersion());
+			final String key = PCQUtils.getPTMPositionsInProteinsKey(ptmsInProtein, useProteinGeneName, useProteinID,
+					uplr, getParams().getUniprotVersion());
 			if ("".equals(key)) {
 //				key = peptide.getKey();
 				peptide.setDiscarded(true);
