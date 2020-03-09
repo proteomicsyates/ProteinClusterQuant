@@ -766,45 +766,33 @@ public class ProteinClusterQuant {
 					final Set<PositionInPeptide> quantifiedSitePositionInPeptide = quantRatio
 							.getQuantifiedSitePositionInPeptide();
 					final Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptideKeys = new THashMap<PositionInPeptide, List<PositionInProtein>>();
+					final List<PositionInProtein> positionsInProteins = new ArrayList<PositionInProtein>();
 					for (final QuantifiedPeptideInterface peptide : peptideNode.getItemsInNode()) {
 						if (params.isCollapseBySites()) {
-							proteinKeysByPeptideKeys.putAll(peptide.getProteinKeysByPeptideKeysForQuantifiedAAs(
-									params.getAaQuantified(), uplr, PCQUtils.proteinSequences));
-						} else {
-							proteinKeysByPeptideKeys.putAll(
-									peptide.getProteinKeysByPeptideKeysForPTMs(uplr, PCQUtils.proteinSequences));
-						}
-					}
-					final StringBuilder quantifiedSitepositionInProtein = new StringBuilder();
-					final StringBuilder ptmPositionInPeptide = new StringBuilder();
-					for (final PositionInPeptide positionInPeptide : proteinKeysByPeptideKeys.keySet()) {
-						if (!"".equals(ptmPositionInPeptide.toString())) {
-							ptmPositionInPeptide.append(",");
-						}
-						if (positionInPeptide instanceof PTMInPeptide) {
-							ptmPositionInPeptide.append(((PTMInPeptide) positionInPeptide).toStringExtended());
-						} else {
-							ptmPositionInPeptide.append(positionInPeptide.toString());
-						}
-						if (quantifiedSitePositionInPeptide != null && !quantifiedSitePositionInPeptide.isEmpty()) {
-							if (QuantUtils.containsPosition(quantifiedSitePositionInPeptide,
-									positionInPeptide.getPosition())) {
-								if (!"".equals(quantifiedSitepositionInProtein.toString())) {
-									quantifiedSitepositionInProtein.append(",");
-								}
-								quantifiedSitepositionInProtein.append(QuantUtils.getPositionsInProteinsKey(
-										proteinKeysByPeptideKeys.get(positionInPeptide), useProteinGeneName,
-										useProteinID, uplr, params.getUniprotVersion()));
+							final Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptideKeysForQuantifiedAAs = peptide
+									.getProteinKeysByPeptideKeysForQuantifiedAAs(params.getAaQuantified(), uplr,
+											PCQUtils.proteinSequences);
+							proteinKeysByPeptideKeys.putAll(proteinKeysByPeptideKeysForQuantifiedAAs);
+							for (final List<PositionInProtein> positionInProteins2 : proteinKeysByPeptideKeysForQuantifiedAAs
+									.values()) {
+								positionsInProteins.addAll(positionInProteins2);
 							}
 						} else {
-							if (!"".equals(quantifiedSitepositionInProtein.toString())) {
-								quantifiedSitepositionInProtein.append(",");
+							final Map<PositionInPeptide, List<PositionInProtein>> proteinKeysByPeptideKeysForPTMs = peptide
+									.getProteinKeysByPeptideKeysForPTMs(uplr, PCQUtils.proteinSequences);
+							proteinKeysByPeptideKeys.putAll(proteinKeysByPeptideKeysForPTMs);
+							for (final List<PositionInProtein> positionInProteins2 : proteinKeysByPeptideKeysForPTMs
+									.values()) {
+								positionsInProteins.addAll(positionInProteins2);
 							}
-							quantifiedSitepositionInProtein.append(QuantUtils.getPositionsInProteinsKey(
-									proteinKeysByPeptideKeys.get(positionInPeptide), useProteinGeneName, useProteinID,
-									uplr, params.getUniprotVersion()));
 						}
 					}
+
+					final String quantifiedSitepositionInProtein = PCQUtils.getPositionsInProteinsString(
+							positionsInProteins, useProteinGeneName, useProteinID, uplr, params.getUniprotVersion());
+					final String ptmPositionInPeptide = PCQUtils
+							.getPTMPositionsInPeptideString(proteinKeysByPeptideKeys.keySet());
+
 					if (params.isCollapseBySites() || params.isCollapseByPTMs()) {
 						if (quantifiedSitePositionInPeptide == null || quantifiedSitePositionInPeptide.isEmpty()) {
 							out.write("\t");
@@ -833,8 +821,8 @@ public class ProteinClusterQuant {
 						}
 					}
 					if (params.isPrintPTMPositionInProtein()) {
-						out.write(ptmPositionInPeptide.toString());
-						out.write("\t" + quantifiedSitepositionInProtein.toString());
+						out.write(ptmPositionInPeptide);
+						out.write("\t" + quantifiedSitepositionInProtein);
 					}
 				}
 
@@ -1992,7 +1980,6 @@ public class ProteinClusterQuant {
 				}
 				if (!valid) {
 					DiscardedPeptidesSet.getInstance().add(peptide, DISCARD_REASON.NOT_CONTAINING_PTM);
-
 					log.warn(peptide.getSequence() + " peptide ignored because it doesn't contain quantified PTMs");
 					continue;
 				}
@@ -2088,8 +2075,7 @@ public class ProteinClusterQuant {
 						}
 						if (!valid) {
 							DiscardedPeptidesSet.getInstance().add(peptide2, DISCARD_REASON.NOT_CONTAINING_PTM);
-
-							log.warn(peptide.getSequence()
+							log.warn(peptide2.getFullSequence()
 									+ " peptide ignored because it doesn't contain quantified PTMs");
 							continue;
 						}
