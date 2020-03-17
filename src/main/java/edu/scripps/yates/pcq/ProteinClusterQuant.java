@@ -122,6 +122,11 @@ public class ProteinClusterQuant {
 	private final Map<String, Set<String>> nonModifiedToModifiedMap = new THashMap<String, Set<String>>();
 	private DTASelectParser idParser;
 	private Set<ProteinCluster> clusterSet;
+
+	public Set<ProteinCluster> getClusterSet() {
+		return clusterSet;
+	}
+
 	private boolean createXGMMLFile = true;
 
 	public ProteinClusterQuant(File setupPropertiesFile, boolean analysisRun) throws IOException {
@@ -578,7 +583,7 @@ public class ProteinClusterQuant {
 					}
 					out.write("\n");
 					if (psm.isDiscarded()) {
-						out.write("FILTERED\t" + psm.getKey() + "\t" + psm.getSequence());
+						out.write("FILTERED\t" + psm.getKey() + "\t" + psm.getFullSequence());
 						continue;
 					}
 					final String accessionString = PCQUtils.getAccessionString(psm.getQuantifiedProteins());
@@ -591,8 +596,9 @@ public class ProteinClusterQuant {
 					if (quantRatio != null) {
 						ratioValue = PCQUtils.escapeInfinity(quantRatio.getLog2Ratio(cond1, cond2));
 					}
-					out.write(psm.getRawFileNames().iterator().next() + "\t" + psm.getKey() + "\t" + psm.getSequence()
-							+ "\t" + accessionString + "\t" + ratioDescription + "\t" + ratioValue);
+					out.write(
+							psm.getRawFileNames().iterator().next() + "\t" + psm.getKey() + "\t" + psm.getFullSequence()
+									+ "\t" + accessionString + "\t" + ratioDescription + "\t" + ratioValue);
 					if (quantRatio != null && quantRatio.getAssociatedConfidenceScore() != null) {
 						out.write("\t" + quantRatio.getAssociatedConfidenceScore().getScoreName() + "\t" + PCQUtils
 								.escapeInfinity(Double.valueOf(quantRatio.getAssociatedConfidenceScore().getValue())));
@@ -674,7 +680,7 @@ public class ProteinClusterQuant {
 
 		try {
 
-			final File file = getPeptideNodeTableFile();
+			final File file = getTEMPPeptideNodeTableFile();
 			final boolean useProteinGeneName = params.getProteinLabel() == ProteinNodeLabel.GENE;
 			final boolean useProteinID = params.getProteinLabel() == ProteinNodeLabel.ID;
 			log.info("Printing Peptide Node ratios at file : '" + file.getAbsolutePath() + "'");
@@ -2962,7 +2968,12 @@ public class ProteinClusterQuant {
 		this.createXGMMLFile = createXGMMLFile;
 	}
 
-	public File getPeptideNodeTableFile() {
+	/**
+	 * Gets the peptide node table file that is in a TEMP folder
+	 * 
+	 * @return
+	 */
+	public File getTEMPPeptideNodeTableFile() {
 		final File outputFileFolder = params.getTemporalOutputFolder();
 		final String outputPrefix = params.getOutputPrefix();
 		final String outputSuffix = params.getOutputSuffix();
@@ -2970,6 +2981,12 @@ public class ProteinClusterQuant {
 		return new File(outputFileFolder + File.separator + fileName);
 	}
 
+	/**
+	 * Gets the peptide node table file that has been transferred to a not TEMP
+	 * folder
+	 * 
+	 * @return
+	 */
 	public File getFinalPeptideNodeTableFile() {
 		final File outputFileFolder = params.getOutputFileFolder();
 		final String outputPrefix = params.getOutputPrefix();
