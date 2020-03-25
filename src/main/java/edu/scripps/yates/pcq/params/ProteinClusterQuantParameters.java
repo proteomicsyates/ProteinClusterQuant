@@ -31,6 +31,8 @@ import gnu.trove.map.hash.THashMap;
 
 public class ProteinClusterQuantParameters {
 
+	private static final boolean DEFAULT_DISTINGUISH_MODIFIED_SEQUENCE = true;
+	private static final boolean DEFAULT_CHARGE_STATE_SENSIBLE = true;
 	private boolean labelSwap;
 	private double thresholdForSignificance;
 	private boolean printOnlyFirstGene;
@@ -1269,5 +1271,13 @@ public class ProteinClusterQuantParameters {
 
 	public void setCreateProteinPTMStates(boolean createProteinPTMStates) {
 		this.createProteinPTMStates = createProteinPTMStates;
+	}
+
+	public boolean isDistinguishModifiedSequence() {
+		return DEFAULT_DISTINGUISH_MODIFIED_SEQUENCE;
+	}
+
+	public boolean isChargeStateSensible() {
+		return DEFAULT_CHARGE_STATE_SENSIBLE;
 	}
 }

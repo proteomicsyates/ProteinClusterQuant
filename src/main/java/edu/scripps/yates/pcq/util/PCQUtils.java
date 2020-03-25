@@ -34,6 +34,7 @@ import edu.scripps.yates.census.read.model.IsobaricQuantifiedPeptide;
 import edu.scripps.yates.census.read.model.QuantifiedPSM;
 import edu.scripps.yates.census.read.model.QuantifiedPeptide;
 import edu.scripps.yates.census.read.model.RatioScore;
+import edu.scripps.yates.census.read.model.StaticQuantMaps;
 import edu.scripps.yates.census.read.model.interfaces.QuantParser;
 import edu.scripps.yates.census.read.model.interfaces.QuantRatio;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
@@ -719,6 +720,15 @@ public class PCQUtils {
 			addDTASelectParserToStaticMap(fileNamesKey, parser);
 
 		}
+	}
+
+	public static void resetParsers() {
+		log.info("Clearing quant parsers");
+		quantParsersByFileNamesKey.clear();
+		log.info("Clearing static quant info");
+		StaticQuantMaps.clearInfo();
+		log.info("Clearing dtaSelect parsers");
+		dtaSelectParsersByFileNamesKey.clear();
 	}
 
 	private static SeparatedValuesParser getSeparatedValuesParserUsingMongoDBIndex(String mongoDBURI,

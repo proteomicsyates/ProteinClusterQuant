@@ -17,9 +17,10 @@ import edu.scripps.yates.utilities.sequence.PTMInPeptide;
 public class NonQuantifiedPSM extends QuantifiedPSM {
 	private final PSM psm;
 
-	public NonQuantifiedPSM(PSM psm) throws NumberFormatException, IOException {
+	public NonQuantifiedPSM(PSM psm, boolean distinguishModifiedSequence, boolean chargeStateSensible)
+			throws NumberFormatException, IOException {
 		super(psm.getFullSequence(), null, null, Integer.valueOf(psm.getScanNumber()), psm.getChargeState(),
-				psm.getMSRun().getRunId(), false);
+				psm.getMSRun().getRunId(), false, distinguishModifiedSequence, chargeStateSensible);
 		this.psm = psm;
 	}
 

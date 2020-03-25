@@ -105,7 +105,7 @@ import gnu.trove.list.array.TDoubleArrayList;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.hash.THashSet;
 
-public class ProteinClusterQuant {
+public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQuant, Object> {
 	private final static Logger log = Logger.getLogger(ProteinClusterQuant.class);
 	static final String SETUP_PROPERTIES = "setup.properties";
 	private static final String sep = "\t";
@@ -130,6 +130,7 @@ public class ProteinClusterQuant {
 	private boolean createXGMMLFile = true;
 
 	public ProteinClusterQuant(File setupPropertiesFile, boolean analysisRun) throws IOException {
+		ProteinClusterQuant.resetParsers();
 		params = ProteinClusterQuantParameters.getInstance();
 		params.clear();
 		this.setupPropertiesFile = setupPropertiesFile;
@@ -217,7 +218,7 @@ public class ProteinClusterQuant {
 				final File setupPropertiesFile = new File(propertiesFilePath);
 
 				final ProteinClusterQuant clusterCreator = new ProteinClusterQuant(setupPropertiesFile, true);
-				clusterCreator.run();
+				clusterCreator.runPCQ();
 			}
 		} catch (final Exception e) {
 			e.printStackTrace();
@@ -231,7 +232,7 @@ public class ProteinClusterQuant {
 		pcqCompare.runComparison();
 	}
 
-	public void run() throws IOException {
+	public void runPCQ() throws IOException {
 		if (params.isAnalysisRun()) {
 			runAnalysis();
 		} else if (params.isComparisonRun()) {
@@ -461,7 +462,7 @@ public class ProteinClusterQuant {
 
 			// rename TEMP output folder to output folder
 			moveResultsToFinalFolder();
-
+			firePropertyChange(FINISHED_ANALYSIS, null, getFinalPeptideNodeTableFile());
 			log.info("DONE.");
 		} catch (final FileNotFoundException e) {
 			e.printStackTrace();
@@ -474,6 +475,10 @@ public class ProteinClusterQuant {
 			log.error(e.getMessage());
 		}
 
+	}
+
+	public static void resetParsers() {
+		PCQUtils.resetParsers();
 	}
 
 	private void printDiscardedPeptides() {
@@ -1104,6 +1109,7 @@ public class ProteinClusterQuant {
 	public static final String CLUSTER_ID_COLUMN_HEADER = "clusterID";
 	public static final String PEPTIDE_NODE_ID_COLUMN_HEADER = "peptideNodeID";
 	public static final String LOG2RATIO_COLUMN_HEADER = "log2Ratio";
+	public static final String FINISHED_ANALYSIS = "Finished analysis";
 
 	private String getPeptideNodeHeaderLine() {
 		final StringBuilder sb = new StringBuilder();
@@ -2993,5 +2999,11 @@ public class ProteinClusterQuant {
 		final String outputSuffix = params.getOutputSuffix();
 		final String fileName = outputPrefix + "_peptideNodeTable_" + outputSuffix + ".txt";
 		return new File(outputFileFolder + File.separator + fileName);
+	}
+
+	@Override
+	protected ProteinClusterQuant doInBackground() throws Exception {
+		runPCQ();
+		return this;
 	}
 }

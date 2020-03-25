@@ -50,7 +50,8 @@ public class SanxotRunner {
 			analysisOutcome = ANALYSIS_LEVEL_OUTCOME.QUANTIFIED_SITE;
 		}
 		quantAnalysis = new QuantAnalysis(quantType, workingFolder, condition1, condition2, analysisOutcome,
-				params.isIgnorePTMs(), params.isCollapseByPTMs(), params.isCollapseBySites());
+				params.isIgnorePTMs(), params.isCollapseByPTMs(), params.isCollapseBySites(),
+				params.isDistinguishModifiedSequence(), params.isChargeStateSensible());
 		// set the ratio name
 		quantParameters.setRatioName(PCQUtils.getRatioNameByAnalysisType());
 		quantAnalysis.setQuantParameters(quantParameters);
