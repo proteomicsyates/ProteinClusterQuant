@@ -122,6 +122,12 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 	private final Map<String, Set<String>> nonModifiedToModifiedMap = new THashMap<String, Set<String>>();
 	private DTASelectParser idParser;
 	private Set<ProteinCluster> clusterSet;
+	public static final String PCQ_STARTED = "PCQ_STARTED";
+	public static final String PCQ_FINISHED = "PCQ_FINISHED";
+	public static final String PCQ_ERROR = "PCQ_FINISHED";
+	public static final String CLUSTER_ID_COLUMN_HEADER = "clusterID";
+	public static final String PEPTIDE_NODE_ID_COLUMN_HEADER = "peptideNodeID";
+	public static final String LOG2RATIO_COLUMN_HEADER = "log2Ratio";
 
 	public Set<ProteinCluster> getClusterSet() {
 		return clusterSet;
@@ -462,7 +468,6 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 
 			// rename TEMP output folder to output folder
 			moveResultsToFinalFolder();
-			firePropertyChange(FINISHED_ANALYSIS, null, getFinalPeptideNodeTableFile());
 			log.info("DONE.");
 		} catch (final FileNotFoundException e) {
 			e.printStackTrace();
@@ -1105,11 +1110,6 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 		}
 		return ret;
 	}
-
-	public static final String CLUSTER_ID_COLUMN_HEADER = "clusterID";
-	public static final String PEPTIDE_NODE_ID_COLUMN_HEADER = "peptideNodeID";
-	public static final String LOG2RATIO_COLUMN_HEADER = "log2Ratio";
-	public static final String FINISHED_ANALYSIS = "Finished analysis";
 
 	private String getPeptideNodeHeaderLine() {
 		final StringBuilder sb = new StringBuilder();
@@ -3003,7 +3003,15 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 
 	@Override
 	protected ProteinClusterQuant doInBackground() throws Exception {
-		runPCQ();
-		return this;
+		try {
+			firePropertyChange(PCQ_STARTED, null, "Starting PCQ run");
+			runPCQ();
+			firePropertyChange(PCQ_FINISHED, null, this);
+			return this;
+		} catch (Exception e) {
+			e.printStackTrace();
+			firePropertyChange(PCQ_ERROR, null, e.getMessage());
+		}
+		return null;
 	}
 }
