@@ -19,8 +19,8 @@ public class NonQuantifiedPSM extends QuantifiedPSM {
 
 	public NonQuantifiedPSM(PSM psm, boolean distinguishModifiedSequence, boolean chargeStateSensible)
 			throws NumberFormatException, IOException {
-		super(psm.getFullSequence(), null, null, Integer.valueOf(psm.getScanNumber()), psm.getChargeState(),
-				psm.getMSRun().getRunId(), false, distinguishModifiedSequence, chargeStateSensible);
+		super(psm.getFullSequence(), null, null, psm.getScanNumber(), psm.getChargeState(), psm.getMSRun().getRunId(),
+				false, distinguishModifiedSequence, chargeStateSensible);
 		this.psm = psm;
 	}
 
