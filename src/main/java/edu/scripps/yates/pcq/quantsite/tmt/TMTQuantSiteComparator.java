@@ -19,6 +19,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.log4j.Logger;
 
+import edu.scripps.yates.census.read.QuantParserException;
 import edu.scripps.yates.pcq.PCQBatchRunner;
 import edu.scripps.yates.pcq.ProteinClusterQuant;
 import edu.scripps.yates.pcq.quantsite.QuantSiteOutputComparator;
@@ -195,7 +196,7 @@ public class TMTQuantSiteComparator {
 		}
 	}
 
-	private void run() throws IOException {
+	private void run() throws IOException, QuantParserException {
 		// get PCQ parameters and pairwise ratio files
 		final TMTPairWisePCQInputParametersGenerator pcqInputParamtersGenerator = new TMTPairWisePCQInputParametersGenerator(
 				paramFile, tmtFiles, tmtType, outputFileName, ignoreNotFoundSignals);

@@ -45,6 +45,7 @@ import edu.scripps.yates.census.analysis.wrappers.OutlierRemovalResultWrapper;
 import edu.scripps.yates.census.analysis.wrappers.SanXotAnalysisResult;
 import edu.scripps.yates.census.analysis.wrappers.SanxotQuantResult;
 import edu.scripps.yates.census.read.AbstractQuantParser;
+import edu.scripps.yates.census.read.QuantParserException;
 import edu.scripps.yates.census.read.model.CensusRatio;
 import edu.scripps.yates.census.read.model.IonCountRatio;
 import edu.scripps.yates.census.read.model.QuantifiedProtein;
@@ -238,7 +239,7 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 		pcqCompare.runComparison();
 	}
 
-	public void runPCQ() throws IOException {
+	public void runPCQ() throws IOException, QuantParserException {
 		if (params.isAnalysisRun()) {
 			runAnalysis();
 		} else if (params.isComparisonRun()) {
@@ -248,7 +249,7 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 		}
 	}
 
-	private void runAnalysis() throws IOException {
+	private void runAnalysis() throws IOException, QuantParserException {
 
 		clusterSet = new THashSet<ProteinCluster>();
 
@@ -521,7 +522,7 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 
 	}
 
-	private Set<String> getPeptideInclusionList() throws IOException {
+	private Set<String> getPeptideInclusionList() throws IOException, QuantParserException {
 		final Set<String> peptideInclusionList = new THashSet<String>();
 		final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
 				params.getNumeratorLabel(), params.getDenominatorLabel());
@@ -542,7 +543,7 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 		return peptideInclusionList;
 	}
 
-	private void printPSMRatiosFile() {
+	private void printPSMRatiosFile() throws QuantParserException {
 		FileWriter out = null;
 
 		try {
@@ -858,7 +859,7 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 
 	}
 
-	private void printPeptideRatiosFile() {
+	private void printPeptideRatiosFile() throws QuantParserException {
 		FileWriter out = null;
 
 		try {
@@ -1029,9 +1030,10 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 	 *                                   null, and therefore the output table will
 	 *                                   not have the FDR column
 	 * @throws IOException
+	 * @throws QuantParserException
 	 */
 	private void printFinalFile(Set<ProteinCluster> clusterSet,
-			Map<String, SanxotQuantResult> ratioStatsByPeptideNodeKey) throws IOException {
+			Map<String, SanxotQuantResult> ratioStatsByPeptideNodeKey) throws IOException, QuantParserException {
 
 		final Map<String, PCQPeptideNode> peptideNodesByNodeID = new THashMap<String, PCQPeptideNode>();
 		for (final ProteinCluster cluster : clusterSet) {
@@ -1813,9 +1815,10 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 	 *
 	 * @return
 	 * @throws IOException
+	 * @throws QuantParserException
 	 */
 	private SanXotAnalysisResult calculatePeptideExperimentReplicateRatios(Set<String> peptideInclusionList)
-			throws IOException {
+			throws IOException, QuantParserException {
 		log.info("Running SanXot algorithm for integrating quantitative ratios");
 		final long t1 = System.currentTimeMillis();
 		final SanxotRunner sanxotRunner = new SanxotRunner(this, getQuantType(), params.getTemporalOutputFolder(),
@@ -1855,7 +1858,7 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 		log.info("TEMP folder deleted.");
 	}
 
-	private void exportToXGMML(Set<ProteinCluster> clusterSet) throws IOException {
+	private void exportToXGMML(Set<ProteinCluster> clusterSet) throws IOException, QuantParserException {
 		final Map<String, Entry> annotatedProteins = getAnnotatedProteins();
 		final XgmmlExporter exporter = new XgmmlExporter();
 		exporter.exportToXGMMLUsingNodes(clusterSet, annotatedProteins, cond1, cond2);
@@ -1944,8 +1947,10 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 	 * @param peptideMap
 	 * @return
 	 * @throws IOException
+	 * @throws QuantParserException
 	 */
-	private Set<ProteinCluster> createClusters(Map<String, QuantifiedPeptideInterface> peptideMap) throws IOException {
+	private Set<ProteinCluster> createClusters(Map<String, QuantifiedPeptideInterface> peptideMap)
+			throws IOException, QuantParserException {
 		final Map<String, ProteinCluster> clustersByPeptideSequence = new THashMap<String, ProteinCluster>();
 		final Set<ProteinCluster> clusterSet = new THashSet<ProteinCluster>();
 		final Set<String> proteinACCs = new THashSet<String>();
@@ -2330,7 +2335,7 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 
 	}
 
-	private void printPSEAQuantFiles(Set<ProteinCluster> clusterSet) throws IOException {
+	private void printPSEAQuantFiles(Set<ProteinCluster> clusterSet) throws IOException, QuantParserException {
 
 		final Map<String, Entry> annotatedProteins = getAnnotatedProteins();
 
@@ -2470,7 +2475,7 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 		}
 	}
 
-	public Map<String, Entry> getAnnotatedProteins() throws IOException {
+	public Map<String, Entry> getAnnotatedProteins() throws IOException, QuantParserException {
 		if (annotatedProteins == null) {
 			if (params.getUniprotReleasesFolder() != null) {
 
@@ -3008,7 +3013,7 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 			runPCQ();
 			firePropertyChange(PCQ_FINISHED, null, this);
 			return this;
-		} catch (Exception e) {
+		} catch (final Exception e) {
 			e.printStackTrace();
 			firePropertyChange(PCQ_ERROR, null, e.getMessage());
 		}

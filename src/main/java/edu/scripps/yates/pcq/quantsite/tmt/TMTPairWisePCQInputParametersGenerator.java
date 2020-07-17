@@ -23,6 +23,7 @@ import org.apache.log4j.Logger;
 
 import edu.scripps.yates.census.analysis.QuantCondition;
 import edu.scripps.yates.census.read.CensusOutParser;
+import edu.scripps.yates.census.read.QuantParserException;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
 import edu.scripps.yates.census.read.util.QuantificationLabel;
@@ -127,8 +128,9 @@ public class TMTPairWisePCQInputParametersGenerator {
 	 * 
 	 * @return
 	 * @throws IOException
+	 * @throws QuantParserException
 	 */
-	public Map<String, File> run() throws IOException {
+	public Map<String, File> run() throws IOException, QuantParserException {
 		log.info("Running " + getClass().getCanonicalName());
 		final Map<String, File> pcqParamtersFiles = new THashMap<String, File>();
 		labelsByConditions = generateLabelsByConditions();
@@ -327,7 +329,7 @@ public class TMTPairWisePCQInputParametersGenerator {
 		return paramLine.trim().startsWith("#");
 	}
 
-	private void createPairWiseTMTTSVFiles(File tmtFile) throws IOException {
+	private void createPairWiseTMTTSVFiles(File tmtFile) throws IOException, QuantParserException {
 		log.info("Creating data file (TSV format) for all pairwise combinations of TMT in file "
 				+ tmtFile.getAbsolutePath());
 		final CensusOutParser parser = new CensusOutParser(tmtFile, labelsByConditions, null, null);

@@ -23,6 +23,7 @@ import edu.scripps.yates.census.analysis.SanXotInterfaze;
 import edu.scripps.yates.census.analysis.wrappers.IntegrationResultWrapper;
 import edu.scripps.yates.census.analysis.wrappers.OutlierRemovalResultWrapper;
 import edu.scripps.yates.census.analysis.wrappers.SanXotAnalysisResult;
+import edu.scripps.yates.census.read.QuantParserException;
 import edu.scripps.yates.census.read.model.interfaces.QuantParser;
 import edu.scripps.yates.census.read.util.QuantificationLabel;
 import edu.scripps.yates.pcq.ProteinClusterQuant;
@@ -97,7 +98,7 @@ public class SanxotRunner {
 		return parser;
 	}
 
-	public SanXotAnalysisResult run() throws IOException {
+	public SanXotAnalysisResult run() throws IOException, QuantParserException {
 		// run sanxot until peptide level and asign a
 		quantAnalysis.runSanXot();
 		final SanXotAnalysisResult result = quantAnalysis.getResult();
