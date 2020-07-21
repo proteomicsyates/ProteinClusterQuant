@@ -60,9 +60,11 @@ public class TMTQuantSiteComparator {
 				tmtType = cmd.getOptionValue("tmt");
 			}
 			if (!TMTPairWisePCQInputParametersGenerator.TMT10PLEX.equals(tmtType)
-					&& !TMTPairWisePCQInputParametersGenerator.TMT6PLEX.equals(tmtType)) {
+					&& !TMTPairWisePCQInputParametersGenerator.TMT6PLEX.equals(tmtType)
+					&& !TMTPairWisePCQInputParametersGenerator.TMT11PLEX.equals(tmtType)) {
 				throw new IllegalArgumentException("Invalid value for tmt parameter: '" + tmtType
 						+ "'. Valid values are " + TMTPairWisePCQInputParametersGenerator.TMT10PLEX + " or "
+						+ TMTPairWisePCQInputParametersGenerator.TMT11PLEX + " or "
 						+ TMTPairWisePCQInputParametersGenerator.TMT6PLEX + " in tmt parameter");
 			}
 

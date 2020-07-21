@@ -26,6 +26,7 @@ import edu.scripps.yates.census.read.CensusOutParser;
 import edu.scripps.yates.census.read.QuantParserException;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedPSMInterface;
 import edu.scripps.yates.census.read.model.interfaces.QuantifiedProteinInterface;
+import edu.scripps.yates.census.read.util.QuantUtils;
 import edu.scripps.yates.census.read.util.QuantificationLabel;
 import edu.scripps.yates.pcq.ProteinClusterQuant;
 import edu.scripps.yates.pcq.params.PropertiesReader;
@@ -52,9 +53,10 @@ public class TMTPairWisePCQInputParametersGenerator {
 	private final File baseParamFile;
 	private final List<File> tmtFiles;
 	private final String tmtType;
-	private Map<QuantCondition, QuantificationLabel> labelsByConditions;
+	private Map<QuantificationLabel, QuantCondition> conditionsByLabels;
 	public final static String TMT10PLEX = "10PLEX";
 	public final static String TMT6PLEX = "6PLEX";
+	public final static String TMT11PLEX = "11PLEX";
 	private static final String TMT_DATA_FILES = "tmt_pairwise_data_files";
 	private static final String PCQ_PARAMETERS = "pcq_parameters";
 	public static final String VS = " vs ";
@@ -82,9 +84,10 @@ public class TMTPairWisePCQInputParametersGenerator {
 			if (cmd.hasOption("tmt")) {
 				tmtType = cmd.getOptionValue("tmt");
 			}
-			if (!TMT10PLEX.equals(tmtType) && !TMT6PLEX.equals(tmtType)) {
-				throw new IllegalArgumentException("Invalid value for tmt parameter: '" + tmtType
-						+ "'. Valid values are " + TMT10PLEX + " or " + TMT6PLEX + " in tmt parameter");
+			if (!TMT10PLEX.equals(tmtType) && !TMT6PLEX.equals(tmtType) && !TMT11PLEX.equals(tmtType)) {
+				throw new IllegalArgumentException(
+						"Invalid value for tmt parameter: '" + tmtType + "'. Valid values are " + TMT11PLEX + ", "
+								+ TMT10PLEX + " or " + TMT6PLEX + " in tmt parameter");
 			}
 			final String outputFileName = cmd.getOptionValue("out");
 
@@ -133,7 +136,7 @@ public class TMTPairWisePCQInputParametersGenerator {
 	public Map<String, File> run() throws IOException, QuantParserException {
 		log.info("Running " + getClass().getCanonicalName());
 		final Map<String, File> pcqParamtersFiles = new THashMap<String, File>();
-		labelsByConditions = generateLabelsByConditions();
+		conditionsByLabels = generateLabelsByConditions();
 
 		// first create a file per TMT
 		for (final File tmtFile : tmtFiles) {
@@ -332,11 +335,13 @@ public class TMTPairWisePCQInputParametersGenerator {
 	private void createPairWiseTMTTSVFiles(File tmtFile) throws IOException, QuantParserException {
 		log.info("Creating data file (TSV format) for all pairwise combinations of TMT in file "
 				+ tmtFile.getAbsolutePath());
-		final CensusOutParser parser = new CensusOutParser(tmtFile, labelsByConditions, null, null);
+		final CensusOutParser parser = new CensusOutParser(tmtFile, conditionsByLabels, null, null);
 		final List<String> psmKeys = new ArrayList<String>();
 		psmKeys.addAll(parser.getPSMMap().keySet());
 		Collections.sort(psmKeys);
 		final List<QuantificationLabel> labels = getLabelList();
+		final Map<QuantCondition, Set<QuantificationLabel>> labelsByConditions = QuantUtils
+				.getLabelsByConditions(conditionsByLabels);
 		// create a file for each pairwise comparison between channels
 		for (int i = 0; i < labels.size(); i++) {
 			final QuantificationLabel labelNumerator = labels.get(i);
@@ -360,12 +365,14 @@ public class TMTPairWisePCQInputParametersGenerator {
 							double intensityDenominator = Double.NaN;
 							for (final Amount amount : psm.getAmounts()) {
 								if (amount.getAmountType() == AmountType.NORMALIZED_INTENSITY) {
-									final QuantificationLabel quantificationLabel = labelsByConditions
+									final Set<QuantificationLabel> quantificationLabels = labelsByConditions
 											.get(amount.getCondition());
-									if (quantificationLabel == labelNumerator) {
-										intensityNumerator = amount.getValue();
-									} else if (quantificationLabel == labelDenominator) {
-										intensityDenominator = amount.getValue();
+									for (final QuantificationLabel quantificationLabel : quantificationLabels) {
+										if (quantificationLabel == labelNumerator) {
+											intensityNumerator = amount.getValue();
+										} else if (quantificationLabel == labelDenominator) {
+											intensityDenominator = amount.getValue();
+										}
 									}
 								}
 							}
@@ -415,9 +422,11 @@ public class TMTPairWisePCQInputParametersGenerator {
 			labels.addAll(QuantificationLabel.getTMT6PlexLabels());
 		} else if (isTMT10Plex()) {
 			labels.addAll(QuantificationLabel.getTMT10PlexLabels());
+		} else if (isTMT11Plex()) {
+			labels.addAll(QuantificationLabel.getTMT11PlexLabels());
 		} else {
 			throw new IllegalArgumentException("Non valid value for tmt parameter: '" + tmtType + "'. Valid values are "
-					+ TMT10PLEX + " and " + TMT6PLEX);
+					+ TMT10PLEX + ", " + TMT6PLEX + " or " + TMT11PLEX);
 		}
 		labels.sort(new Comparator<QuantificationLabel>() {
 
@@ -469,73 +478,79 @@ public class TMTPairWisePCQInputParametersGenerator {
 		return TMT10PLEX.equals(tmtType);
 	}
 
+	private boolean isTMT11Plex() {
+		return TMT11PLEX.equals(tmtType);
+	}
+
 	private boolean isTMT6Plex() {
 		return TMT6PLEX.equals(tmtType);
 	}
 
-	private Map<QuantCondition, QuantificationLabel> generateLabelsByConditions() {
-		final Map<QuantCondition, QuantificationLabel> labelsByConditions = new THashMap<QuantCondition, QuantificationLabel>();
+	private Map<QuantificationLabel, QuantCondition> generateLabelsByConditions() {
+		final Map<QuantificationLabel, QuantCondition> conditionsByLabels = new THashMap<QuantificationLabel, QuantCondition>();
 		List<QuantificationLabel> labels = null;
 		if (TMT10PLEX.equals(tmtType)) {
 			labels = QuantificationLabel.getTMT10PlexLabels();
 		} else if (TMT6PLEX.equals(tmtType)) {
 			labels = QuantificationLabel.getTMT6PlexLabels();
+		} else if (TMT11PLEX.equals(tmtType)) {
+			labels = QuantificationLabel.getTMT11PlexLabels();
 		}
 		for (final QuantificationLabel label : labels) {
 			switch (label) {
-			case TMT_10PLEX_126_127726:
-				labelsByConditions.put(getCondition("AD1"), label);
+			case TMT_10PLEX_126:
+				conditionsByLabels.put(label, getCondition("AD1"));
 				break;
-			case TMT_10PLEX_127_124761:
-				labelsByConditions.put(getCondition("AD2"), label);
+			case TMT_10PLEX_127N:
+				conditionsByLabels.put(label, getCondition("AD2"));
 				break;
-			case TMT_10PLEX_127_131081:
-				labelsByConditions.put(getCondition("AD3"), label);
+			case TMT_10PLEX_127C:
+				conditionsByLabels.put(label, getCondition("AD3"));
 				break;
-			case TMT_10PLEX_128_128116:
-				labelsByConditions.put(getCondition("AD4"), label);
+			case TMT_10PLEX_128N:
+				conditionsByLabels.put(label, getCondition("AD4"));
 				break;
-			case TMT_10PLEX_128_134436:
-				labelsByConditions.put(getCondition("AD5"), label);
+			case TMT_10PLEX_128C:
+				conditionsByLabels.put(label, getCondition("AD5"));
 				break;
-			case TMT_10PLEX_129_131471:
-				labelsByConditions.put(getCondition("C1"), label);
+			case TMT_10PLEX_129N:
+				conditionsByLabels.put(label, getCondition("C1"));
 				break;
-			case TMT_10PLEX_129_13779:
-				labelsByConditions.put(getCondition("C2"), label);
+			case TMT_10PLEX_129C:
+				conditionsByLabels.put(label, getCondition("C2"));
 				break;
-			case TMT_10PLEX_130_134825:
-				labelsByConditions.put(getCondition("C3"), label);
+			case TMT_10PLEX_130N:
+				conditionsByLabels.put(label, getCondition("C3"));
 				break;
-			case TMT_10PLEX_130_141145:
-				labelsByConditions.put(getCondition("C4"), label);
+			case TMT_10PLEX_130C:
+				conditionsByLabels.put(label, getCondition("C4"));
 				break;
-			case TMT_10PLEX_131_13818:
-				labelsByConditions.put(getCondition("C5"), label);
+			case TMT_10PLEX_131:
+				conditionsByLabels.put(label, getCondition("C5"));
 				break;
 			case TMT_6PLEX_126:
-				labelsByConditions.put(getCondition("AD1"), label);
+				conditionsByLabels.put(label, getCondition("AD1"));
 				break;
 			case TMT_6PLEX_127:
-				labelsByConditions.put(getCondition("AD2"), label);
+				conditionsByLabels.put(label, getCondition("AD2"));
 				break;
 			case TMT_6PLEX_128:
-				labelsByConditions.put(getCondition("AD3"), label);
+				conditionsByLabels.put(label, getCondition("AD3"));
 				break;
 			case TMT_6PLEX_129:
-				labelsByConditions.put(getCondition("C1"), label);
+				conditionsByLabels.put(label, getCondition("C1"));
 				break;
 			case TMT_6PLEX_130:
-				labelsByConditions.put(getCondition("C2"), label);
+				conditionsByLabels.put(label, getCondition("C2"));
 				break;
 			case TMT_6PLEX_131:
-				labelsByConditions.put(getCondition("C3"), label);
+				conditionsByLabels.put(label, getCondition("C3"));
 				break;
 			default:
 				break;
 			}
 		}
-		return labelsByConditions;
+		return conditionsByLabels;
 	}
 
 	private QuantCondition getCondition(String condName) {

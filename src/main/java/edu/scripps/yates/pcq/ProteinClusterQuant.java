@@ -307,12 +307,12 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 			}
 
 			final Set<String> peptideInclusionList = getPeptideInclusionList();
-			final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
+			final List<Map<QuantificationLabel, QuantCondition>> conditionsByLabelsList = getConditionsByLabelsList(
 					params.getNumeratorLabel(), params.getDenominatorLabel());
 
 			// try to get an quantParser
 			final boolean useFasta = true;
-			quantParser = PCQUtils.getQuantParser(params, labelsByConditionsList, useFasta, peptideInclusionList);
+			quantParser = PCQUtils.getQuantParser(params, conditionsByLabelsList, useFasta, peptideInclusionList);
 			// try to get an dtaSelectParser
 			idParser = PCQUtils.getDTASelectParser(params, useFasta, peptideInclusionList, true);
 			log.info("Reading input files...");
@@ -524,11 +524,11 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 
 	private Set<String> getPeptideInclusionList() throws IOException, QuantParserException {
 		final Set<String> peptideInclusionList = new THashSet<String>();
-		final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
+		final List<Map<QuantificationLabel, QuantCondition>> conditionsByLabelsList = getConditionsByLabelsList(
 				params.getNumeratorLabel(), params.getDenominatorLabel());
 		// try to get an quantParser
 		final boolean useFasta = false;
-		final QuantParser quantParserTMP = PCQUtils.getQuantParser(params, labelsByConditionsList, useFasta, null);
+		final QuantParser quantParserTMP = PCQUtils.getQuantParser(params, conditionsByLabelsList, useFasta, null);
 		if (quantParserTMP != null) {
 			peptideInclusionList.addAll(quantParserTMP.getPeptideMap().values().parallelStream()
 					.map(peptide -> peptide.getSequence()).collect(Collectors.toSet()));
@@ -1326,10 +1326,9 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 				if (ratioStatsByPeptideNodeKey.containsKey(peptideNodeKey)) {
 					final SanxotQuantResult sanxotQuantResult = ratioStatsByPeptideNodeKey.get(peptideNodeKey);
 
-					final Map<QuantCondition, QuantificationLabel> labelsByConditions = getConsensusQuantificationLabelsByConditions();
-					final Map<QuantificationLabel, QuantCondition> conditionsByLabels = swapMap(labelsByConditions);
+					final Map<QuantificationLabel, QuantCondition> conditionsByLabels = getConsensusQuantificationLabelsByConditions();
 					final CensusRatio ratio = new CensusRatio(sanxotQuantResult.getNonLog2ratio(), false,
-							conditionsByLabels, labelsByConditions.get(cond1), labelsByConditions.get(cond2),
+							conditionsByLabels, getParams().getNumeratorLabel(), getParams().getDenominatorLabel(),
 							AggregationLevel.PEPTIDE_NODE, PCQPeptideNode.INTEGRATED_PEPTIDE_NODE_RATIO);
 					ratio.setCombinationType(CombinationType.WEIGHTED_AVERAGE);
 					final RatioScore fdrScore = new RatioScore(String.valueOf(sanxotQuantResult.getFdr()),
@@ -1370,12 +1369,12 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 						if (outStatsRatios.containsKey(integrationKey)) {
 							final SanxotQuantResult sanxotQuantResult = outStatsRatios.get(integrationKey);
 
-							final Map<QuantCondition, QuantificationLabel> labelsByConditions = getConsensusQuantificationLabelsByConditions();
-							final Map<QuantificationLabel, QuantCondition> conditionsByLabels = swapMap(
-									labelsByConditions);
+							final Map<QuantificationLabel, QuantCondition> conditionsByLabels = getConsensusQuantificationLabelsByConditions();
+
 							final CensusRatio ratio = new CensusRatio(sanxotQuantResult.getNonLog2ratio(), false,
-									conditionsByLabels, labelsByConditions.get(cond1), labelsByConditions.get(cond2),
-									AggregationLevel.PEPTIDE_NODE, PCQPeptideNode.INTEGRATED_PEPTIDE_NODE_RATIO);
+									conditionsByLabels, getParams().getNumeratorLabel(),
+									getParams().getDenominatorLabel(), AggregationLevel.PEPTIDE_NODE,
+									PCQPeptideNode.INTEGRATED_PEPTIDE_NODE_RATIO);
 							ratio.setCombinationType(CombinationType.WEIGHTED_AVERAGE);
 							final RatioScore fdrScore = new RatioScore(String.valueOf(sanxotQuantResult.getFdr()),
 									PCQUtils.FDR_CONFIDENCE_SCORE_NAME, "PSM-level quantification confidence metric",
@@ -1410,26 +1409,17 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 	 *
 	 * @return
 	 */
-	private Map<QuantCondition, QuantificationLabel> getConsensusQuantificationLabelsByConditions() {
+	private Map<QuantificationLabel, QuantCondition> getConsensusQuantificationLabelsByConditions() {
 		for (final ExperimentFiles experimentFiles : params.getInputQuantificationFileNames()) {
 			for (final String replicateFileName : experimentFiles.getRelicateFileNames()) {
-				final Map<QuantCondition, QuantificationLabel> labelsByConditions = getLabelsByConditions(
+				final Map<QuantificationLabel, QuantCondition> conditionsByLabels = getConditionsByLabels(
 						replicateFileName);
-				if (labelsByConditions != null) {
-					return labelsByConditions;
+				if (conditionsByLabels != null) {
+					return conditionsByLabels;
 				}
 			}
 		}
 		return null;
-	}
-
-	private Map<QuantificationLabel, QuantCondition> swapMap(Map<QuantCondition, QuantificationLabel> map) {
-		final Map<QuantificationLabel, QuantCondition> ret = new THashMap<QuantificationLabel, QuantCondition>();
-		for (final QuantCondition condition : map.keySet()) {
-			final QuantificationLabel quantificationLabel = map.get(condition);
-			ret.put(quantificationLabel, condition);
-		}
-		return ret;
 	}
 
 	private SanXotAnalysisResult calculatePeptideNodeRatios(SanXotAnalysisResult peptideNodeRepSanxotResult,
@@ -1885,9 +1875,9 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 
 	}
 
-	public Map<QuantCondition, QuantificationLabel> getLabelsByConditions(String replicateName) {
+	public Map<QuantificationLabel, QuantCondition> getConditionsByLabels(String replicateName) {
 
-		final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = getLabelsByconditionsList(
+		final List<Map<QuantificationLabel, QuantCondition>> labelsByConditionsList = getConditionsByLabelsList(
 				params.getNumeratorLabel(), params.getDenominatorLabel());
 		final List<ExperimentFiles> inputFileNames = params.getInputQuantificationFileNames();
 		int j = 0;
@@ -1902,15 +1892,15 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 		return null;
 	}
 
-	private List<Map<QuantCondition, QuantificationLabel>> getLabelsByconditionsList(QuantificationLabel labelNumerator,
+	private List<Map<QuantificationLabel, QuantCondition>> getConditionsByLabelsList(QuantificationLabel labelNumerator,
 			QuantificationLabel labelDenominator) {
-		final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
+		final List<Map<QuantificationLabel, QuantCondition>> conditionsByLabelList = new ArrayList<Map<QuantificationLabel, QuantCondition>>();
 
 		// per L/H xml file
-		final Map<QuantCondition, QuantificationLabel> labelsByConditions = new THashMap<QuantCondition, QuantificationLabel>();
+		final Map<QuantificationLabel, QuantCondition> conditionsByLabels = new THashMap<QuantificationLabel, QuantCondition>();
 		// TODO
-		labelsByConditions.put(cond1, labelNumerator);
-		labelsByConditions.put(cond2, labelDenominator);
+		conditionsByLabels.put(labelNumerator, cond1);
+		conditionsByLabels.put(labelDenominator, cond2);
 
 		int max = params.getQuantInputFileNamesArray().length;
 		if (params.getExperimentNames().size() < 2 && params.isLabelSwap()) {
@@ -1922,7 +1912,7 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 		}
 
 		for (int i = 0; i < max; i++) {
-			labelsByConditionsList.add(labelsByConditions);
+			conditionsByLabelList.add(conditionsByLabels);
 		}
 		// labelsByConditionsList.add(labelsByConditions);
 		// labelsByConditionsList.add(labelsByConditions);
@@ -1930,14 +1920,14 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 
 		// per H/L xml file
 		if (params.isLabelSwap()) {
-			final Map<QuantCondition, QuantificationLabel> labelsByConditions2 = new THashMap<QuantCondition, QuantificationLabel>();
-			labelsByConditions2.put(cond1, labelDenominator);
-			labelsByConditions2.put(cond2, labelNumerator);
+			final Map<QuantificationLabel, QuantCondition> labelsByConditions2 = new THashMap<QuantificationLabel, QuantCondition>();
+			labelsByConditions2.put(labelDenominator, cond1);
+			labelsByConditions2.put(labelNumerator, cond2);
 			for (int i = 0; i < max; i++) {
-				labelsByConditionsList.add(labelsByConditions2);
+				conditionsByLabelList.add(labelsByConditions2);
 			}
 		}
-		return labelsByConditionsList;
+		return conditionsByLabelList;
 	}
 
 	/**

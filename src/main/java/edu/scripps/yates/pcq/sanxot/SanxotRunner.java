@@ -59,11 +59,11 @@ public class SanxotRunner {
 		for (final ExperimentFiles experimentFiles : params.getInputQuantificationFileNames()) {
 			final QuantExperiment quantExperiment = new QuantExperiment(experimentFiles.getExperimentName());
 			for (final String replicateFileName : experimentFiles.getRelicateFileNames()) {
-				final Map<QuantCondition, QuantificationLabel> labelsByConditions = pcq
-						.getLabelsByConditions(replicateFileName);
-				final QuantParser quantParser = getQuantParser(replicateFileName, labelsByConditions,
+				final Map<QuantificationLabel, QuantCondition> conditionsByLabels = pcq
+						.getConditionsByLabels(replicateFileName);
+				final QuantParser quantParser = getQuantParser(replicateFileName, conditionsByLabels,
 						peptideInclusionList);
-				final QuantReplicate replicate = new QuantReplicate(replicateFileName, quantParser, labelsByConditions);
+				final QuantReplicate replicate = new QuantReplicate(replicateFileName, quantParser, conditionsByLabels);
 				quantExperiment.addReplicate(replicate);
 			}
 			quantAnalysis.addQuantExperiment(quantExperiment);
@@ -91,10 +91,10 @@ public class SanxotRunner {
 	}
 
 	private QuantParser getQuantParser(String replicateFileName,
-			Map<QuantCondition, QuantificationLabel> labelsByConditions, Set<String> peptideInclusionList)
+			Map<QuantificationLabel, QuantCondition> conditionsByLabels, Set<String> peptideInclusionList)
 			throws FileNotFoundException {
 		final QuantParser parser = PCQUtils.getQuantParser(ProteinClusterQuantParameters.getInstance(),
-				labelsByConditions, replicateFileName, true, peptideInclusionList);
+				conditionsByLabels, replicateFileName, true, peptideInclusionList);
 		return parser;
 	}
 

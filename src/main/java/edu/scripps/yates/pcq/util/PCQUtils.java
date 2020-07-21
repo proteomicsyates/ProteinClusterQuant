@@ -248,7 +248,7 @@ public class PCQUtils {
 	}
 
 	public static CensusChroParser getCensusChroParser(File fastaFile, File inputFileFolder, String[] fileNames,
-			Map<QuantCondition, QuantificationLabel> labelsByConditions, QuantificationLabel numeratorLabel,
+			Map<QuantificationLabel, QuantCondition> conditionsByLabels, QuantificationLabel numeratorLabel,
 			QuantificationLabel denominatorLabel, char[] enzymeArray, int missedCleavages, boolean semiCleavage,
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs,
@@ -257,9 +257,9 @@ public class PCQUtils {
 		if (fileNames == null || fileNames.length == 0) {
 			return null;
 		}
-		final List<Map<QuantCondition, QuantificationLabel>> list = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
+		final List<Map<QuantificationLabel, QuantCondition>> list = new ArrayList<Map<QuantificationLabel, QuantCondition>>();
 		for (int i = 0; i < fileNames.length; i++) {
-			list.add(labelsByConditions);
+			list.add(conditionsByLabels);
 		}
 		return getCensusChroParser(fastaFile, inputFileFolder, fileNames, list, numeratorLabel, denominatorLabel,
 				enzymeArray, missedCleavages, semiCleavage, uniprotReleasesFolder, uniprotVersion, decoyRegexp,
@@ -268,7 +268,7 @@ public class PCQUtils {
 	}
 
 	public static CensusChroParser getCensusChroParser(File fastaFile, File inputFilefolder, String[] fileNames,
-			List<Map<QuantCondition, QuantificationLabel>> labelsByConditions, QuantificationLabel numeratorLabel,
+			List<Map<QuantificationLabel, QuantCondition>> conditionsByLabels, QuantificationLabel numeratorLabel,
 			QuantificationLabel denominatorLabel, char[] enzymeArray, int missedCleavages, boolean semiCleavage,
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs,
@@ -291,7 +291,7 @@ public class PCQUtils {
 			return (CensusChroParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
 
-		final CensusChroParser parser = new CensusChroParser(xmlFiles, labelsByConditions, numeratorLabel,
+		final CensusChroParser parser = new CensusChroParser(xmlFiles, conditionsByLabels, numeratorLabel,
 				denominatorLabel);
 		try {
 			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
@@ -380,7 +380,7 @@ public class PCQUtils {
 	}
 
 	private static CensusOutParser getCensusOutParser(File fastaFile, File inputFilefolder, String[] fileNames,
-			List<Map<QuantCondition, QuantificationLabel>> labelsByConditions, QuantificationLabel numeratorLabel,
+			List<Map<QuantificationLabel, QuantCondition>> conditionsByLabels, QuantificationLabel numeratorLabel,
 			QuantificationLabel denominatorLabel, char[] enzymeArray, int missedCleavages, boolean semiCleavage,
 			File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep, boolean skipSingletons,
@@ -404,7 +404,7 @@ public class PCQUtils {
 		if (!forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (CensusOutParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
-		final CensusOutParser parser = new CensusOutParser(xmlFiles, labelsByConditions, numeratorLabel,
+		final CensusOutParser parser = new CensusOutParser(xmlFiles, conditionsByLabels, numeratorLabel,
 				denominatorLabel);
 		try {
 			// final boolean collapseBySites =
@@ -442,7 +442,7 @@ public class PCQUtils {
 	}
 
 	private static SeparatedValuesParser getSeparatedValuesParser(File fastaFile, File inputFilefolder,
-			String[] fileNames, String separator, List<Map<QuantCondition, QuantificationLabel>> labelsByConditions,
+			String[] fileNames, String separator, List<Map<QuantificationLabel, QuantCondition>> conditionsByLabels,
 			QuantificationLabel numeratorLabel, QuantificationLabel denominatorLabel, char[] enzymeArray,
 			int missedCleavages, boolean semiCleavage, File uniprotReleasesFolder, String uniprotVersion,
 			String decoyRegexp, boolean ignoreNotFoundPeptidesInDB, boolean distinguishModifiedPeptides,
@@ -465,7 +465,7 @@ public class PCQUtils {
 		if (!forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (SeparatedValuesParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
-		final SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, labelsByConditions,
+		final SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, conditionsByLabels,
 				numeratorLabel, denominatorLabel, ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
 		try {
 			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
@@ -561,7 +561,7 @@ public class PCQUtils {
 
 	private static CensusChroParser getCensusChroParserUsingMongoDBIndex(String mongoDBURI, String mongoMassDBName,
 			String mongoSeqDBName, String mongoProtDBName, File inputFilefolder, String[] fileNames,
-			List<Map<QuantCondition, QuantificationLabel>> labelsByConditions, QuantificationLabel numeratorLabel,
+			List<Map<QuantificationLabel, QuantCondition>> conditionsByLabels, QuantificationLabel numeratorLabel,
 			QuantificationLabel denominatorLabel, File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp,
 			boolean ignoreNotFoundPeptidesInDB, boolean distinguishModifiedPeptides, String peptideFilterRegexp,
 			char[] quantifiedAAs, boolean forceCreation) throws FileNotFoundException {
@@ -581,7 +581,7 @@ public class PCQUtils {
 		if (!forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (CensusChroParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
-		final CensusChroParser parser = new CensusChroParser(xmlFiles, labelsByConditions, numeratorLabel,
+		final CensusChroParser parser = new CensusChroParser(xmlFiles, conditionsByLabels, numeratorLabel,
 				denominatorLabel);
 		try {
 			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
@@ -627,7 +627,7 @@ public class PCQUtils {
 
 	private static CensusOutParser getCensusOutParserUsingMongoDBIndex(String mongoDBURI, String mongoMassDBName,
 			String mongoSeqDBName, String mongoProtDBName, File inputFilefolder, String[] fileNames,
-			List<Map<QuantCondition, QuantificationLabel>> labelsByConditions, QuantificationLabel numeratorLabel,
+			List<Map<QuantificationLabel, QuantCondition>> conditionsByLabels, QuantificationLabel numeratorLabel,
 			QuantificationLabel denominatorLabel, File uniprotReleasesFolder, String uniprotVersion, String decoyRegexp,
 			boolean ignoreNotFoundPeptidesInDB, boolean onlyOneSpectrumPerChromatographicPeakAndPerSaltStep,
 			boolean skipSingletons, boolean distinguishModifiedPeptides, String peptideFilterRegexp,
@@ -649,7 +649,7 @@ public class PCQUtils {
 		if (!forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (CensusOutParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
-		final CensusOutParser parser = new CensusOutParser(xmlFiles, labelsByConditions, numeratorLabel,
+		final CensusOutParser parser = new CensusOutParser(xmlFiles, conditionsByLabels, numeratorLabel,
 				denominatorLabel);
 		try {
 			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
@@ -733,7 +733,7 @@ public class PCQUtils {
 
 	private static SeparatedValuesParser getSeparatedValuesParserUsingMongoDBIndex(String mongoDBURI,
 			String mongoMassDBName, String mongoSeqDBName, String mongoProtDBName, File inputFilefolder,
-			String[] fileNames, String separator, List<Map<QuantCondition, QuantificationLabel>> labelsByConditions,
+			String[] fileNames, String separator, List<Map<QuantificationLabel, QuantCondition>> conditionsByLabels,
 			QuantificationLabel numeratorLabel, QuantificationLabel denominatorLabel, File uniprotReleasesFolder,
 			String uniprotVersion, String decoyRegexp, boolean ignoreNotFoundPeptidesInDB,
 			boolean distinguishModifiedPeptides, String peptideFilterRegexp, char[] quantifiedAAs, boolean useFasta,
@@ -755,7 +755,7 @@ public class PCQUtils {
 		if (!forceCreation && quantParsersByFileNamesKey.containsKey(fileNamesKey)) {
 			return (SeparatedValuesParser) quantParsersByFileNamesKey.get(fileNamesKey);
 		}
-		final SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, labelsByConditions,
+		final SeparatedValuesParser parser = new SeparatedValuesParser(xmlFiles, separator, conditionsByLabels,
 				numeratorLabel, denominatorLabel, ProteinClusterQuantParameters.getInstance().ignoreTaxonomies());
 		try {
 			parser.setRetrieveFastaIsoforms(ProteinClusterQuantParameters.getInstance().isCollapseBySites());
@@ -1920,28 +1920,28 @@ public class PCQUtils {
 	}
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
-			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList, boolean useFasta,
+			List<Map<QuantificationLabel, QuantCondition>> conditionsByLabelsList, boolean useFasta,
 			Set<String> peptideInclusionList) throws FileNotFoundException {
-		return getQuantParser(params, labelsByConditionsList, params.getQuantInputFileNamesArray(), useFasta,
+		return getQuantParser(params, conditionsByLabelsList, params.getQuantInputFileNamesArray(), useFasta,
 				peptideInclusionList);
 	}
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
-			List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList, final String[] inputFileNamesArray,
+			List<Map<QuantificationLabel, QuantCondition>> conditionsByLabelsList, final String[] inputFileNamesArray,
 			boolean useFasta, Set<String> peptideInclusionList) throws FileNotFoundException {
 		log.debug("Getting input file parser");
 		if (params.getAnalysisInputType() == AnalysisInputType.CENSUS_CHRO) {
 			if (params.getMongoDBURI() != null && useFasta) {
 				return PCQUtils.getCensusChroParserUsingMongoDBIndex(params.getMongoDBURI(),
 						params.getMongoMassDBName(), params.getMongoSeqDBName(), params.getMongoProtDBName(),
-						params.getInputFileFolder(), inputFileNamesArray, labelsByConditionsList,
+						params.getInputFileFolder(), inputFileNamesArray, conditionsByLabelsList,
 						params.getNumeratorLabel(), params.getDenominatorLabel(), params.getUniprotReleasesFolder(),
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
 						!params.isIgnorePTMs(), params.getPeptideFilterRegexp(), params.getAaQuantified(),
 						params.isForceCreationOfNewParser());
 			} else {
 				return PCQUtils.getCensusChroParser(params.getFastaFile(), params.getInputFileFolder(),
-						inputFileNamesArray, labelsByConditionsList, params.getNumeratorLabel(),
+						inputFileNamesArray, conditionsByLabelsList, params.getNumeratorLabel(),
 						params.getDenominatorLabel(), params.getEnzymeArray(), params.getMissedCleavages(),
 						params.isSemiCleavage(), params.getUniprotReleasesFolder(), params.getUniprotVersion(),
 						params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(), !params.isIgnorePTMs(),
@@ -1952,7 +1952,7 @@ public class PCQUtils {
 			if (params.getMongoDBURI() != null && useFasta) {
 				final CensusOutParser parser = PCQUtils.getCensusOutParserUsingMongoDBIndex(params.getMongoDBURI(),
 						params.getMongoMassDBName(), params.getMongoSeqDBName(), params.getMongoProtDBName(),
-						params.getInputFileFolder(), inputFileNamesArray, labelsByConditionsList,
+						params.getInputFileFolder(), inputFileNamesArray, conditionsByLabelsList,
 						params.getNumeratorLabel(), params.getDenominatorLabel(), params.getUniprotReleasesFolder(),
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
 						params.isOnlyOneSpectrumPerChromatographicPeakAndPerSaltStep(), params.isSkipSingletons(),
@@ -1962,7 +1962,7 @@ public class PCQUtils {
 				return parser;
 			} else {
 				final CensusOutParser parser = PCQUtils.getCensusOutParser(params.getFastaFile(),
-						params.getInputFileFolder(), inputFileNamesArray, labelsByConditionsList,
+						params.getInputFileFolder(), inputFileNamesArray, conditionsByLabelsList,
 						params.getNumeratorLabel(), params.getDenominatorLabel(), params.getEnzymeArray(),
 						params.getMissedCleavages(), params.isSemiCleavage(), params.getUniprotReleasesFolder(),
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
@@ -1978,7 +1978,7 @@ public class PCQUtils {
 				final SeparatedValuesParser parser = PCQUtils.getSeparatedValuesParserUsingMongoDBIndex(
 						params.getMongoDBURI(), params.getMongoMassDBName(), params.getMongoSeqDBName(),
 						params.getMongoProtDBName(), params.getInputFileFolder(), inputFileNamesArray,
-						params.getSeparator(), labelsByConditionsList, params.getNumeratorLabel(),
+						params.getSeparator(), conditionsByLabelsList, params.getNumeratorLabel(),
 						params.getDenominatorLabel(), params.getUniprotReleasesFolder(), params.getUniprotVersion(),
 						params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(), !params.isIgnorePTMs(),
 						params.getPeptideFilterRegexp(), params.getAaQuantified(), useFasta,
@@ -1987,7 +1987,7 @@ public class PCQUtils {
 				return parser;
 			} else {
 				final SeparatedValuesParser parser = PCQUtils.getSeparatedValuesParser(params.getFastaFile(),
-						params.getInputFileFolder(), inputFileNamesArray, params.getSeparator(), labelsByConditionsList,
+						params.getInputFileFolder(), inputFileNamesArray, params.getSeparator(), conditionsByLabelsList,
 						params.getNumeratorLabel(), params.getDenominatorLabel(), params.getEnzymeArray(),
 						params.getMissedCleavages(), params.isSemiCleavage(), params.getUniprotReleasesFolder(),
 						params.getUniprotVersion(), params.getDecoyRegexp(), params.isIgnoreNotFoundPeptidesInDB(),
@@ -2033,14 +2033,14 @@ public class PCQUtils {
 	}
 
 	public static QuantParser getQuantParser(ProteinClusterQuantParameters params,
-			Map<QuantCondition, QuantificationLabel> labelsByConditions, String inputFileName, boolean usefasta,
+			Map<QuantificationLabel, QuantCondition> conditionsByLabels, String inputFileName, boolean usefasta,
 			Set<String> peptideInclusionList) throws FileNotFoundException {
 		log.debug("Getting input file parser");
-		final List<Map<QuantCondition, QuantificationLabel>> labelsByConditionsList = new ArrayList<Map<QuantCondition, QuantificationLabel>>();
-		labelsByConditionsList.add(labelsByConditions);
+		final List<Map<QuantificationLabel, QuantCondition>> conditionsByLabelsList = new ArrayList<Map<QuantificationLabel, QuantCondition>>();
+		conditionsByLabelsList.add(conditionsByLabels);
 		final String[] inputFileNamesArray = new String[1];
 		inputFileNamesArray[0] = inputFileName;
-		return getQuantParser(params, labelsByConditionsList, inputFileNamesArray, usefasta, peptideInclusionList);
+		return getQuantParser(params, conditionsByLabelsList, inputFileNamesArray, usefasta, peptideInclusionList);
 	}
 
 	/**
