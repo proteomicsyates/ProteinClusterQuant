@@ -57,6 +57,7 @@ public class TMTPairWisePCQInputParametersGenerator {
 	public final static String TMT10PLEX = "10PLEX";
 	public final static String TMT6PLEX = "6PLEX";
 	public final static String TMT11PLEX = "11PLEX";
+	public final static String TMT4PLEX = "4PLEX";
 	private static final String TMT_DATA_FILES = "tmt_pairwise_data_files";
 	private static final String PCQ_PARAMETERS = "pcq_parameters";
 	public static final String VS = " vs ";
@@ -418,7 +419,9 @@ public class TMTPairWisePCQInputParametersGenerator {
 
 	private List<QuantificationLabel> getLabelList() {
 		final List<QuantificationLabel> labels = new ArrayList<QuantificationLabel>();
-		if (isTMT6Plex()) {
+		if (isTMT4Plex()) {
+			labels.addAll(QuantificationLabel.getTMT4PlexLabels());
+		} else if (isTMT6Plex()) {
 			labels.addAll(QuantificationLabel.getTMT6PlexLabels());
 		} else if (isTMT10Plex()) {
 			labels.addAll(QuantificationLabel.getTMT10PlexLabels());
@@ -486,6 +489,10 @@ public class TMTPairWisePCQInputParametersGenerator {
 		return TMT6PLEX.equals(tmtType);
 	}
 
+	private boolean isTMT4Plex() {
+		return TMT4PLEX.equals(tmtType);
+	}
+
 	private Map<QuantificationLabel, QuantCondition> generateLabelsByConditions() {
 		final Map<QuantificationLabel, QuantCondition> conditionsByLabels = new THashMap<QuantificationLabel, QuantCondition>();
 		List<QuantificationLabel> labels = null;
@@ -495,6 +502,8 @@ public class TMTPairWisePCQInputParametersGenerator {
 			labels = QuantificationLabel.getTMT6PlexLabels();
 		} else if (TMT11PLEX.equals(tmtType)) {
 			labels = QuantificationLabel.getTMT11PlexLabels();
+		} else if (TMT4PLEX.equals(tmtType)) {
+			labels = QuantificationLabel.getTMT4PlexLabels();
 		}
 		for (final QuantificationLabel label : labels) {
 			switch (label) {
