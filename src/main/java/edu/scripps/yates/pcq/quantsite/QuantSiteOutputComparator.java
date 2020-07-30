@@ -901,6 +901,10 @@ public class QuantSiteOutputComparator {
 				return QuantificationLabel.getTMT10PlexLabels().indexOf(label);
 			} else if (QuantificationLabel.isTMT6PLEX(label)) {
 				return QuantificationLabel.getTMT6PlexLabels().indexOf(label);
+			} else if (QuantificationLabel.isTMT11PLEX(label)) {
+				return QuantificationLabel.getTMT11PlexLabels().indexOf(label);
+			} else if (QuantificationLabel.isTMT4PLEX(label)) {
+				return QuantificationLabel.getTMT4PlexLabels().indexOf(label);
 			}
 		}
 		return -1;
@@ -914,6 +918,10 @@ public class QuantSiteOutputComparator {
 				return QuantificationLabel.getTMT10PlexLabels().indexOf(label);
 			} else if (QuantificationLabel.isTMT6PLEX(label)) {
 				return QuantificationLabel.getTMT6PlexLabels().indexOf(label);
+			} else if (QuantificationLabel.isTMT11PLEX(label)) {
+				return QuantificationLabel.getTMT11PlexLabels().indexOf(label);
+			} else if (QuantificationLabel.isTMT4PLEX(label)) {
+				return QuantificationLabel.getTMT4PlexLabels().indexOf(label);
 			}
 		}
 		return -1;
@@ -1141,6 +1149,10 @@ public class QuantSiteOutputComparator {
 			max = QuantificationLabel.getTMT10PlexLabels().size();
 		} else if (QuantificationLabel.isTMT6PLEX(label)) {
 			max = QuantificationLabel.getTMT6PlexLabels().size();
+		} else if (QuantificationLabel.isTMT11PLEX(label)) {
+			max = QuantificationLabel.getTMT11PlexLabels().size();
+		} else if (QuantificationLabel.isTMT4PLEX(label)) {
+			max = QuantificationLabel.getTMT4PlexLabels().size();
 		}
 		int ret = 0;
 		for (int i2 = 0; i2 < max; i2++) {
@@ -1609,6 +1621,10 @@ public class QuantSiteOutputComparator {
 				return QuantificationLabel.getTMT10PlexLabels().get(tmtIndex).name();
 			} else if (QuantificationLabel.isTMT6PLEX(label)) {
 				return QuantificationLabel.getTMT6PlexLabels().get(tmtIndex).name();
+			} else if (QuantificationLabel.isTMT11PLEX(label)) {
+				return QuantificationLabel.getTMT11PlexLabels().get(tmtIndex).name();
+			} else if (QuantificationLabel.isTMT4PLEX(label)) {
+				return QuantificationLabel.getTMT4PlexLabels().get(tmtIndex).name();
 			}
 		}
 		return null;
