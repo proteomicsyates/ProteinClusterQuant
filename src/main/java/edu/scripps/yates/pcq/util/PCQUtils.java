@@ -1879,9 +1879,6 @@ public class PCQUtils {
 
 	private static Set<String> getKeys(QuantifiedPeptideInterface peptide1) {
 		if (!cachedProteinNodeKeysStringsByQuantifiedPeptide.containsKey(peptide1.hashCode())) {
-			if (peptide1.containsPTMs()) {
-				log.info(peptide1);
-			}
 			final Set<QuantifiedProteinInterface> quantifiedProteins = peptide1.getQuantifiedProteins();
 			final Set<String> accs = getKeys(quantifiedProteins);
 			cachedProteinNodeKeysStringsByQuantifiedPeptide.put(peptide1.hashCode(), accs);
