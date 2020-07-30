@@ -91,22 +91,26 @@ public class PCQBatchRunner {
 
 				if (subline.contains("=")) {
 					final String[] split = subline.split("=");
-					final String property = split[0].trim();
-					final String value = split[1].trim();
-					if (property.equals("inputFiles")) {
-						if (inputFilesLine != null) {
-							runPCQ(paramaterFile, inputFilesLine, inputIDFilesLine, suffixLine, generateXGMMLFiles);
-							// reset params
-							inputFilesLine = value;
-							inputIDFilesLine = null;
-							suffixLine = null;
+					if (split.length == 2) {
+						final String property = split[0].trim();
+						final String value = split[1].trim();
+						if (property.equals("inputFiles")) {
+							if (inputFilesLine != null) {
+								runPCQ(paramaterFile, inputFilesLine, inputIDFilesLine, suffixLine, generateXGMMLFiles);
+								// reset params
+								inputFilesLine = value;
+								inputIDFilesLine = null;
+								suffixLine = null;
+							} else {
+								inputFilesLine = value;
+							}
+						} else if (property.equals("inputIDFiles")) {
+							inputIDFilesLine = value;
+						} else if (property.equals("outputSuffix")) {
+							suffixLine = value;
 						} else {
-							inputFilesLine = value;
+							log.info("line " + numLine + " ignored ('" + subline + "')");
 						}
-					} else if (property.equals("inputIDFiles")) {
-						inputIDFilesLine = value;
-					} else if (property.equals("outputSuffix")) {
-						suffixLine = value;
 					} else {
 						log.info("line " + numLine + " ignored ('" + subline + "')");
 					}
