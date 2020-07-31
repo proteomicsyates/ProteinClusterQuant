@@ -356,9 +356,10 @@ public class PropertiesReader {
 		params.setInputFileFolder(inputFileFolder);
 
 		final String timeStamp = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date());
-		final File outputFileFolder = new File(properties.getProperty("outputFilePath", System.getProperty("user.dir"))
-				+ File.separator + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + File.separator + outputPrefix
-				+ "_" + outputSuffix + "_" + timeStamp);
+		final String outputFilePathProperty = properties.getProperty("outputFilePath", System.getProperty("user.dir"));
+		params.setOutputFilePath(outputFilePathProperty);
+		final File outputFileFolder = new File(outputFilePathProperty + File.separator + timeStamp + File.separator
+				+ outputPrefix + "_" + outputSuffix + "_" + timeStamp);
 		final File temporalOutputFolder = new File(outputFileFolder.getAbsolutePath() + "_TEMP");
 		params.setTemporalOutputFolder(temporalOutputFolder);
 		if (!temporalOutputFolder.exists()) {

@@ -2,10 +2,14 @@ package edu.scripps.yates.pcq.params;
 
 import java.awt.Color;
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.log4j.Logger;
 
 import edu.scripps.yates.annotations.uniprot.proteoform.UniprotProteoformRetriever;
 import edu.scripps.yates.annotations.uniprot.proteoform.xml.UniprotProteoformRetrieverFromXML;
@@ -30,7 +34,7 @@ import edu.scripps.yates.utilities.proteomicsmodel.utils.ModelUtils;
 import gnu.trove.map.hash.THashMap;
 
 public class ProteinClusterQuantParameters {
-
+	private final static Logger log = Logger.getLogger(ProteinClusterQuantParameters.class);
 	private static final boolean DEFAULT_DISTINGUISH_MODIFIED_SEQUENCE = true;
 	private static final boolean DEFAULT_CHARGE_STATE_SENSIBLE = true;
 	private boolean labelSwap;
@@ -119,6 +123,7 @@ public class ProteinClusterQuantParameters {
 	private boolean writePSEAQuantInputFiles;
 	private boolean forceCreationOfNewParser = false;// by default
 	private boolean createProteinPTMStates;
+	private String outputFilePath;
 
 	private ProteinClusterQuantParameters() {
 		quantParameters = new QuantParameters();
@@ -373,8 +378,29 @@ public class ProteinClusterQuantParameters {
 	}
 
 	public void setOutputSuffix(String outputSuffix) {
-		if (outputSuffix != null)
+		if (outputSuffix != null) {
 			this.outputSuffix = outputSuffix.trim();
+		}
+		if (this.outputPrefix != null && this.outputSuffix != null && getOutputFilePath() != null) {
+			final String timeStamp = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date());
+			final File outputFileFolder = new File(getOutputFilePath() + File.separator + timeStamp + File.separator
+					+ outputPrefix + "_" + outputSuffix + "_" + timeStamp);
+			final File temporalOutputFolder = new File(outputFileFolder.getAbsolutePath() + "_TEMP");
+			setTemporalOutputFolder(temporalOutputFolder);
+			if (!temporalOutputFolder.exists()) {
+				// create it
+				log.info("Creating temporal output folder at: " + temporalOutputFolder.getAbsolutePath());
+				temporalOutputFolder.mkdirs();
+			}
+		}
+	}
+
+	private String getOutputFilePath() {
+		return outputFilePath;
+	}
+
+	public void setOutputFilePath(String outputFilePath) {
+		this.outputFilePath = outputFilePath;
 	}
 
 	public void setLightSpecies(String lightSpecies) {
