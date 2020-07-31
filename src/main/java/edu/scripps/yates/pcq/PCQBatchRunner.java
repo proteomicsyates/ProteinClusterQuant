@@ -92,27 +92,23 @@ public class PCQBatchRunner {
 				sublines.add(line);
 			}
 			for (final String subline : sublines) {
-
-				if (subline.contains("=")) {
+				if (subline.toLowerCase().startsWith(RUN_SEPARATOR.toLowerCase())) {
+					if (inputFilesLine != null || inputIDFilesLine != null) {
+						runPCQ(paramaterFile, inputFilesLine, inputIDFilesLine, suffixLine, generateXGMMLFiles);
+					}
+					// reset params
+					inputFilesLine = null;
+					inputIDFilesLine = null;
+					suffixLine = null;
+				} else if (subline.contains("=")) {
 					final String[] split = subline.split("=");
 					if (split.length == 2) {
 						final String property = split[0].trim();
 						final String value = split[1].trim();
-						if (property.toLowerCase().startsWith(RUN_SEPARATOR)) {
-							if (inputFilesLine != null || inputIDFilesLine != null) {
-								runPCQ(paramaterFile, inputFilesLine, inputIDFilesLine, suffixLine, generateXGMMLFiles);
-							}
-							// reset params
-							inputFilesLine = null;
-							inputIDFilesLine = null;
-							suffixLine = null;
-						} else if (property.equals(INPUT_FILES)) {
-
+						if (property.equals(INPUT_FILES)) {
 							inputFilesLine = value;
-
 						} else {
 							if (property.equals(INPUT_ID_FILES)) {
-
 								inputIDFilesLine = value;
 							} else {
 								if (property.equals(OUTPUT_SUFFIX)) {
