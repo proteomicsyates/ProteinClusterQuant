@@ -382,16 +382,15 @@ public class ProteinClusterQuantParameters {
 			this.outputSuffix = outputSuffix.trim();
 		}
 		if (this.outputPrefix != null && this.outputSuffix != null && getOutputFilePath() != null) {
-			final String timeStamp = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date());
+			final String timeStamp = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+			final String timeStamp2 = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss").format(new Date());
 			final File outputFileFolder = new File(getOutputFilePath() + File.separator + timeStamp + File.separator
-					+ outputPrefix + "_" + outputSuffix + "_" + timeStamp);
+					+ outputPrefix + "_" + outputSuffix + "_" + timeStamp2);
 			final File temporalOutputFolder = new File(outputFileFolder.getAbsolutePath() + "_TEMP");
 			setTemporalOutputFolder(temporalOutputFolder);
-			if (!temporalOutputFolder.exists()) {
-				// create it
-				log.info("Creating temporal output folder at: " + temporalOutputFolder.getAbsolutePath());
-				temporalOutputFolder.mkdirs();
-			}
+			final File outputFolder = new File(outputFileFolder.getAbsolutePath());
+			setOutputFileFolder(outputFolder);
+
 		}
 	}
 
@@ -513,6 +512,11 @@ public class ProteinClusterQuantParameters {
 	 * @return the temporalOutputFolder
 	 */
 	public File getTemporalOutputFolder() {
+		if (temporalOutputFolder != null && !temporalOutputFolder.exists()) {
+			// create it
+			log.info("Creating temporal output folder at: " + temporalOutputFolder.getAbsolutePath());
+			temporalOutputFolder.mkdirs();
+		}
 		return temporalOutputFolder;
 	}
 
