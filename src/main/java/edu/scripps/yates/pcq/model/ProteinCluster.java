@@ -121,7 +121,7 @@ public class ProteinCluster {
 							}
 						}
 						if (!found) {
-							log.info(protein + " found " + found);
+							log.warn(protein + " found " + found);
 						}
 					}
 					// if (peptide.getPtms().isEmpty()) {

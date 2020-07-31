@@ -98,7 +98,7 @@ public class PCQBatchRunner {
 					if (split.length == 2) {
 						final String property = split[0].trim();
 						final String value = split[1].trim();
-						if (property.equalsIgnoreCase(RUN_SEPARATOR)) {
+						if (property.toLowerCase().startsWith(RUN_SEPARATOR)) {
 							if (inputFilesLine != null || inputIDFilesLine != null) {
 								runPCQ(paramaterFile, inputFilesLine, inputIDFilesLine, suffixLine, generateXGMMLFiles);
 							}
