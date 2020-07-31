@@ -1280,4 +1280,9 @@ public class ProteinClusterQuantParameters {
 	public boolean isChargeStateSensible() {
 		return DEFAULT_CHARGE_STATE_SENSIBLE;
 	}
+
+	public static ProteinClusterQuantParameters getNewInstance() {
+		instance = new ProteinClusterQuantParameters();
+		return instance;
+	}
 }

@@ -103,6 +103,15 @@ public class PCQUtils {
 	public static String[] PTM_CODES = { "*", "@", "^", "&", "#", "%", "!" };
 	private static Map<Double, String> ptmCodesByDeltaMass = new THashMap<Double, String>();
 
+	public static void clear() {
+		cachedProteinNodeAccessionStringsByPeptideNode.clear();
+		dtaSelectParsersByFileNamesKey.clear();
+		quantParsersByFileNamesKey.clear();
+		proteinSequences.clear();
+		ptmCodesByDeltaMass.clear();
+		indexByFastaIndexKey.clear();
+	}
+
 	public static String getPTMCodeByDeltaMass(double delta) {
 		if (!ptmCodesByDeltaMass.containsKey(delta)) {
 			// look for a new one

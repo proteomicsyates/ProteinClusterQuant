@@ -121,7 +121,9 @@ public class ProteinCluster {
 							}
 						}
 						if (!found) {
-							log.warn(protein + " found " + found);
+							log.error(protein + " found " + found);
+							throw new IllegalArgumentException(
+									"Data incosistency detected. Please contact salvador at scripps.edu with this error");
 						}
 					}
 					// if (peptide.getPtms().isEmpty()) {
@@ -917,6 +919,7 @@ public class ProteinCluster {
 				}
 			}
 		} else {
+
 			// only one protein
 			// create a protein node for the protein
 			// protein node for protein1

@@ -1954,10 +1954,7 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 			if (!"".equals(printIfNecessary)) {
 				log.info(printIfNecessary + " peptides clustered");
 			}
-			if (peptide.getSequence().equals("TNVPWNSSW")
-					|| peptide.getFullSequence().equals("TNVPWN(203.079373)SSW")) {
-				log.info("asdf");
-			}
+
 			// discard if contains ptms and we want to ignore them
 			if (params.isIgnorePTMs() && peptide.containsPTMs()) {
 				DiscardedPeptidesSet.getInstance().add(peptide, DISCARD_REASON.CONTAINING_PTM);
@@ -2059,9 +2056,6 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 			final Set<QuantifiedProteinInterface> proteinSet = peptide.getQuantifiedProteins();
 			for (final QuantifiedProteinInterface protein : proteinSet) {
 				proteinACCs.add(protein.getAccession());
-				if (protein.getAccession().equals("P04836")) {
-					log.info("asdf");
-				}
 				// put protein in cluster
 				cluster.addIndividualQuantifiedProtein(protein);
 

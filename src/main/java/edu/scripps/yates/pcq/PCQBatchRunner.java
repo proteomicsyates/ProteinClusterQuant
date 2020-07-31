@@ -15,8 +15,10 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 
+import edu.scripps.yates.census.read.model.StaticQuantMaps;
 import edu.scripps.yates.pcq.params.PropertiesReader;
 import edu.scripps.yates.pcq.params.ProteinClusterQuantParameters;
+import edu.scripps.yates.pcq.util.PCQUtils;
 import edu.scripps.yates.utilities.appversion.AppVersion;
 import gnu.trove.map.hash.THashMap;
 
@@ -175,9 +177,14 @@ public class PCQBatchRunner {
 			boolean generateXGMMLFiles2, File outputFolder) throws IOException {
 		log.info("Running PCQ with:\ninputFiles=" + inputFilesLine + "\ninputIDFiles=" + inputIDFilesLine
 				+ "\noutputSuffix=" + suffixLine + "\ngenerateXGMML=" + generateXGMMLFiles2);
+		// clear static resources from PCQUtils
+		PCQUtils.clear();
+		// clear static resources to not carry over data from run to run
+		StaticQuantMaps.clearInfo();
+
+		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getNewInstance();
 		// this sets the pcq parameters
 		PropertiesReader.readProperties(parameterFile, true);
-		final ProteinClusterQuantParameters params = ProteinClusterQuantParameters.getInstance();
 		params.setForceCreationOfNewParser(false);
 		params.clearInputIdentificationFiles();
 		params.clearInputQuantificationFiles();

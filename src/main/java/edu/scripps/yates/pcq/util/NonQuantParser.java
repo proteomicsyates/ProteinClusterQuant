@@ -40,6 +40,7 @@ public class NonQuantParser extends AbstractQuantParser {
 		setIgnoreTaxonomies(dtaSelectParser.isIgnoreTaxonomies());
 		setRetrieveFastaIsoforms(dtaSelectParser.isRetrieveFastaIsoforms());
 		setIgnoreACCFormat(dtaSelectParser.isIgnoreACCFormat());
+
 		// do not clear static maps, in order to get the same objects than a
 		// previous quantparser
 		super.clearStaticMapsBeforeReading = false;
