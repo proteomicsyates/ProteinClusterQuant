@@ -47,6 +47,9 @@ public class PropertiesReader {
 			return prop;
 		} catch (final IOException e) {
 			throw e;
+		} catch (final IllegalArgumentException e) {
+			throw new IllegalArgumentException("Error reading properties file '" + setupPropertiesFile.getAbsolutePath()
+					+ "'. One common error is to write file paths with '\' (for windows). Use '\\' or '/' instead and try again");
 		}
 	}
 

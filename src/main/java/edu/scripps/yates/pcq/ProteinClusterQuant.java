@@ -2147,9 +2147,6 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 				while (iterator.hasNext()) {
 					final Fasta fastaEntry = iterator.next();
 					final String accession = fastaEntry.getAccession();
-					if (accession.equals("contaminant_KERATIN03")) {
-						log.info(fastaEntry);
-					}
 					if (fastaEntry.isProteoform()) {
 						final String originalACC = FastaParser.getUniProtACC(accession);
 						if (proteinACCs.contains(originalACC)) {

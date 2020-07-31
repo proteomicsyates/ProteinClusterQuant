@@ -9,9 +9,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 
@@ -25,12 +25,16 @@ public class PCQBatchRunner {
 	private final Map<String, File> pcqParametersFilesMap = new THashMap<String, File>();
 	private boolean generateXGMMLFiles = true;
 	private static final String PCQ_BATCH_RESULTING_LOG_FILE = "QuantSiteOutputComparator_input_file.txt";
+	public static final String INPUT_ID_FILES = "inputIDFiles";
+	public static final String INPUT_FILES = "inputFiles";
+	public static final String OUTPUT_SUFFIX = "outputSuffix";
+	public static final String RUN_SEPARATOR = "Experiment";
 
 	public static void main(String[] args) {
 		final AppVersion version = ProteinClusterQuant.getVersion();
 		System.out.println("Running ProteinClusterQuant (PCQ) version " + version.toString() + " in batch mode");
 		ProteinClusterQuant.setupCommandLineOptions(true);
-		final CommandLineParser parser = new BasicParser();
+		final CommandLineParser parser = new DefaultParser();
 		try {
 			final CommandLine cmd = parser.parse(ProteinClusterQuant.options, args);
 			if (cmd.getOptionValue("f") == null) {
@@ -47,7 +51,7 @@ public class PCQBatchRunner {
 				throw new Exception("Provide batch file with 'bf' option");
 			}
 			final File batchFile = new File(cmd.getOptionValue("bf"));
-			log.info("Using setup.properties file at: " + propertiesFilePath);
+			log.info("Using properties file at: " + propertiesFilePath);
 			log.info("Using batch file at: " + batchFile.getAbsolutePath());
 			final File setupPropertiesFile = new File(propertiesFilePath);
 
@@ -94,22 +98,42 @@ public class PCQBatchRunner {
 					if (split.length == 2) {
 						final String property = split[0].trim();
 						final String value = split[1].trim();
-						if (property.equals("inputFiles")) {
-							if (inputFilesLine != null) {
+						if (property.equalsIgnoreCase(RUN_SEPARATOR)) {
+							if (inputFilesLine != null || inputIDFilesLine != null) {
+								runPCQ(paramaterFile, inputFilesLine, inputIDFilesLine, suffixLine, generateXGMMLFiles);
+							}
+							// reset params
+							inputFilesLine = null;
+							inputIDFilesLine = null;
+							suffixLine = null;
+						} else if (property.equals(INPUT_FILES)) {
+							if (inputFilesLine != null || inputIDFilesLine != null) {
 								runPCQ(paramaterFile, inputFilesLine, inputIDFilesLine, suffixLine, generateXGMMLFiles);
 								// reset params
-								inputFilesLine = value;
+								inputFilesLine = null;
 								inputIDFilesLine = null;
 								suffixLine = null;
-							} else {
-								inputFilesLine = value;
 							}
-						} else if (property.equals("inputIDFiles")) {
-							inputIDFilesLine = value;
-						} else if (property.equals("outputSuffix")) {
-							suffixLine = value;
+							inputFilesLine = value;
+
 						} else {
-							log.info("line " + numLine + " ignored ('" + subline + "')");
+							if (property.equals(INPUT_ID_FILES)) {
+								if (inputIDFilesLine != null) {
+									runPCQ(paramaterFile, inputFilesLine, inputIDFilesLine, suffixLine,
+											generateXGMMLFiles);
+									// reset params
+									inputFilesLine = null;
+									inputIDFilesLine = null;
+									suffixLine = null;
+								}
+								inputIDFilesLine = value;
+							} else {
+								if (property.equals(OUTPUT_SUFFIX)) {
+									suffixLine = value;
+								} else {
+									log.info("line " + numLine + " ignored ('" + subline + "')");
+								}
+							}
 						}
 					} else {
 						log.info("line " + numLine + " ignored ('" + subline + "')");
@@ -119,9 +143,11 @@ public class PCQBatchRunner {
 				}
 			}
 		}
-
-		if (inputFilesLine != null) {
+		// launching the last one
+		if (inputFilesLine != null || inputIDFilesLine != null) {
 			runPCQ(paramaterFile, inputFilesLine, inputIDFilesLine, suffixLine, generateXGMMLFiles);
+		} else {
+			throw new IllegalArgumentException("inputIDFiles or inputFiles not found in batch file");
 		}
 	}
 

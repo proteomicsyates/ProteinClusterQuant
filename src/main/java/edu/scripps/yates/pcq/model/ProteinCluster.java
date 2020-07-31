@@ -142,9 +142,6 @@ public class ProteinCluster {
 		peptides.addAll(individualQuantifiedPeptideSet);
 		final Set<String> set = new THashSet<String>();
 		for (final QuantifiedPeptideInterface pep : peptides) {
-			if (pep.getSequence().equals("FEELCSDLFR")) {
-				log.info(pep);
-			}
 			if (set.contains(pep.getKey())) {
 				log.info("Inconsistency error. 2 peptides with the same key cannot exist!");
 			} else {
