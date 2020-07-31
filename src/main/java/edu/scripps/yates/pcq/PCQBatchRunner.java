@@ -107,25 +107,12 @@ public class PCQBatchRunner {
 							inputIDFilesLine = null;
 							suffixLine = null;
 						} else if (property.equals(INPUT_FILES)) {
-							if (inputFilesLine != null || inputIDFilesLine != null) {
-								runPCQ(paramaterFile, inputFilesLine, inputIDFilesLine, suffixLine, generateXGMMLFiles);
-								// reset params
-								inputFilesLine = null;
-								inputIDFilesLine = null;
-								suffixLine = null;
-							}
+
 							inputFilesLine = value;
 
 						} else {
 							if (property.equals(INPUT_ID_FILES)) {
-								if (inputIDFilesLine != null) {
-									runPCQ(paramaterFile, inputFilesLine, inputIDFilesLine, suffixLine,
-											generateXGMMLFiles);
-									// reset params
-									inputFilesLine = null;
-									inputIDFilesLine = null;
-									suffixLine = null;
-								}
+
 								inputIDFilesLine = value;
 							} else {
 								if (property.equals(OUTPUT_SUFFIX)) {
