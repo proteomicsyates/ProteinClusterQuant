@@ -182,4 +182,9 @@ public class NonQuantParser extends AbstractQuantParser {
 
 		}
 	}
+
+	@Override
+	public boolean canRead() {
+		return true;
+	}
 }

@@ -17,9 +17,9 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
@@ -199,7 +199,7 @@ public class ProteinClusterQuant extends javax.swing.SwingWorker<ProteinClusterQ
 		final AppVersion version = ProteinClusterQuant.getVersion();
 		System.out.println("Running ProteinClusterQuant (PCQ) version " + version.toString());
 		setupCommandLineOptions(false);
-		final CommandLineParser parser = new BasicParser();
+		final CommandLineParser parser = new DefaultParser();
 		try {
 			final CommandLine cmd = parser.parse(options, args);
 			if (cmd.getOptionValue("f") == null) {
