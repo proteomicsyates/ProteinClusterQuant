@@ -48,6 +48,7 @@ public class PropertiesReader {
 		} catch (final IOException e) {
 			throw e;
 		} catch (final IllegalArgumentException e) {
+			e.printStackTrace();
 			throw new IllegalArgumentException("Error reading properties file '" + setupPropertiesFile.getAbsolutePath()
 					+ "'. One common error is to write file paths with '\' (for windows). Use '\\' or '/' instead and try again");
 		}
@@ -422,7 +423,7 @@ public class PropertiesReader {
 				final String[] split = colorsByTax.split(",");
 				for (int i = 0; i < split.length; i = i + 2) {
 					final String tax = split[i];
-					final String colorString = split[i + 1];
+					final String colorString = split[i + 1].trim();
 
 					colorManager.addColorByTaxonomy(tax, colorString);
 				}
