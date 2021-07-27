@@ -3,3 +3,5 @@ target/
 .project
 .settings/
 /logs/
+/sanxot_cmds.log
+/setup_DmDv.properties
